@@ -34,8 +34,9 @@
     <link href="{% static 'css/buttons.css' %}" rel="stylesheet" type="text/css" />
 
     <script>
-        veg_type_state_classes_json = {{veg_type_state_classes_json | safe}}
-        probabilistic_transitions_json = {{probabilistic_transitions_json | safe}}
+        veg_type_state_classes_json = {{ veg_type_state_classes_json | safe }};
+        probabilistic_transitions_json = {{ probabilistic_transitions_json | safe }};
+        scenario_types_json = {{ scenarios_json | safe }};
         static_url="/static/"
     </script>
 
@@ -54,6 +55,8 @@
                 <div class="steps">2. Specify Initial Vegetation Cover</div>
                 <table id="vegTypeSliderTable" class="sliderTable"></table>
                 <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">0%</div></div>
+            </div>
+            <div style="display:none" id="input_probabilistic_transitions">
                 <div class="steps">3. Annual Disturbance Probabilities</div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
                 <!--
@@ -66,12 +69,8 @@
             <div style="display:none" id="input_management_scenario">
                 <div class="steps">4.&nbsp;Choose a Management Scenario</div>
                 <form method="post">
-                    <input type="radio" name="scenario" value="10" checked><label for="10" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper.">Current Management </label><br>
-                    <input type="radio" name="scenario" value="188"><label for="188" class="scenario_radio_label" id="No management actions take place in this scenario.">No Management </label><br>
-                    <input type="radio" name="scenario" value="190"><label for="190" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper. Only treatements are in the montane upland sagebrush stratum (200 ac/year).">Minimum Management </label><br>
-                    <input type="radio" name="scenario" value="191"><label for="191" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper with an additional 450 acres per year of focusing on late seral reference sites to prevent tree encroachment in these areas.">Double Current Management Budget</label><br>
+                    <div id="management_scenario_radios"></div>
                 </form>
-                <div id="initial_conditions"></div>
                 <input id="run_button" style="display:none" value="Total Percent Cover Must Equal 100%" class="disabled my-button my-button-ok" type="submit">
             </div>
 
