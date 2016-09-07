@@ -17,21 +17,18 @@ stsim = STSimConsole(lib_path=settings.ST_SIM_WORKING_LIB,
                      orig_lib_path=settings.ST_SIM_ORIG_LIB,
                      exe=settings.ST_SIM_EXE)
 
-# TODO - need a way to initialize various stsim consoles
-spatial_stsim = STSimConsole(
-    lib_path=os.path.join(settings.ST_SIM_WORKING_DIR, 'libraries', 'ST-Sim-Spatial-Sample-V2-4-6.ssim'),
-    orig_lib_path=os.path.join(settings.ST_SIM_WORKING_DIR, 'libraries', 'ST-Sim-Spatial-Sample-V2-4-6_orig.ssim'),
-    exe=settings.ST_SIM_EXE)
 default_run_control_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'run_control', 'run_ctrl.csv')
 
 # Defaults for this library. Run once and hold in memory.
 default_sid = stsim.list_scenarios()[0]
 default_sc_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'state_classes', 'state_classes.csv')
-default_transitions_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'probabilistic_transitions', 'original','prob_trans.csv')
+default_transitions_path = os.path.join(settings.ST_SIM_WORKING_DIR,
+                                        'probabilistic_transitions', 'original', 'prob_trans.csv')
 all_veg_state_classes = stsim.export_veg_state_classes(default_sid,
                                                        state_class_path=default_sc_path)
 all_transition_types = stsim.export_probabilistic_transitions_types(default_sid,
                                                                     transitions_path=default_transitions_path)
+all_scenario_names = stsim.list_scenario_names(orig=True)
 
 
 class HomepageView(TemplateView):
@@ -57,6 +54,16 @@ class HomepageView(TemplateView):
 
         probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
         context['probabilistic_transitions_json'] = json.dumps(probabilistic_transition_dict)
+
+        # scenario ids
+        spatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' in scenario['name']]
+        nonspatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' not in scenario['name']]
+
+        context['scenarios_json'] = json.dumps({
+            'spatial': spatial_sids,
+            'nonspatial': nonspatial_sids
+        })
+
         return context
 
 
@@ -83,17 +90,18 @@ class STSimSpatialStats(View):
         data = dict()
         if self.data_type == 'veg':
 
-            data = spatial_stsim.export_vegtype_definitions(
+            data = stsim.export_vegtype_definitions(
                 pid=self.project_id,
                 working_path=default_sc_path,
                 orig=True)
 
         elif self.data_type == 'stateclass':
 
-            data = spatial_stsim.export_stateclass_definitions(
+            data = stsim.export_stateclass_definitions(
                 pid=self.project_id,
                 working_path=default_sc_path,
                 orig=True)
+
         return JsonResponse({
             'data': {name: data[name]['ID'] for name in data.keys()}
             })
@@ -129,7 +137,7 @@ class STSimSpatialOutputs(View):
         elif self.timestep == 0 or self.timestep == '0':
             image_path = os.path.join(image_directory, 'stateclass_0.png')   # TODO - ^^
         else:
-            image_path = os.path.join(spatial_stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
+            image_path = os.path.join(stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
                                       'Spatial', 'stateclass_{timestep}.png'.format(timestep=self.timestep))
 
         response = HttpResponse(content_type="image/png")
@@ -156,29 +164,30 @@ class STSimSpatialRunnerView(View):
         }
 
         # set the run control for the spatial model
-        spatial_stsim.update_run_control(
+        stsim.update_run_control(
             sid=self.scenario_id, working_path=default_run_control_path,
             spatial=True, iterations=0, start_timestep=0, end_timestep=20
         )
 
-        spatial_stsim.set_output_options(self.scenario_id, default_run_control_path,
+        # update the output options for the step size
+        stsim.set_output_options(self.scenario_id, default_run_control_path,
                                          SummaryOutputSC=True, SummaryOutputSCTimesteps=1,
                                          SummaryOutputTR=True, SummaryOutputTRTimesteps=1,
                                          RasterOutputSC=True, RasterOutputSCTimesteps=1)
 
-        # run spatial stsim model at self.scenario_id
-        result_scenario_id = spatial_stsim.run_model(sid=self.scenario_id)
+        # run spatial stsim model at self.scenario_id and return the result scenario id
+        result_scenario_id = stsim.run_model(sid=self.scenario_id)
         run_config['result_scenario_id'] = result_scenario_id
 
         # process each output raster in the output directory
-        stateclass_definitions = spatial_stsim.export_stateclass_definitions(
+        stateclass_definitions = stsim.export_stateclass_definitions(
             pid=self.project_id,
             working_path=default_sc_path,
             orig=True
         )
 
         texture_utils.process_stateclass_directory(
-            dir_path=os.path.join(spatial_stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
+            dir_path=os.path.join(stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
             sc_defs=stateclass_definitions
         )
 

@@ -119,6 +119,30 @@ function show_input_options (){
     });
 
     $("#input_initial_veg").show();
+    $("#input_probabilistic_transitions").show();
+
+    // configure the input_management_scenario div to show the correct values for available scenario IDs
+    var scenario_types;
+    if (landscape_viewer.isSpatial()) {
+        scenario_types = scenario_types_json['spatial']
+    }
+    else {
+        scenario_types = scenario_types_json['nonspatial']
+    }
+    $("#management_scenario_radios").empty();
+    $.each(scenario_types, function(key, value) {
+        console.log(key);
+        console.log(value);
+        var name = value.name;
+        var sid = value.sid;
+        var checked = (key == 0) ? " checked" : "";
+        $("#management_scenario_radios").append(
+            "<input type='radio' name='scenario' value='" + sid + "'" + checked + ">" +
+            "<label for='" + sid +
+            "' class='scenario_radio_label' id='This is the description for this scenario.'>" +
+            name + "</label><br>"
+        )
+    });
     $("#input_management_scenario").show();
 
     $("#run_button").on("click", function(){
@@ -580,7 +604,7 @@ function activate_spatial_scene() {
     show_input_options();
 
     // override various things since we are testing
-    $('#input_initial_veg').hide();
+    $('#input_initial_veg').addClass("disabled");
     $('#run_button').removeClass("disabled");
     $('input:submit').attr("disabled", false);
     $("#run_button").val('Run Model');
