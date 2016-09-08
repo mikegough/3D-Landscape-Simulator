@@ -798,7 +798,7 @@ define("app", ["require", "exports", "globals", "terrain", "veg", "spatialveg", 
         let _project_id;
         let srcSpatialPath = 'spatial/height/';
         let statsSpatialPath = srcSpatialPath + 'stats/';
-        let srcSpatialTextureBase = 'spatial/outputs/'; // scenario/data_type/timestep
+        let srcSpatialTextureBase = 'outputs/'; // scenario/data_type/timestep
         // setup the THREE scene
         const container = document.getElementById(container_id);
         const scene = new THREE.Scene();
@@ -966,7 +966,7 @@ define("app", ["require", "exports", "globals", "terrain", "veg", "spatialveg", 
                 ],
                 statistics: [
                     { name: 'spatial_stats', url: statsSpatialPath },
-                    { name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/' + scenario_id + '/veg/' }
+                    { name: 'veg_class_stats', url: 'stats/' + project_id + '/' + scenario_id + '/veg/' }
                 ],
             }, function (loadedAssets) {
                 spatialAssets = loadedAssets;
@@ -1217,6 +1217,7 @@ define("app", ["require", "exports", "globals", "terrain", "veg", "spatialveg", 
             renderer.setSize(container.offsetWidth, container.offsetHeight);
             camera.aspect = container.offsetWidth / container.offsetHeight;
             camera.updateProjectionMatrix();
+            render();
         }
         function isInitialized() {
             return initialized;

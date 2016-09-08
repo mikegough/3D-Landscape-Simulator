@@ -133,7 +133,7 @@ function show_input_options (){
     $.each(scenario_types, function(key, value) {
         var name = value.name;
         var sid = value.sid;
-        var checked = (key == 0) ? " checked" : "";
+        var checked = (name.includes('Current') && !name.includes('Double')) ? " checked" : "";
         $("#management_scenario_radios").append(
             "<input type='radio' name='scenario' value='" + sid + "'" + checked + ">" +
             "<label for='" + sid +
@@ -141,8 +141,7 @@ function show_input_options (){
             name + "</label><br>"
         )
     });
-    $("#input_management_scenario").show();
-
+    //$("#input_management_scenario").show();
     $("#run_button").on("click", function(){
             run_st_sim(feature_id)
         }
@@ -179,121 +178,70 @@ function run_st_sim(feature_id) {
         $("#running_st_sim").show()
     });
     //$("#results_table").empty()
-    $("#output").show()
-    $("#running_st_sim").html("Running ST-Sim...")
-    $("#results_loading").html("<img src='/static/img/spinner.gif'>")
-    var scenario = $("input[name=scenario]:checked").val()
+    $("#output").show();
+    $("#running_st_sim").html("Running ST-Sim...");
+    $("#results_loading").html("<img src='/static/img/spinner.gif'>");
+    //var scenario = $("input[name=scenario]:checked").val();
+    var scenario = (landscape_viewer.isSpatial()) ? '210' : '264';  // TODO - remove after demo
+    var project = '2';  // hard code since we are working with exactly one project, castle creek
+    var user_defined_run_parameters = {
+        'min_step': 0,
+        'max_step': 20, // TODO - let the user define this as the number of years to run the model for
+        'step_size': 1,
+        'iterations': iteration,
+        'spatial': landscape_viewer.isSpatial(),
+        'veg_slider_values_state_class': JSON.stringify(veg_slider_values_state_class),
+        'probabilistic_transitions_slider_values': JSON.stringify(probabilistic_transitions_slider_values)
+    };
+    $.ajax({
+        url: "/run_st_sim/" + project + '/' + scenario + '/',
+        type: "POST",
+        data: user_defined_run_parameters,
+        success: function(json) {
+            $("#results_loading").empty();
+            var response = JSON.parse(json);
+            var run_config = {  // hardcoded since we know what to set
+                'min_step': user_defined_run_parameters.min_step,
+                'max_step': user_defined_run_parameters.max_step,
+                'step_size': user_defined_run_parameters.step_size,
+                'result_scenario_id': response['result_scenario_id']
+            };
+            results_data_json = JSON.parse(response["results_json"]);
+            var scenario_label = $("input:checked + label").text();
 
-    if (landscape_viewer.isSpatial()) {
-        // spatial run
-        var project = '2';  // hard code since we are working with exactly one project, castle creek
-        var user_defined_run_parameters = {  // hardcoded since we know what to set
-            'min_step': 0,
-            'max_step': 20, // TODO - let the user define this as the number of years to run the model for
-            'step_size': 1,
-            'iterations': iteration,
-            'spatial': landscape_viewer.isSpatial(),
-            'veg_slider_values_state_class': JSON.stringify(veg_slider_values_state_class),
-            'probabilistic_transitions_slider_values': JSON.stringify(probabilistic_transitions_slider_values)
-        };
-        $.ajax({
-            url: "/spatial/run_st_sim/" + project + '/' + scenario + '/',
-            type: "POST",
-            data: user_defined_run_parameters,
-            success: function(json) {
-                $("#results_loading").empty();
-                var response = JSON.parse(json);
-                var run_config = {  // hardcoded since we know what to set
-                    'min_step': user_defined_run_parameters.min_step,
-                    'max_step': user_defined_run_parameters.max_step,
-                    'step_size': user_defined_run_parameters.step_size,
-                    'result_scenario_id': response['result_scenario_id']
-                };
+            $("#tab_container").css("display", "block");
+            update_results_table(scenario_label, timestep, run);
+            
+            // update viewer
+            if (landscape_viewer.isSpatial()) {
                 landscape_viewer.updateSpatialVegetation(run_config);
-                results_data_json = JSON.parse(response["results_json"])
-                var scenario_label = $("input:checked + label").text();
-
-
-                $("#tab_container").css("display", "block")
-                update_results_table(scenario_label, timestep, run)
-
-                //landscape_viewer.updateVegetation(results_data_json_totals)
-                previous_feature_id = feature_id
-
-                create_area_charts(results_data_json, run)
-
-                document.getElementById("view" + run + "_link").click()
-
-                // Maximum of 4 model runs
-                if (run == 4) {
-                    run = 1;
-                }
-                else {
-                    run += 1;
-                }
-            },
-            // handle a non-successful response
-            error: function (xhr, errmsg, err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
-                    " <a href='#' class='close'>&times;</a></div>");
-                console.log(xhr.status + ": " + xhr.responseText);
-            }
-        })
-
-    }
-    else {
-        // non-spatial run
-
-        veg_slider_values_string = JSON.stringify(veg_slider_values)
-        veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
-
-        probabilistic_transitions_slider_values_string = JSON.stringify(probabilistic_transitions_slider_values)
-
-        $.ajax({
-            url: "/run_st_sim/" + scenario, // the endpoint (for a specific view configured in urls.conf /view_name/)
-            type: "POST", // http method
-            data: {
-                'veg_slider_values_state_class': veg_slider_values_state_class_string,
-                'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string
-            },
-
-            // handle a successful response
-            success: function (json) {
-                $("#results_loading").empty()
-                var response = JSON.parse(json)
-                results_data_json = JSON.parse(response["results_json"])
-                var scenario_label = $("input:checked + label").text();
-
-
-                $("#tab_container").css("display", "block")
-                update_results_table(scenario_label, timestep, run)
-
+            } else{
                 landscape_viewer.updateVegetation(results_data_json_totals)
-                previous_feature_id = feature_id
-
-                create_area_charts(results_data_json, run)
-
-                document.getElementById("view" + run + "_link").click()
-
-                // Maximum of 4 model runs
-                if (run == 4) {
-                    run = 1;
-                }
-                else {
-                    run += 1;
-                }
-
-
-            },
-
-            // handle a non-successful response
-            error: function (xhr, errmsg, err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
-                    " <a href='#' class='close'>&times;</a></div>");
-                console.log(xhr.status + ": " + xhr.responseText);
             }
-        });
-    }
+
+            previous_feature_id = feature_id;
+
+            create_area_charts(results_data_json, run);
+
+            document.getElementById("view" + run + "_link").click();
+
+            // Maximum of 4 model runs
+            if (run == 4) {
+                run = 1;
+            }
+            else {
+                run += 1;
+            }
+        },
+        // handle a non-successful response
+        error: function (xhr, errmsg, err) {
+            $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
+                " <a href='#' class='close'>&times;</a></div>");
+            console.log(xhr.status + ": " + xhr.responseText);
+        }
+    });
+
+    
 
     // Required here in order to disable button on page load.
     $(document).ajaxComplete(function() {
@@ -620,6 +568,7 @@ function activate_map() {
     $("#scene").hide()
     $("#step1").show()
     $("#selected_features").hide()
+    window.removeEventListener('resize', landscape_viewer.resize, false);
 }
 
 function activate_scene(){
@@ -629,6 +578,8 @@ function activate_scene(){
     $("#map").hide()
     $("#step1").hide()
     $("#selected_features").show()
+    window.addEventListener('resize', landscape_viewer.resize, false);
+    landscape_viewer.resize();
 }
 
 // TODO - remove and replace with better options. Dev only.

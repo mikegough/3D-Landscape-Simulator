@@ -34,7 +34,7 @@ export default function run(container_id: string, params: globals.VegParams) {
 
 	let srcSpatialPath = 'spatial/height/'
 	let statsSpatialPath = srcSpatialPath + 'stats/'
-	let srcSpatialTextureBase = 'spatial/outputs/'	// scenario/data_type/timestep
+	let srcSpatialTextureBase = 'outputs/'	// scenario/data_type/timestep
 
 
 
@@ -231,7 +231,7 @@ export default function run(container_id: string, params: globals.VegParams) {
 				],
 				statistics: [
 					{name: 'spatial_stats', url: statsSpatialPath},
-					{name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/' + scenario_id +'/veg/'}
+					{name: 'veg_class_stats', url: 'stats/' + project_id + '/' + scenario_id +'/veg/'}
 				],
 			},
 			function(loadedAssets: Assets) {
@@ -529,6 +529,7 @@ export default function run(container_id: string, params: globals.VegParams) {
 		renderer.setSize(container.offsetWidth, container.offsetHeight)
 		camera.aspect = container.offsetWidth / container.offsetHeight
 		camera.updateProjectionMatrix()
+		render()
 	}
 
 	function isInitialized() {
