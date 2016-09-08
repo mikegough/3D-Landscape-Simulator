@@ -231,7 +231,7 @@ export default function run(container_id: string, params: globals.VegParams) {
 				],
 				statistics: [
 					{name: 'spatial_stats', url: statsSpatialPath},
-					{name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/veg/'}
+					{name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/' + scenario_id +'/veg/'}
 				],
 			},
 			function(loadedAssets: Assets) {

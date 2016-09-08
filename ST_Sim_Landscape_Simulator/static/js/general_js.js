@@ -131,8 +131,6 @@ function show_input_options (){
     }
     $("#management_scenario_radios").empty();
     $.each(scenario_types, function(key, value) {
-        console.log(key);
-        console.log(value);
         var name = value.name;
         var sid = value.sid;
         var checked = (key == 0) ? " checked" : "";
@@ -169,7 +167,7 @@ function show_input_options (){
 }
 
 run=1
-iteration=1
+iteration=0
 timestep=0
 
 // Send the scenario and initial conditions to ST-Sim.
@@ -188,15 +186,51 @@ function run_st_sim(feature_id) {
 
     if (landscape_viewer.isSpatial()) {
         // spatial run
-        scenario = '210';   // hard code since we are working with exactly one scenario for castle creek
-        var project = '2';
+        var project = '2';  // hard code since we are working with exactly one project, castle creek
+        var user_defined_run_parameters = {  // hardcoded since we know what to set
+            'min_step': 0,
+            'max_step': 20, // TODO - let the user define this as the number of years to run the model for
+            'step_size': 1,
+            'iterations': iteration,
+            'spatial': landscape_viewer.isSpatial(),
+            'veg_slider_values_state_class': JSON.stringify(veg_slider_values_state_class),
+            'probabilistic_transitions_slider_values': JSON.stringify(probabilistic_transitions_slider_values)
+        };
         $.ajax({
             url: "/spatial/run_st_sim/" + project + '/' + scenario + '/',
             type: "POST",
+            data: user_defined_run_parameters,
             success: function(json) {
-                $("#running_st_sim").html("ST-Sim Model Results (Use Slider)");
-                $("#results_loading").empty()
-                landscape_viewer.updateSpatialVegetation(json.data);
+                $("#results_loading").empty();
+                var response = JSON.parse(json);
+                var run_config = {  // hardcoded since we know what to set
+                    'min_step': user_defined_run_parameters.min_step,
+                    'max_step': user_defined_run_parameters.max_step,
+                    'step_size': user_defined_run_parameters.step_size,
+                    'result_scenario_id': response['result_scenario_id']
+                };
+                landscape_viewer.updateSpatialVegetation(run_config);
+                results_data_json = JSON.parse(response["results_json"])
+                var scenario_label = $("input:checked + label").text();
+
+
+                $("#tab_container").css("display", "block")
+                update_results_table(scenario_label, timestep, run)
+
+                //landscape_viewer.updateVegetation(results_data_json_totals)
+                previous_feature_id = feature_id
+
+                create_area_charts(results_data_json, run)
+
+                document.getElementById("view" + run + "_link").click()
+
+                // Maximum of 4 model runs
+                if (run == 4) {
+                    run = 1;
+                }
+                else {
+                    run += 1;
+                }
             },
             // handle a non-successful response
             error: function (xhr, errmsg, err) {

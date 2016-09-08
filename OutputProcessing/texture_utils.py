@@ -109,7 +109,6 @@ def process_stateclass_directory(dir_path, sc_defs):
         colormap.append({'ID':idx, 'r': r, 'g': g, 'b': b})
 
     file_names = os.listdir(dir_path)
-    print(sc_defs)
     for f_name in file_names:
         name_parts = f_name.split('-')
 
@@ -118,8 +117,6 @@ def process_stateclass_directory(dir_path, sc_defs):
             # parse iteration, timestep
             iteration = int(name_parts[0][2:])
             timestep = int(name_parts[1][2:])
-            print(iteration)
-            print(timestep)
             texture = create_stateclass_texture(os.path.join(dir_path, f_name), colormap)
             output_path = os.path.join(dir_path, 'stateclass_{timestep}.png'.format(timestep=timestep))
             texture.save(output_path)

@@ -67,23 +67,123 @@ class HomepageView(TemplateView):
         return context
 
 
-class STSimSpatialStats(View):
+class STSimBaseView(View):
+
+    def __init__(self):
+        self.project_id = None
+        self.scenario_id = None
+        super(STSimBaseView, self).__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.project_id = kwargs.get('project_id')
+        self.scenario_id = kwargs.get('scenario_id')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class STSimRunModelView(STSimBaseView):
+
+    def post(self, request, *args, **kwargs):
+
+        step = int(request.POST['step_size'])
+        min_step = int(request.POST['min_step'])
+        max_step = int(request.POST['max_step'])
+        iterations = int(request.POST['iterations'])
+        is_spatial = json.loads(request.POST['spatial'])
+        stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
+        probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
+
+        # working file path
+        init_conditions_file = os.path.join(settings.ST_SIM_WORKING_DIR,
+                                            "initial_conditions",
+                                            "user_defined_temp" + str(time.time()) + ".csv")
+
+        # set the run control for the spatial model
+        stsim.update_run_control(
+            sid=self.scenario_id, working_path=init_conditions_file,
+            spatial=is_spatial, iterations=iterations, start_timestep=min_step, end_timestep=max_step
+        )
+
+        output_settings = {
+            'SummaryOutputSC': True,
+            'SummaryOutputSCTimesteps': step,
+            'SummaryOutputTR': True,
+            'SummaryOutputTRTimesteps': step
+        }
+
+        if is_spatial:
+            output_settings['RasterOutputSC'] = True
+            output_settings['RasterOutputSCTimesteps'] = step
+        else:
+            stsim.import_nonspatial_distribution(sid=self.scenario_id,
+                                                 values_dict=stateclass_relative_distribution,
+                                                 working_path=init_conditions_file)
+
+        # update the output options for the step size
+        stsim.set_output_options(self.scenario_id, init_conditions_file, **output_settings)
+
+        # probabilistic transition probabilities
+        probabilities = stsim.export_probabilistic_transitions_map(
+            sid=default_sid,
+            transitions_path=init_conditions_file,
+            orig=True)
+
+        # if the values are modified by the user, adjust them and pass them to ST-Sim working library
+        if probabilistic_transitions_modifiers is not None and len(probabilistic_transitions_modifiers.keys()) > 0:
+            for veg_type in probabilities.keys():
+                for state_class in probabilities[veg_type]:
+                    transition_type = state_class['type']
+                    if transition_type in probabilistic_transitions_modifiers.keys():
+                        value = probabilistic_transitions_modifiers[transition_type]
+                        state_class['probability'] += value
+
+        stsim.import_probabilistic_transitions(sid=self.scenario_id,
+                                               values_dict=probabilities,
+                                               working_path=init_conditions_file)
+
+        # run spatial stsim model at self.scenario_id and return the result scenario id
+        result_scenario_id = stsim.run_model(sid=self.scenario_id)
+
+        # process each output raster in the output directory
+        stateclass_definitions = stsim.export_stateclass_definitions(
+            pid=self.project_id,
+            working_path=default_sc_path,
+            orig=True
+        )
+
+        texture_utils.process_stateclass_directory(
+            dir_path=os.path.join(stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
+            sc_defs=stateclass_definitions
+        )
+
+        # collect the summary statistics and return to the user
+        report_file = os.path.join(settings.ST_SIM_WORKING_DIR, "model_results",
+                                   "stateclass-summary-" + str(result_scenario_id) + ".csv")
+
+        if os.path.exists(report_file):
+            os.remove(report_file)
+
+        # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
+        results_json = json.dumps(stsim.export_stateclass_summary(sid=result_scenario_id,
+                                                                  report_path=report_file))
+        return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
+
+
+class STSimDataViewBase(STSimBaseView):
 
     DATA_TYPES = ['veg', 'stateclass']
 
     def __init__(self):
-        self.project_id = None
         self.data_type = None
-        super().__init__()
+        super(STSimDataViewBase, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.project_id = kwargs.get('project_id')
         self.data_type = kwargs.get('data_type')
-
         if self.data_type not in self.DATA_TYPES:
-            raise ValueError('Invalid data type')
+            raise ValueError(self.data_type + ' is not a valid data type. Types are "veg" or "stateclass".')
+        return super(STSimDataViewBase, self).dispatch(request, *args, **kwargs)
 
-        return super(STSimSpatialStats, self).dispatch(request, *args, **kwargs)
+
+class STSimDefinitionsView(STSimDataViewBase):
 
     def get(self, request, *args, **kwargs):
 
@@ -107,26 +207,16 @@ class STSimSpatialStats(View):
             })
 
 
-class STSimSpatialOutputs(View):
-
-    DATA_TYPES = ['veg', 'stateclass']
+class STSimRastersView(STSimDataViewBase):
 
     def __init__(self):
-
-        self.scenario_id = None
         self.timestep = None
-        self.data_type = None
-        super(STSimSpatialOutputs, self).__init__()
+        super(STSimRastersView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.scenario_id = kwargs.get('scenario_id')
-        self.data_type = kwargs.get('data_type')
+
         self.timestep = kwargs.get('timestep')
-
-        if self.data_type not in self.DATA_TYPES:
-            raise ValueError(self.data_type + ' is not a valid data type. Types are "veg" or "stateclass".')
-
-        return super(STSimSpatialOutputs, self).dispatch(request, *args, **kwargs)
+        return super(STSimRastersView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 
@@ -144,60 +234,6 @@ class STSimSpatialOutputs(View):
         image = Image.open(image_path)
         image.save(response, 'PNG')
         return response
-
-
-class STSimSpatialRunnerView(View):
-
-    def __init__(self):
-
-        self.scenario_id = None
-        self.project_id = None
-        super().__init__()
-
-    def post(self, request, *args, **kwargs):
-
-        # TODO - setup an interface to set this via. Include this as ajax'd data into the view.
-        run_config = {
-            'min_step': 0,
-            'max_step': 20,
-            'step_size': 1,
-        }
-
-        # set the run control for the spatial model
-        stsim.update_run_control(
-            sid=self.scenario_id, working_path=default_run_control_path,
-            spatial=True, iterations=0, start_timestep=0, end_timestep=20
-        )
-
-        # update the output options for the step size
-        stsim.set_output_options(self.scenario_id, default_run_control_path,
-                                         SummaryOutputSC=True, SummaryOutputSCTimesteps=1,
-                                         SummaryOutputTR=True, SummaryOutputTRTimesteps=1,
-                                         RasterOutputSC=True, RasterOutputSCTimesteps=1)
-
-        # run spatial stsim model at self.scenario_id and return the result scenario id
-        result_scenario_id = stsim.run_model(sid=self.scenario_id)
-        run_config['result_scenario_id'] = result_scenario_id
-
-        # process each output raster in the output directory
-        stateclass_definitions = stsim.export_stateclass_definitions(
-            pid=self.project_id,
-            working_path=default_sc_path,
-            orig=True
-        )
-
-        texture_utils.process_stateclass_directory(
-            dir_path=os.path.join(stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
-            sc_defs=stateclass_definitions
-        )
-
-        # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        return JsonResponse({'data': run_config})
-
-    def dispatch(self, request, *args, **kwargs):
-        self.scenario_id = kwargs.get('scenario_id')
-        self.project_id = kwargs.get('project_id')
-        return super(STSimSpatialRunnerView, self).dispatch(request, *args, **kwargs)
 
 
 class STSimRunnerView(View):

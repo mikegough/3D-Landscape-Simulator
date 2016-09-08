@@ -966,7 +966,7 @@ define("app", ["require", "exports", "globals", "terrain", "veg", "spatialveg", 
                 ],
                 statistics: [
                     { name: 'spatial_stats', url: statsSpatialPath },
-                    { name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/veg/' }
+                    { name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/' + scenario_id + '/veg/' }
                 ],
             }, function (loadedAssets) {
                 spatialAssets = loadedAssets;

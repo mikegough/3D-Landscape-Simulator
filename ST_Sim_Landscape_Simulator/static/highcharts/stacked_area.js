@@ -136,7 +136,7 @@ function create_area_charts(results_data_json, run) {
 
         //Restructure Dictionary
         chart_dict = {}
-        $.each(results_data_json[1], function (timestep, results_dict) {
+        $.each(results_data_json[iteration], function (timestep, results_dict) {    // TODO - update the 0 to be the iteration that we are returning
             $.each(results_dict, function (veg_type, value) {
                 if (typeof chart_dict[veg_type] == "undefined") {
                     chart_dict[veg_type] = {}
