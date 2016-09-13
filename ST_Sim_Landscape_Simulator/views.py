@@ -45,6 +45,7 @@ class HomepageView(TemplateView):
         probabilistic_transition_types = ["Replacement Fire",
                                           "Annual Grass Invasion",
                                           "Insect/Disease",
+                                          "Tree Encroachment",
                                           "Native Grazing",
                                           "Excessive-Herbivory"]
 

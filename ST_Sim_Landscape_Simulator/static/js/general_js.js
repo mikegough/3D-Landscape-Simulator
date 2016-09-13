@@ -1,4 +1,7 @@
 $(document).ready(function() {
+
+    $("select").selectBoxIt();
+
     // Tooltip popup on management scenarios
     $(".scenario_radio_label").hover(function(e) {
         var moveLeft = 50;
@@ -119,6 +122,7 @@ function show_input_options (){
     });
 
     $("#input_initial_veg").show();
+    $("#general_settings").show();
     $("#input_probabilistic_transitions").show();
 
     // configure the input_management_scenario div to show the correct values for available scenario IDs
@@ -289,7 +293,7 @@ function update_results_table(scenario_label, timestep,run) {
 
     $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'> </div>")
 
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Scenario </td><td colspan='2'><div class='overflow_ellipses'>" + scenario_label + "</div></td></tr>");
+   // $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Scenario </td><td colspan='2'><div class='overflow_ellipses'>" + scenario_label + "</div></td></tr>");
 
     /*
     $("#selected_location_table_" + run).html("<tr><th colspan='3'>County: " + feature_id + "</th></tr>");
@@ -597,11 +601,31 @@ function activate_scene(){
     $("#selected_features").show()
 }
 
+$("#aspatial_link").click(function(){
+    activate_aspatial()
+})
+
+$("#spatial_link").click(function(){
+   activate_spatial_scene()
+})
+
+$("#library_selection").on('change', function(){
+    console.log(this.value)
+})
+
+function activate_aspatial(){
+    $("#spatial_button").removeClass("selected")
+    $("#aspatial_button").addClass("selected")
+}
+
 // TODO - remove and replace with better options. Dev only.
 function activate_spatial_scene() {
     feature_id = 'Castle Creek';
     landscape_viewer.updateSpatialTerrain(2, true);
     show_input_options();
+
+    $("#spatial_button").addClass("selected")
+    $("#aspatial_button").removeClass("selected")
 
     // override various things since we are testing
     $('#input_initial_veg').addClass("disabled");
