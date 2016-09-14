@@ -593,11 +593,11 @@ li.selected a:hover {
 }
 
 #general_settings_table td:first-child {
-	width: 95px;
+	width: 115px;
 	min-width: 95px;
 	text-align: center;
 	padding-right: 5px;
-	padding-left: 13px;
+	padding-left: 4px;
 }
 
 #general_settings_table td:nth-child(2) {
@@ -673,7 +673,7 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 }
 
 #library_selectionSelectBoxIt{
-	width: 174px !important;
+	width: 183px !important;
 	height: 28px !important;
 }
 

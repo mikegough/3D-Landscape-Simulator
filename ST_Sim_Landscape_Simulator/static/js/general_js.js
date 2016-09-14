@@ -330,6 +330,14 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
+    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
+
+    $("#iteration_to_plot_" + run).on('keyup', function(){
+        //("#area_charts_" +run).empty()
+        alert('test')
+        //create_area_charts(results_data_json, run, this.value)
+    })
+
 
     // Create a list of all the veg types and create a sorted list.
     var veg_type_list = new Array()
@@ -637,3 +645,5 @@ function activate_spatial_scene() {
     $("#scene").show();
     $("#map").hide();
 }
+
+
