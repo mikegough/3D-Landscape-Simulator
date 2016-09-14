@@ -46,7 +46,6 @@ class HomepageView(TemplateView):
                                           "Annual Grass Invasion",
                                           "Insect/Disease",
                                           "Tree Encroachment",
-                                          "Native Grazing",
                                           "Excessive-Herbivory"]
 
         if not all(value in all_transition_types for value in probabilistic_transition_types):

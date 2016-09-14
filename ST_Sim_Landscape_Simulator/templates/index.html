@@ -66,20 +66,7 @@
                 <table id="general_settings_table">
                     <tr>
                         <td>
-                            <div id="run_mode_div">
-                                Spatial Output:
-                            </div>
-                        </td>
-                        <td>
-                            <ul id="button_list2" class="buttons buttons2" data-persist="false">
-                                <li id="aspatial_button" class="selected"><a id="aspatial_link">Disabled</a></li>
-                                <li id="spatial_button"><a id="spatial_link">Enabled</a></li>
-                            </ul>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div id="library_div">
+                            <div id="library_div" class="general_settings_div">
                                 Library:
                             </div>
                         </td>
@@ -88,12 +75,49 @@
                                    <form class="select_form2">
                                        <div class="styled-select2" id="ss1">
                                            <!-- On change, create the charts, passing in whichever variables the user has selectd in all 3 dropdowns -->
-                                           <select id="library_selection">
+                                           <select id="settings_library">
                                                <option value="castle_creek" selected>Castle Creek</option>
                                                <option value="landfire">Landfire</option>
                                            </select>
                                        </div>
                                    </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="run_mode_div" class="general_settings_div">
+                                Spatial Output:
+                            </div>
+                        </td>
+                        <td>
+                            <ul id="button_list2" class="buttons buttons2" data-persist="false">
+                                <!-- <li id="aspatial_button" class="selected"><a id="aspatial_link">Disabled</a></li>-->
+                                <li id="spatial_button"><a id="spatial_link">Enable</a></li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="timesteps_div" class="general_settings_div">
+                                Timesteps:
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_timesteps" type="text" value="20">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="iterations_div" class="general_settings_div">
+                                Iterations:
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_iterations" type="text" value="20">
                             </div>
                         </td>
                     </tr>

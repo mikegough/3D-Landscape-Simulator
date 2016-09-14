@@ -130,13 +130,17 @@ function create_area_chart(veg_type, chart_div_id) {
 
 }
 
-function create_area_charts(results_data_json, run) {
+function create_area_charts(results_data_json, run, iteration) {
+
+        if (typeof iteration == "undefined"){
+            iteration=1
+        }
 
         $("#view" + run +"_tab").css("display", "inline")
 
         //Restructure Dictionary
         chart_dict = {}
-        $.each(results_data_json[1], function (timestep, results_dict) {
+        $.each(results_data_json[iteration], function (timestep, results_dict) {
             $.each(results_dict, function (veg_type, value) {
                 if (typeof chart_dict[veg_type] == "undefined") {
                     chart_dict[veg_type] = {}

@@ -177,7 +177,14 @@ iteration=1
 timestep=0
 
 // Send the scenario and initial conditions to ST-Sim.
+settings=[]
+settings["spatial"]=false
+
 function run_st_sim(feature_id) {
+
+    settings["library"]=$("#settings_library").val()
+    settings["timesteps"]=$("#settings_timesteps").val()
+    settings["iterations"]=$("#settings_iterations").val()
 
     $(document).ajaxStart(function(){
         $("#run_button").val('Please Wait...');
@@ -224,7 +231,8 @@ function run_st_sim(feature_id) {
             type: "POST", // http method
             data: {
                 'veg_slider_values_state_class': veg_slider_values_state_class_string,
-                'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string
+                'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string,
+                'settings': settings
             },
 
             // handle a successful response
@@ -330,12 +338,11 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
+    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Dislplay</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
     $("#iteration_to_plot_" + run).on('keyup', function(){
-        //("#area_charts_" +run).empty()
-        alert('test')
-        //create_area_charts(results_data_json, run, this.value)
+        $("#area_charts_" +run).empty()
+        create_area_charts(results_data_json, run, this.value)
     })
 
 
@@ -447,7 +454,7 @@ $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
     //Create a skeleton to house the intital conditions slider bar and  state class input table.
     veg_table_id=veg_type.replace(/ /g, "_").replace(/&/g, "__")
     $("#vegTypeSliderTable").append("<tr><td><label for='amount_veg1'><span class='imageOverlayLink'>" + veg_type + " </span></label>" +
-        "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>" +
+        "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>"  +
         "<span class='show_state_classes_link'> <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'></span>" +
         "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
         "<div class='sub_slider_text_inputs' style='display:none'>" +
@@ -614,10 +621,11 @@ $("#aspatial_link").click(function(){
 })
 
 $("#spatial_link").click(function(){
+   settings["spatial"]=true
    activate_spatial_scene()
 })
 
-$("#library_selection").on('change', function(){
+$("#settings_library").on('change', function(){
     console.log(this.value)
 })
 
