@@ -22,12 +22,23 @@ $(document).ready(function() {
 
     $(".show_state_classes_link").click(function() {
         if ($(this).siblings(".sub_slider_text_inputs").is(":visible")) {
-            $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
+            //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
             $(this).siblings(".sub_slider_text_inputs").hide()
         }
         else {
-            $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/up_arrow.png'>")
+           // $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/up_arrow.png'>")
             $(this).siblings(".sub_slider_text_inputs").show()
+        }
+    });
+
+    $(".manage_div").click(function() {
+        if ($(this).siblings(".management_action_inputs").is(":visible")) {
+            //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
+            $(this).siblings(".management_action_inputs").hide()
+        }
+        else {
+            // $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/up_arrow.png'>")
+            $(this).siblings(".management_action_inputs").show()
         }
     });
 
@@ -453,14 +464,24 @@ $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
     //Create a skeleton to house the intital conditions slider bar and  state class input table.
     veg_table_id=veg_type.replace(/ /g, "_").replace(/&/g, "__")
-    $("#vegTypeSliderTable").append("<tr><td><label for='amount_veg1'><span class='imageOverlayLink'>" + veg_type + " </span></label>" +
+    management_table_id = veg_table_id + "_management"
+    $("#vegTypeSliderTable").append("<tr><td>" +
+        "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
+            "<div class='management_action_inputs' style='display:none'>" +
+                "<div class='manage_callout callout right'>" +
+                    "<table id='" + management_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
+                "</div>"+
+            "</div>" +
+        "<label for='amount_veg1'><span class='imageOverlayLink'>" + veg_type + " </span></label>" +
         "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>"  +
-        "<span class='show_state_classes_link'> <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'></span>" +
+        //"<span class='show_state_classes_link'> <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'></span>" +
+        "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
         "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
         "<div class='sub_slider_text_inputs' style='display:none'>" +
-        "<div class='callout right'>" +
-        "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type  + "'><table>" +
-        "</div></div></td></tr>"
+        "<div class='callout right '>" +
+        "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
+        "</div></div>" +
+        "</td></tr>"
     );
 
     // Create a slider bar
@@ -473,8 +494,15 @@ $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
         state_class_count++
     });
 
-    $("#vegTypeSliderTable").append("</td></td>")
 
+    // TODO: Currently hard coded. Need to get the transition targets from the library or config file.
+    var state_class_count=1;
+    $("#"+management_table_id).append("<tr><td>" + "Prescribed Fire" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
+    $("#"+management_table_id).append("<tr><td>" + "Exotic Control" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
+    $("#"+management_table_id).append("<tr><td>" + "Restoration Tree Encroached" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
+    $("#"+management_table_id).append("<tr><td>" + "Thin/Mech/Chem" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
+
+    $("#vegTypeSliderTable").append("</td></td>")
     veg_iteration++;
 
 });
@@ -537,7 +565,7 @@ $.each(probabilistic_transitions_json, function (transition_type, state_class_li
     probabilistic_transitions_table_id=transition_type.replace(/ /g, "_").replace(/&/g, "__")
     $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='imageOverlayLink'>" + transition_type + ": </span></label>" +
         "<input type='text' id='probabilistic_transition" + probability_iteration + "_label' class='current_probability_slider_setting' readonly>" +
-        "<div class='slider_bars' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
+        "<div class='slider_bars probabilistic_transition_sliders' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
         "</td></tr>"
     );
 
