@@ -466,22 +466,30 @@ $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
     veg_table_id=veg_type.replace(/ /g, "_").replace(/&/g, "__")
     management_table_id = veg_table_id + "_management"
     $("#vegTypeSliderTable").append("<tr><td>" +
-        "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
-            "<div class='management_action_inputs' style='display:none'>" +
+            "<table class='initial_veg_cover_input_table'>" +
+            "<tr><td colspan='4'>" +
+                "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_type + " </div></label><br>" +
+            "</td></tr>"+
+            "<tr><td>"+
+                "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
+            "</td><td>" +
+                "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>"  +
+            "</td>" +
+            "<td>" +
+                "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
+                "<div class='sub_slider_text_inputs' style='display:none'>" +
+                "<div class='callout right '>" +
+                "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
+                "</div></div>" +
+            "</td><td>" +
+                "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
+                "<div class='management_action_inputs' style='display:none'>" +
                 "<div class='manage_callout callout right'>" +
-                    "<table id='" + management_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
+                "<table id='" + management_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
                 "</div>"+
-            "</div>" +
-        "<label for='amount_veg1'><span class='imageOverlayLink'>" + veg_type + " </span></label>" +
-        "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>"  +
-        //"<span class='show_state_classes_link'> <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'></span>" +
-        "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
-        "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
-        "<div class='sub_slider_text_inputs' style='display:none'>" +
-        "<div class='callout right '>" +
-        "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
-        "</div></div>" +
-        "</td></tr>"
+                "</div>" +
+            "</td></tr></table>" +
+            "</td></tr>"
     );
 
     // Create a slider bar
@@ -563,7 +571,7 @@ $.each(probabilistic_transitions_json, function (transition_type, state_class_li
 
     //Create a skeleton to house the intital conditions slider bar and  state class input table.
     probabilistic_transitions_table_id=transition_type.replace(/ /g, "_").replace(/&/g, "__")
-    $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='imageOverlayLink'>" + transition_type + ": </span></label>" +
+    $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='transition_type'>" + transition_type + ": </span></label>" +
         "<input type='text' id='probabilistic_transition" + probability_iteration + "_label' class='current_probability_slider_setting' readonly>" +
         "<div class='slider_bars probabilistic_transition_sliders' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
         "</td></tr>"

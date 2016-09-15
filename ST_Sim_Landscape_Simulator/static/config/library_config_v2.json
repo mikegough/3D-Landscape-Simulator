@@ -1,0 +1,137 @@
+{
+	"Castle Creek" : {
+		"path" : "path/to/library",
+		"has_lookup" : false,
+		"lookup_file_name" : "",
+		"lookup_field" : "",
+		"transition_types" : [
+			"Replacement Fire",
+	 		"Annual Grass Invasion",
+	 		"Insect/Disease",
+	 		"Native Grazing",
+	 		"Excessive-Herbivory"
+		],
+		"veg_model_config" : {
+			"lookup_field" : "",
+			"visualization_asset_names" : [
+				{
+					"Sagebrush" : {
+						"valid_names" : [
+							"Basin Big Sagebrush Upland",
+							"Low Sagebrush",
+							"Montane Sagebrush Upland",
+							"Montane Sagebrush Upland With Trees",
+							"Wyoming and Basin Big Sagebrush Upland"
+						],
+						"asset_name" : "sagebrush"
+					}
+				},
+				{
+					"Mahogany" : {
+						"valid_names" : [
+							"Curleaf Mountain Mahogany"
+						],
+						"asset_name" : "tree"
+					}
+				},
+				{
+					"Juniper" : {
+						"valid_names" : [
+							"Western Juniper Woodland & Savannah"
+						],
+						"asset_name" : "juniper"
+					}
+				}
+			]
+		}
+	},
+	"Landfire" : {
+		"path" : "path/to/library",
+		"has_lookup" : true,
+		"lookup_file_name" : "US_130_BPS.csv",
+		"lookup_field" : "BPS_NAME",
+		"transition_types" : [
+			"Replacement Fire",
+			"Others..."
+		],
+		"veg_model_config" : {
+			"lookup_field" : "GROUPVEG",
+			"visualization_asset_names" : [
+				{
+					"Conifer" : {
+						"valid_names" : [
+							"Hardwood-Conifer",
+							"Conifer-Hardwood",
+							"Conifer"
+						],
+						"asset_name" : "conifer"
+					}
+				},
+				{
+					"Hardwood" : {
+						"valid_names" : [
+							"Hardwood"
+						],
+						"asset_name" : "hardwood"
+					}
+				},
+				{
+					"Shrubland" : {
+						"valid_names" : [
+							"Shrubland"
+						],
+						"asset_name" : "shrubland"
+					}
+				},
+				{
+					"Peatland Forest" : {
+						"valid_names" : [
+							"Peatland Forest"
+						],
+						"asset_name" : "peatland_forest"
+					}
+				},
+				{
+					"Sparse" : {
+						"valid_names" : [
+							"Sparse"
+						],
+						"asset_name" : "sparse"
+					}
+				},
+				{
+					"Grassland" : {
+						"valid_names" : [
+							"Grassland"
+						],
+						"asset_name" : "grassland"
+					}
+				},
+				{
+					"Peatland non-forest" : {
+						"valid_names" : [
+							"Peatland non-forest"
+						],
+						"asset_name" : "peatland_nonforest"
+					}
+				},
+				{
+					"Riparian" : {
+						"valid_names" : [
+							"Riparian"
+						],
+						"asset_name" : "riparian"
+					}
+				},
+				{
+					"Savanna" : {
+						"valid_names" : [
+							"Savanna"
+						],
+						"asset_name" : "savanna"
+					}
+				}
+			]
+		}
+	}
+}

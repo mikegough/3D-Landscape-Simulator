@@ -322,11 +322,10 @@ label, td{
 	width: 324px;
 	font-size: 20px;
 	border-radius: 10px;
-	height: 74px;
-    color: white;
-    font-weight:bold;
-    background-color: #1EBA36;
-    margin-top:10px;
+	height: 44px;
+	color: white;
+	font-weight: bold;
+	background-color: #1EBA36;
 }
 
 .disabled {
@@ -372,12 +371,9 @@ label, td{
 }
 
 #total_input_percent_div {
-	width: 100%;
+	width: 201px;
 	text-align: right;
 	font-size: .9em;
-	margin-top: 5px;
-	margin-bottom: 10px;
-	margin-right: 10px;
 	right: 10px;
 	position: relative;
 	margin: 10px 10px 15px 0px;
@@ -388,6 +384,7 @@ label, td{
 	border-radius: 4px;
 	padding: 2px 8px;
 	display: inline-block;
+	text-align:right;
 }
 
 div#pop-up {
@@ -409,13 +406,12 @@ div#pop-up {
 }
 
 .slider_bars {
-    width:176px;
-    margin:4px 0px 2px 5px;
+	width: 123px;
+	margin: 4px 3px 2px 8px;
 }
 
-.probabilistic_transition_sliders{
-	width:315px;
-
+.probabilistic_transition_sliders {
+	width: 308px;
 }
 
 .sub_slider_text_inputs{
@@ -428,22 +424,18 @@ div#pop-up {
 	left:350px;
 }
 
-.manage_callout{
-	top:15px !important;
-}
-
 div.callout {
 	width: 93%;
 	float: left;
-	background-color: #444;
-	background-image: -moz-linear-gradient(top, #444, #444);
+	background-color: #007BB0;
+	/* background-image: -moz-linear-gradient(top, #444, #444); */
 	position: relative;
-	color: #ccc;
+	color: white;
 	padding: 10px;
 	border-radius: 3px;
 	min-height: 50px;
-	border: 1px solid #333;
-	text-shadow: 0 0 1px #000;
+	border: 1px solid #0073A5;
+	/* text-shadow: 0 0 1px #000; */
 	z-index: 9999;
 	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 5px 5px 20px RGBA(42, 42, 42, 0.91);
 	top: -25px;
@@ -460,8 +452,32 @@ div.callout {
 .callout.right::before {
 	left: -20px;
 	top: 3px;
+	border-right: 10px solid #007BB0;
+}
+
+.manage_callout{
+	width: 93%;
+	float: left;
+	background-color: #444;
+	background-image: -moz-linear-gradient(top, #444, #444);
+	position: relative;
+	padding: 10px;
+	border-radius: 3px;
+	min-height: 50px;
+	border: 1px solid #333 !important;
+	text-shadow: 0 0 1px #000;
+	z-index: 9999;
+	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 5px 5px 20px RGBA(42, 42, 42, 0.91);
+	top: -25px;
+	color: orange !important;
+}
+
+.manage_callout.right::before {
+	left: -20px;
+	top: 3px;
 	border-right: 10px solid #444;
 }
+
 
 .sub_slider_table{
 }
@@ -508,13 +524,19 @@ div.callout {
 	font-size: .7em;
 	color: #007BB0;
 	cursor: pointer;
-	float: right;
-	position: relative;
+	/* float: right; */
+	/* position: relative; */
 }
 
 .current_slider_setting {
-  width:49px;
-  border:0;
+	width: 34px;
+	border: 0;
+	text-align: right;
+	background-color: rgba(182, 182, 182, 0.55);
+	border-radius: 5px;
+	padding-right: 3px;
+	margin-left: 3px;
+	margin-right: 1px;
 }
 
 .current_probability_slider_setting {
@@ -770,41 +792,49 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 
 .manage_div {
 	font-size: .9em;
-	top: 4px;
-	position: relative;
-	pointer:cursor;
+	cursor: pointer;
+	margin-top: 1px;
 }
 
 .manage_span {
 	font-size: .9em;
-	position: absolute;
-	float: right;
-	right: 7px;
-	top: 17px;
 	background-color: #444444;
 	color: orange;
-	padding: 1px 5px;
+	padding: 3px 3px;
 	border-radius: 4px;
-	cursor:pointer;
+	cursor: pointer;
 }
 
 .state_class_div {
-	font-size:1em;
-	right:70px;
+	font-size: 1em;
+	/* right: 70px; */
 }
 
 .state_class_span {
 	font-size: 11px;
-	position: absolute;
-	float: right;
-	top: 21px;
 	background-color: #007BB0;
 	color: white;
-	padding: 1px 5px;
+	padding: 3px 3px;
 	border-radius: 4px;
 	white-space: nowrap;
-	right: -9px;
 }
 
 #vegTypeSliderTable{
 }
+
+.imageOverlayLink {
+	border-radius: 3px;
+	background-color: #D7D7D7;
+	width: 310px;
+	display: inline-block;
+	padding: 2px 0px 2px 3px;
+}
+.transition_type{
+	border-radius: 3px;
+	padding: 2px 0px 2px 3px;
+}
+
+.initial_veg_cover_input_table {
+
+}
+
