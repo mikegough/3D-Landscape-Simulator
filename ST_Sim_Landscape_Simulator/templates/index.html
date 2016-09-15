@@ -124,27 +124,21 @@
                 </table>
             </div>
             <div style="display:none" id="input_initial_veg">
-                <div class="steps">2. Specify Initial Vegetation Cover</div>
+                <div class="steps" id="steps_initial_vegetation_cover">2. Specify Initial Vegetation Cover</div>
                 <table id="vegTypeSliderTable" class="sliderTable"></table>
                 <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">0%</div></div>
             </div>
             <div style="display:none" id="input_probabilistic_transitions">
                 <div class="steps">3. Annual Disturbance Probabilities</div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
-                <!--
-                Replacement Fire: <input type='text' id='fire_slider_label' value="defaults" class='current_probability_slider_setting' readonly>
-                <div id ="fire_slider" class="slider_bars"></div>
-                -->
             </div>
-            <br>
-
             <div style="dislay:none">
-            <div style="display:none" id="input_management_scenario">
-                <div class="steps" style="display:none">4.&nbsp;Choose a Management Scenario</div>
-                <form method="post">
-                    <div style="display:none" id="management_scenario_radios"></div>
-                </form>
-            </div>
+                <div style="display:none" id="input_management_scenario">
+                    <div class="steps" style="display:none">4.&nbsp;Choose a Management Scenario</div>
+                    <form method="post">
+                        <div style="display:none" id="management_scenario_radios"></div>
+                    </form>
+                </div>
             </div>
             <input id="run_button" style="display:none" value="Total Percent Cover Must Equal 100%" class="disabled my-button my-button-ok" type="submit">
 

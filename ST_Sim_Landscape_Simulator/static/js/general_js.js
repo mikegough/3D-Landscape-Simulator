@@ -1,5 +1,6 @@
 $(document).ready(function() {
 
+
     $("select").selectBoxIt();
 
     // Tooltip popup on management scenarios
@@ -349,7 +350,7 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Dislplay</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
+    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Display</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
     $("#iteration_to_plot_" + run).on('keyup', function(){
         $("#area_charts_" +run).empty()
@@ -502,13 +503,14 @@ $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
         state_class_count++
     });
 
-
-    // TODO: Currently hard coded. Need to get the transition targets from the library or config file.
-    var state_class_count=1;
-    $("#"+management_table_id).append("<tr><td>" + "Prescribed Fire" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
-    $("#"+management_table_id).append("<tr><td>" + "Exotic Control" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
-    $("#"+management_table_id).append("<tr><td>" + "Restoration Tree Encroached" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
-    $("#"+management_table_id).append("<tr><td>" + "Thin/Mech/Chem" + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>" )
+    var management_action_count=1;
+    // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
+    management_actions_dict={}
+    management_actions_dict[veg_type]=["Prescribed Fire","Exotic Control","Restoration Tree Encroached","Thin/Mech/Chem"]
+    $.each(management_actions_dict[veg_type], function(index, management_action) {
+        $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input class='veg_state_class_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
+        management_action_count++
+    });
 
     $("#vegTypeSliderTable").append("</td></td>")
     veg_iteration++;
