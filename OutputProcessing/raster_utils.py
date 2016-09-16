@@ -15,17 +15,18 @@ def clip_from_wgs(input_path, output_path, bounds):
         Heavily borrowed from: https://github.com/mapbox/rasterio/blob/master/rasterio/rio/clip.py
         :param input_path The path to the raster to clip out of
         :param output_path The path to place the clipped raster
-        :param bounds (left, bottom, right, top) bounds in WGS 84 projectikon
+        :param bounds (left, bottom, right, top) bounds in WGS 84 projection
     """
 
-    wgs_crs = CRS({'init':'epsg:4326'})	 # WGS 84 Projection
+    wgs_crs = CRS({'init': 'epsg:4326'})  # WGS 84 Projection
 
     with rasterio.open(input_path, 'r') as src:
 
         window = src.window(*transform_bounds(wgs_crs, src.crs, *bounds))
         height = window[0][1] - window[0][0]
         width = window[1][1] - window[1][0]
-        t = 4000    # max size threshold TODO - set this threshold in the settings
+        #t = 4000    # max size threshold TODO - set this threshold in the settings
+        t = 2048    # get the center of the area, max at size of 2048 by 2048
         if width > t:
             width = t
             window = (window[0], (window[1][0], window[1][0] + t))
@@ -72,7 +73,7 @@ for cover in cover_map:
 
 
 # collect the description data from LANDFIRE map
-landfire_descriptions_file = os.path.join(settings.STATICFILES_DIRS[2], "LANDFIRE_BpS_SC_Desc_MASTER.csv")
+landfire_descriptions_file = settings.LANDFIRE_PATHS['descriptions']
 with open(landfire_descriptions_file,'r') as f:
     reader = csv.DictReader(f)
     data = [row for row in reader]

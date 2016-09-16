@@ -5,30 +5,17 @@ from django.views.generic import TemplateView, View
 from django.conf import settings
 from json import encoder
 from django.http import HttpResponse, JsonResponse
-from stsimpy import STSimConsole
 from PIL import Image
 from OutputProcessing import texture_utils
+from Sagebrush.stsim_utils import STSimManager
+
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
+STSIM_MANAGER = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)
 
 # Declare the stsim console we want to work with
-stsim = STSimConsole(lib_path=settings.ST_SIM_WORKING_LIB,
-                     orig_lib_path=settings.ST_SIM_ORIG_LIB,
-                     exe=settings.ST_SIM_EXE)
-
-default_run_control_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'run_control', 'run_ctrl.csv')
-
-# Defaults for this library. Run once and hold in memory.
-default_sid = stsim.list_scenarios()[0]
-default_sc_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'state_classes', 'state_classes.csv')
-default_transitions_path = os.path.join(settings.ST_SIM_WORKING_DIR,
-                                        'probabilistic_transitions', 'original', 'prob_trans.csv')
-all_veg_state_classes = stsim.export_veg_state_classes(default_sid,
-                                                       state_class_path=default_sc_path)
-all_transition_types = stsim.export_probabilistic_transitions_types(default_sid,
-                                                                    transitions_path=default_transitions_path)
-all_scenario_names = stsim.list_scenario_names(orig=True)
+console_name = 'Castle Creek'   # TODO - remove after testing is complete
 
 
 class HomepageView(TemplateView):
@@ -38,17 +25,15 @@ class HomepageView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super(HomepageView, self).get_context_data(**kwargs)
 
+        # TODO - remove all the context for the hardcoded library, and replace this call with an ajax call
         # veg state classes
-        context['veg_type_state_classes_json'] = json.dumps(all_veg_state_classes)
+        context['veg_type_state_classes_json'] = json.dumps(STSIM_MANAGER.all_veg_state_classes[console_name])
 
         # our probabilistic transition types for this application
-        probabilistic_transition_types = ["Replacement Fire",
-                                          "Annual Grass Invasion",
-                                          "Insect/Disease",
-                                          "Native Grazing",
-                                          "Excessive-Herbivory"]
+        probabilistic_transition_types = STSIM_MANAGER.probabilistic_transition_types[console_name]
 
-        if not all(value in all_transition_types for value in probabilistic_transition_types):
+        if not all(value in STSIM_MANAGER.all_probabilistic_transition_types[console_name]
+                   for value in probabilistic_transition_types):
             raise KeyError("Invalid transition type specified for this library. Supplied values: " +
                            str([value for value in probabilistic_transition_types]))
 
@@ -56,27 +41,67 @@ class HomepageView(TemplateView):
         context['probabilistic_transitions_json'] = json.dumps(probabilistic_transition_dict)
 
         # scenario ids
-        spatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' in scenario['name']]
-        nonspatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' not in scenario['name']]
+        spatial_sids = [scenario for scenario in STSIM_MANAGER.all_scenario_names[console_name]
+                        if 'Spatial' in scenario['name']]
+        nonspatial_sids = [scenario for scenario in STSIM_MANAGER.all_scenario_names[console_name]
+                           if 'Spatial' not in scenario['name']]
 
         context['scenarios_json'] = json.dumps({
             'spatial': spatial_sids,
             'nonspatial': nonspatial_sids
         })
 
+        context['available_libraries'] = json.dumps(list(STSIM_MANAGER.library_names))
+
         return context
+
+
+class STSimLibraryInfoView(View):
+
+    def __init__(self):
+        self.library = None
+        super(STSimLibraryInfoView, self).__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.library = kwargs.get('library')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+
+        response = dict()
+
+        # veg state classes
+        response['veg_type_state_classes_json'] = STSIM_MANAGER.all_veg_state_classes[self.library]
+
+        # our probabilistic transition types for this application
+        probabilistic_transition_types = STSIM_MANAGER.probabilistic_transition_types[self.library]
+
+        if not all(value in STSIM_MANAGER.all_probabilistic_transition_types[self.library]
+                   for value in probabilistic_transition_types):
+            raise KeyError("Invalid transition type specified for this library. Supplied values: " +
+                           str([value for value in probabilistic_transition_types]))
+
+        probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
+        response['probabilistic_transitions_json'] = probabilistic_transition_dict
+        response['veg_model_config'] = STSIM_MANAGER.veg_model_configs[self.library]
+
+        return JsonResponse({self.library: response})
 
 
 class STSimBaseView(View):
 
     def __init__(self):
+        self.console = None
+        self.stsim = None
         self.project_id = None
         self.scenario_id = None
         super(STSimBaseView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.project_id = kwargs.get('project_id')
-        self.scenario_id = kwargs.get('scenario_id')
+        self.console = 'Castle Creek'   # TODO - pass the console/library name in with the ajax data or the url
+        self.stsim = STSIM_MANAGER.consoles[self.console]
+        self.project_id = STSIM_MANAGER.pids[self.console]
+        self.scenario_id = STSIM_MANAGER.sids[self.console]
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -93,12 +118,12 @@ class STSimRunModelView(STSimBaseView):
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
 
         # working file path
-        init_conditions_file = os.path.join(settings.ST_SIM_WORKING_DIR,
+        init_conditions_file = os.path.join(settings.STSIM_WORKING_DIR,
                                             "initial_conditions",
                                             "user_defined_temp" + str(time.time()) + ".csv")
 
         # set the run control for the spatial model
-        stsim.update_run_control(
+        self.stsim.update_run_control(
             sid=self.scenario_id, working_path=init_conditions_file,
             spatial=is_spatial, iterations=iterations, start_timestep=min_step, end_timestep=max_step
         )
@@ -114,18 +139,15 @@ class STSimRunModelView(STSimBaseView):
             output_settings['RasterOutputSC'] = True
             output_settings['RasterOutputSCTimesteps'] = step
         else:
-            stsim.import_nonspatial_distribution(sid=self.scenario_id,
-                                                 values_dict=stateclass_relative_distribution,
-                                                 working_path=init_conditions_file)
+            self.stsim.import_nonspatial_distribution(self.scenario_id,
+                                                      stateclass_relative_distribution,
+                                                      init_conditions_file)
 
         # update the output options for the step size
-        stsim.set_output_options(self.scenario_id, init_conditions_file, **output_settings)
+        self.stsim.set_output_options(self.scenario_id, init_conditions_file, **output_settings)
 
         # probabilistic transition probabilities
-        probabilities = stsim.export_probabilistic_transitions_map(
-            sid=default_sid,
-            transitions_path=init_conditions_file,
-            orig=True)
+        probabilities = self.stsim.export_probabilistic_transitions_map(self.scenario_id, init_conditions_file, orig=True)
 
         # if the values are modified by the user, adjust them and pass them to ST-Sim working library
         if probabilistic_transitions_modifiers is not None and len(probabilistic_transitions_modifiers.keys()) > 0:
@@ -136,35 +158,30 @@ class STSimRunModelView(STSimBaseView):
                         value = probabilistic_transitions_modifiers[transition_type]
                         state_class['probability'] += value
 
-        stsim.import_probabilistic_transitions(sid=self.scenario_id,
-                                               values_dict=probabilities,
-                                               working_path=init_conditions_file)
+        self.stsim.import_probabilistic_transitions(self.scenario_id,
+                                                    probabilities,
+                                                    init_conditions_file)
 
         # run spatial stsim model at self.scenario_id and return the result scenario id
-        result_scenario_id = stsim.run_model(sid=self.scenario_id)
+        result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
 
         if is_spatial:
             # process each output raster in the output directory
-            stateclass_definitions = stsim.export_stateclass_definitions(
-                pid=self.project_id,
-                working_path=default_sc_path,
-                orig=True
-            )
+            stateclass_definitions = STSIM_MANAGER.stateclass_definitions[self.console]
             texture_utils.process_stateclass_directory(
-                dir_path=os.path.join(stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
+                dir_path=os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
                 sc_defs=stateclass_definitions
             )
 
         # collect the summary statistics and return to the user
-        report_file = os.path.join(settings.ST_SIM_WORKING_DIR, "model_results",
+        report_file = os.path.join(settings.STSIM_WORKING_DIR, "model_results",
                                    "stateclass-summary-" + str(result_scenario_id) + ".csv")
 
         if os.path.exists(report_file):
             os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        results_json = json.dumps(stsim.export_stateclass_summary(sid=result_scenario_id,
-                                                                  report_path=report_file))
+        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file))
         return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
 
@@ -174,10 +191,12 @@ class STSimDataViewBase(STSimBaseView):
 
     def __init__(self):
         self.data_type = None
+        self.console = None
         super(STSimDataViewBase, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.data_type = kwargs.get('data_type')
+        self.console = 'Castle Creek'  # TODO - pass this in as part of the ajax data or the url
         if self.data_type not in self.DATA_TYPES:
             raise ValueError(self.data_type + ' is not a valid data type. Types are "veg" or "stateclass".')
         return super(STSimDataViewBase, self).dispatch(request, *args, **kwargs)
@@ -190,17 +209,11 @@ class STSimDefinitionsView(STSimDataViewBase):
         data = dict()
         if self.data_type == 'veg':
 
-            data = stsim.export_vegtype_definitions(
-                pid=self.project_id,
-                working_path=default_sc_path,
-                orig=True)
+            data = STSIM_MANAGER.vegtype_definitions[self.console]
 
         elif self.data_type == 'stateclass':
 
-            data = stsim.export_stateclass_definitions(
-                pid=self.project_id,
-                working_path=default_sc_path,
-                orig=True)
+            data = STSIM_MANAGER.stateclass_definitions[self.console]
 
         return JsonResponse({
             'data': {name: data[name]['ID'] for name in data.keys()}
@@ -221,13 +234,13 @@ class STSimRastersView(STSimDataViewBase):
     def get(self, request, *args, **kwargs):
 
         # TODO - construct a path to the actual directory serving the output tifs from STSim
-        image_directory = os.path.join(settings.ST_SIM_WORKING_DIR, 'initial_conditions', 'spatial')
+        image_directory = os.path.join(settings.STSIM_WORKING_DIR, 'initial_conditions', 'spatial')
         if self.data_type == 'veg':
             image_path = os.path.join(image_directory, 'veg.png')          # TODO - replace with the selected area of interest
         elif self.timestep == 0 or self.timestep == '0':
             image_path = os.path.join(image_directory, 'stateclass_0.png')   # TODO - ^^
         else:
-            image_path = os.path.join(stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
+            image_path = os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
                                       'Spatial', 'stateclass_{timestep}.png'.format(timestep=self.timestep))
 
         response = HttpResponse(content_type="image/png")
