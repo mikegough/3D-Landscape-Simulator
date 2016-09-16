@@ -222,7 +222,7 @@ export default function run(container_id: string, params: globals.VegParams) {
 		camera.position.z = 600
 		const scenario_id = 210	// TODO - replace with a way to get this from the library
 		//const srcSpatialTexturePath = srcSpatialTextureBase + project_id + '/' + scenario_id
-		const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek/'
+		const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek'
 		const tempLoader = Loader()
 		tempLoader.load({
 				textures: [

@@ -957,7 +957,7 @@ define("app", ["require", "exports", "globals", "terrain", "veg", "spatialveg", 
             camera.position.z = 600;
             const scenario_id = 210; // TODO - replace with a way to get this from the library
             //const srcSpatialTexturePath = srcSpatialTextureBase + project_id + '/' + scenario_id
-            const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek/';
+            const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek';
             const tempLoader = assetloader_1.Loader();
             tempLoader.load({
                 textures: [

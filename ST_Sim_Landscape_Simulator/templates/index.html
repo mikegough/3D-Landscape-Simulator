@@ -34,10 +34,7 @@
     <link href="{% static 'css/buttons.css' %}" rel="stylesheet" type="text/css" />
 
     <script>
-        veg_type_state_classes_json = {{ veg_type_state_classes_json | safe }};
-        probabilistic_transitions_json = {{ probabilistic_transitions_json | safe }};
-        scenario_types_json = {{ scenarios_json | safe }};
-        static_url="/static/"
+        var available_libraries = {{ available_libraries | safe }};
     </script>
 
 </head>
@@ -59,10 +56,6 @@
             <div style="display:none" id="input_probabilistic_transitions">
                 <div class="steps">3. Annual Disturbance Probabilities</div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
-                <!--
-                Replacement Fire: <input type='text' id='fire_slider_label' value="defaults" class='current_probability_slider_setting' readonly>
-                <div id ="fire_slider" class="slider_bars"></div>
-                -->
             </div>
             <br>
             <div style="display: none">
