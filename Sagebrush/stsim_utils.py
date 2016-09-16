@@ -4,11 +4,17 @@
 
 from stsimpy import STSimConsole
 import os
+from json import loads
 
 
 class STSimManager:
+    """
+        In-memory management of STSimConsole instances.
+    """
 
-    def __init__(self, config, exe):
+    def __init__(self, config_path, exe):
+        with open(config_path, 'r') as f:
+            config = loads(f.read())
         self.config = config
         print('Optimizing ST-Sim libraries for usage...')
         init_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'init.csv')
@@ -44,7 +50,7 @@ class STSimManager:
             for lib_name in self.library_names
         }
 
-        # TODO - add 'all_probabilistic_transition_groups
+        # TODO - add 'all_probabilistic_transition_groups'
 
         self.vegtype_definitions = {
             lib_name: self.consoles[lib_name].export_vegtype_definitions(pid=self.pids[lib_name],
@@ -58,6 +64,7 @@ class STSimManager:
             for lib_name in self.library_names
         }
 
+        # TODO - remove, since we don't need this anymore
         self.all_scenario_names = {
             lib_name: self.consoles[lib_name].list_scenario_names(orig=True)
             for lib_name in self.library_names

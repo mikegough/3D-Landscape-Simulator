@@ -221,7 +221,8 @@ export default function run(container_id: string, params: globals.VegParams) {
 		camera.position.y = 350
 		camera.position.z = 600
 		const scenario_id = 210	// TODO - replace with a way to get this from the library
-		const srcSpatialTexturePath = srcSpatialTextureBase + project_id + '/' + scenario_id
+		//const srcSpatialTexturePath = srcSpatialTextureBase + project_id + '/' + scenario_id
+		const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek/'
 		const tempLoader = Loader()
 		tempLoader.load({
 				textures: [
@@ -231,7 +232,9 @@ export default function run(container_id: string, params: globals.VegParams) {
 				],
 				statistics: [
 					{name: 'spatial_stats', url: statsSpatialPath},
-					{name: 'veg_class_stats', url: 'stats/' + project_id + '/' + scenario_id +'/veg/'}
+					//{name: 'veg_class_stats', url: 'stats/' + project_id + '/' + scenario_id +'/veg/'}
+					{name: 'veg_class_stats', url: 'stats/Castle Creek/veg/'}
+
 				],
 			},
 			function(loadedAssets: Assets) {
@@ -326,7 +329,8 @@ export default function run(container_id: string, params: globals.VegParams) {
 
 		// updating the vegetation means getting the new stateclass textures to animate over
 		const sid = runControl.result_scenario_id
-		const srcSpatialTexturePath = srcSpatialTextureBase + _project_id + '/' + sid 
+		//const srcSpatialTexturePath = srcSpatialTextureBase + _project_id + '/' + sid 
+		const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek'
 
 		let model_outputs : AssetDescription[] = new Array()
 		for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {

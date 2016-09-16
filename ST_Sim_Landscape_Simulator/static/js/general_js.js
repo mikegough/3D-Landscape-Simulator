@@ -182,8 +182,8 @@ function run_st_sim(feature_id) {
     $("#running_st_sim").html("Running ST-Sim...");
     $("#results_loading").html("<img src='/static/img/spinner.gif'>");
     //var scenario = $("input[name=scenario]:checked").val();
-    var scenario = (landscape_viewer.isSpatial()) ? '210' : '264';  // TODO - remove after demo
-    var project = '2';  // hard code since we are working with exactly one project, castle creek
+    //var scenario = (landscape_viewer.isSpatial()) ? '210' : '264';  // TODO - remove after demo
+    //var project = '2';  // hard code since we are working with exactly one project, castle creek
     var user_defined_run_parameters = {
         'min_step': 0,
         'max_step': 20, // TODO - let the user define this as the number of years to run the model for
@@ -194,7 +194,8 @@ function run_st_sim(feature_id) {
         'probabilistic_transitions_slider_values': JSON.stringify(probabilistic_transitions_slider_values)
     };
     $.ajax({
-        url: "/run_st_sim/" + project + '/' + scenario + '/',
+        //url: "/run_st_sim/" + project + '/' + scenario + '/',
+        url: "/run_st_sim/Castle Creek/",
         type: "POST",
         data: user_defined_run_parameters,
         success: function(json) {
@@ -408,7 +409,7 @@ var landscape_viewer = require('app').default('scene', veg_slider_values);
 var veg_slider_values_state_class={}
 
 veg_iteration=1;
-
+// TODO - make this action and the prob transitions below occur when the user selects a library
 $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
     // Count the number of state classes

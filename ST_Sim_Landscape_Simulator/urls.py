@@ -8,10 +8,10 @@ from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     url(r'^$', HomepageView.as_view(), name='home'),
-    url(r'^run_st_sim/(?P<project_id>\d+)/(?P<scenario_id>\d+)/$', csrf_exempt(STSimRunModelView.as_view()), name='spatial_run_st_sim'),
-    url(r'^outputs/(?P<project_id>\d+)/(?P<scenario_id>\d+)/(?P<data_type>[a-z]+)/(?P<timestep>\d+)/$', STSimRastersView.as_view()),
-    url(r'^stats/(?P<project_id>\d+)/(?P<scenario_id>\d+)/(?P<data_type>[a-z]+)/$', STSimDefinitionsView.as_view()),
-
-    # test urls
     url(r'^library/(?P<library>[\w ]+)/$', STSimLibraryInfoView.as_view()),
+    url(r'^run_st_sim/(?P<library>[\w ]+)/$', csrf_exempt(STSimRunModelView.as_view()),
+        name='spatial_run_st_sim'),
+    url(r'^outputs/(?P<library>[\w ]+)/(?P<data_type>[a-z]+)/(?P<timestep>\d+)/$',
+        STSimRastersView.as_view()),
+    url(r'^stats/(?P<library>[\w ]+)/(?P<data_type>[a-z]+)/$', STSimDefinitionsView.as_view()),
 ]
