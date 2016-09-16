@@ -4,7 +4,6 @@ import rasterio
 from rasterio.warp import transform_bounds
 from rasterio.crs import CRS
 import csv
-import os
 import numpy as np
 from django.conf import settings
 
@@ -25,15 +24,21 @@ def clip_from_wgs(input_path, output_path, bounds):
         window = src.window(*transform_bounds(wgs_crs, src.crs, *bounds))
         height = window[0][1] - window[0][0]
         width = window[1][1] - window[1][0]
-        #t = 4000    # max size threshold TODO - set this threshold in the settings
-        t = 2048    # get the center of the area, max at size of 2048 by 2048
+        t = 2048    # Threshold, for if the user selects an area greater than 2048 pixels in size
+                    # If so, select the center of the area at size of 2048 by 2048
         if width > t:
+            if width % 2 != 0:
+                width -= 1
+            trim = int((width - t) / 2)
             width = t
-            window = (window[0], (window[1][0], window[1][0] + t))
+            window = (window[0], (window[1][0] + trim, window[1][0] + t + trim))
 
         if height > t:
+            if height % 2 != 0:
+                height -= 1
+            trim = int((height - t) / 2)
             height = t
-            window = ((window[0][0], window[0][0] + t), window[1])
+            window = ((window[0][0] + trim, window[0][0] + t + trim), window[1])
 
         out_kwargs = src.meta.copy()
         out_kwargs.update({
