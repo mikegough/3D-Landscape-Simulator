@@ -13,6 +13,7 @@ ST_Sim_Landscape_Simulator/static/st_sim/*
 ST_Sim_Landscape_Simulator/static/node_modules/*
 shader_repo/
 Archive/
+Sagebrush/*.json
 *.bat
 /static/docs/*
 .idea

@@ -34,6 +34,9 @@ class STSimManager:
         self.sids = {lib_name: config[lib_name]['default_sid'] for lib_name in self.library_names}
         self.probabilistic_transition_types = {lib_name: config[lib_name]['transition_types'] for lib_name in self.library_names}
         self.veg_model_configs = {lib_name: config[lib_name]['veg_model_config'] for lib_name in self.library_names}
+        self.has_lookup_fields = {lib_name: config[lib_name]['has_lookup'] for lib_name in self.library_names}
+        self.lookup_fields = {lib_name: config[lib_name]['lookup_field'] for lib_name in self.library_names}
+        self.lookup_functions = {lib_name: config[lib_name]['lookup_function'] for lib_name in self.library_names}
         # TODO - add transition_groups
 
         self.all_veg_state_classes = {

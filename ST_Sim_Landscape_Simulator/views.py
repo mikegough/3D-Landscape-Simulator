@@ -7,15 +7,13 @@ from json import encoder
 from django.http import HttpResponse, JsonResponse
 from PIL import Image
 from OutputProcessing import texture_utils
+from OutputProcessing.lookups import plugins as lookup_plugins
 from Sagebrush.stsim_utils import STSimManager
 
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
 stsim_manager = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)
-
-# Declare the stsim console we want to work with
-console_name = 'Castle Creek'   # TODO - remove after testing is complete
 
 
 class HomepageView(TemplateView):
@@ -24,47 +22,42 @@ class HomepageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(HomepageView, self).get_context_data(**kwargs)
-
-        # TODO - remove all the context for the hardcoded library, and replace this call with an ajax call
-        # veg state classes
-        context['veg_type_state_classes_json'] = json.dumps(stsim_manager.all_veg_state_classes[console_name])
-
-        # our probabilistic transition types for this application
-        probabilistic_transition_types = stsim_manager.probabilistic_transition_types[console_name]
-
-        if not all(value in stsim_manager.all_probabilistic_transition_types[console_name]
-                   for value in probabilistic_transition_types):
-            raise KeyError("Invalid transition type specified for this library. Supplied values: " +
-                           str([value for value in probabilistic_transition_types]))
-
-        probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
-        context['probabilistic_transitions_json'] = json.dumps(probabilistic_transition_dict)
-
-        # scenario ids
-        spatial_sids = [scenario for scenario in stsim_manager.all_scenario_names[console_name]
-                        if 'Spatial' in scenario['name']]
-        nonspatial_sids = [scenario for scenario in stsim_manager.all_scenario_names[console_name]
-                           if 'Spatial' not in scenario['name']]
-
-        context['scenarios_json'] = json.dumps({
-            'spatial': spatial_sids,
-            'nonspatial': nonspatial_sids
-        })
-
         context['available_libraries'] = json.dumps(list(stsim_manager.library_names))
-
         return context
 
 
-class STSimLibraryInfoView(View):
+class STSimBaseView(View):
 
     def __init__(self):
         self.library = None
-        super(STSimLibraryInfoView, self).__init__()
+        self.stsim = None
+        self.project_id = None
+        self.scenario_id = None
+        super(STSimBaseView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
+        self.stsim = stsim_manager.consoles[self.library]
+        self.project_id = stsim_manager.pids[self.library]
+        self.scenario_id = stsim_manager.sids[self.library]
         return super().dispatch(request, *args, **kwargs)
+
+
+class LookupView(STSimBaseView):
+
+    # This view
+    def get(self, request, *args, **kwargs):
+        if stsim_manager.has_lookup_fields[self.library]:
+            input_codes = [int(code) for code in request.GET.getlist('input_codes[]')]
+            lookup_function = getattr(lookup_plugins, stsim_manager.lookup_functions[self.library])
+            lookup_field = stsim_manager.lookup_fields[self.library]
+            data = lookup_function(input_codes, lookup_field)
+        else:
+            data = self.library + ' has no lookup field.'
+        return JsonResponse({'data': data})
+
+
+class LibraryInfoView(STSimBaseView):
 
     def get(self, request, *args, **kwargs):
 
@@ -88,24 +81,7 @@ class STSimLibraryInfoView(View):
         return JsonResponse({self.library: response})
 
 
-class STSimBaseView(View):
-
-    def __init__(self):
-        self.library = None
-        self.stsim = None
-        self.project_id = None
-        self.scenario_id = None
-        super(STSimBaseView, self).__init__()
-
-    def dispatch(self, request, *args, **kwargs):
-        self.library = kwargs.get('library')
-        self.stsim = stsim_manager.consoles[self.library]
-        self.project_id = stsim_manager.pids[self.library]
-        self.scenario_id = stsim_manager.sids[self.library]
-        return super().dispatch(request, *args, **kwargs)
-
-
-class STSimRunModelView(STSimBaseView):
+class RunModelView(STSimBaseView):
 
     def post(self, request, *args, **kwargs):
 
@@ -191,18 +167,16 @@ class STSimDataViewBase(STSimBaseView):
 
     def __init__(self):
         self.data_type = None
-        self.library = None
         super(STSimDataViewBase, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.data_type = kwargs.get('data_type')
-        self.library = kwargs.get('library')  # TODO - pass this in as part of the ajax data or the url
         if self.data_type not in self.DATA_TYPES:
             raise ValueError(self.data_type + ' is not a valid data type. Types are "veg" or "stateclass".')
         return super(STSimDataViewBase, self).dispatch(request, *args, **kwargs)
 
 
-class STSimDefinitionsView(STSimDataViewBase):
+class DefinitionsView(STSimDataViewBase):
 
     def get(self, request, *args, **kwargs):
 
@@ -220,16 +194,16 @@ class STSimDefinitionsView(STSimDataViewBase):
             })
 
 
-class STSimRastersView(STSimDataViewBase):
+class RastersView(STSimDataViewBase):
 
     def __init__(self):
         self.timestep = None
-        super(STSimRastersView, self).__init__()
+        super(RastersView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
 
         self.timestep = kwargs.get('timestep')
-        return super(STSimRastersView, self).dispatch(request, *args, **kwargs)
+        return super(RastersView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 
