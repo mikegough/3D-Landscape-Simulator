@@ -5,6 +5,7 @@
 from stsimpy import STSimConsole
 import os
 from json import loads
+from django.conf import settings
 
 
 class STSimManager:
@@ -35,7 +36,7 @@ class STSimManager:
         self.probabilistic_transition_types = {lib_name: config[lib_name]['transition_types'] for lib_name in self.library_names}
         self.veg_model_configs = {lib_name: config[lib_name]['veg_model_config'] for lib_name in self.library_names}
         self.has_lookup_fields = {lib_name: config[lib_name]['has_lookup'] for lib_name in self.library_names}
-        self.lookup_fields = {lib_name: config[lib_name]['lookup_field'] for lib_name in self.library_names}
+        self.lookup_fields = {lib_name: config[lib_name]['lookup_fields'] for lib_name in self.library_names}
         self.lookup_functions = {lib_name: config[lib_name]['lookup_function'] for lib_name in self.library_names}
         # TODO - add transition_groups
 
@@ -72,3 +73,5 @@ class STSimManager:
             lib_name: self.consoles[lib_name].list_scenario_names(orig=True)
             for lib_name in self.library_names
         }
+
+stsim_manager = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)

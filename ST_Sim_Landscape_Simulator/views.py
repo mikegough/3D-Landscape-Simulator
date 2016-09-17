@@ -8,12 +8,10 @@ from django.http import HttpResponse, JsonResponse
 from PIL import Image
 from OutputProcessing import texture_utils
 from OutputProcessing.lookups import plugins as lookup_plugins
-from Sagebrush.stsim_utils import STSimManager
-
+from Sagebrush.stsim_utils import stsim_manager
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-stsim_manager = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)
 
 
 class HomepageView(TemplateView):
@@ -45,15 +43,22 @@ class STSimBaseView(View):
 
 class LookupView(STSimBaseView):
 
-    # This view
+    def __init__(self):
+        self.lookup_field = None
+        super(STSimBaseView, self).__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.lookup_field = kwargs.get('lookup_field')
+        return super().dispatch(request, *args, **kwargs)
+
     def get(self, request, *args, **kwargs):
-        if stsim_manager.has_lookup_fields[self.library]:
+        if stsim_manager.has_lookup_fields[self.library] \
+                and self.lookup_field in stsim_manager.lookup_fields[self.library]:
             input_codes = [int(code) for code in request.GET.getlist('input_codes[]')]
             lookup_function = getattr(lookup_plugins, stsim_manager.lookup_functions[self.library])
-            lookup_field = stsim_manager.lookup_fields[self.library]
-            data = lookup_function(input_codes, lookup_field)
+            data = lookup_function(input_codes, self.lookup_field)
         else:
-            data = self.library + ' has no lookup field.'
+            data = self.library + ' has no lookup field ' + self.lookup_field
         return JsonResponse({'data': data})
 
 
@@ -179,7 +184,7 @@ class STSimDataViewBase(STSimBaseView):
 class DefinitionsView(STSimDataViewBase):
 
     def get(self, request, *args, **kwargs):
-
+        request.session['blah'] = 2
         data = dict()
         if self.data_type == 'veg':
 
@@ -198,11 +203,13 @@ class RastersView(STSimDataViewBase):
 
     def __init__(self):
         self.timestep = None
+        self.iteration = None
         super(RastersView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
 
-        self.timestep = kwargs.get('timestep')
+        self.timestep = int(kwargs.get('timestep'))
+        self.iteration = int(kwargs.get('iteration'))
         return super(RastersView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
@@ -211,11 +218,12 @@ class RastersView(STSimDataViewBase):
         image_directory = os.path.join(settings.STSIM_WORKING_DIR, 'initial_conditions', 'spatial')
         if self.data_type == 'veg':
             image_path = os.path.join(image_directory, 'veg.png')          # TODO - replace with the selected area of interest
-        elif self.timestep == 0 or self.timestep == '0':
-            image_path = os.path.join(image_directory, 'stateclass_0.png')   # TODO - ^^
+        elif self.timestep == 0 and self.iteration == 0:
+            image_path = os.path.join(image_directory, 'stateclass_0_0.png')   # TODO - ^^
         else:
             image_path = os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
-                                      'Spatial', 'stateclass_{timestep}.png'.format(timestep=self.timestep))
+                                      'Spatial', 'stateclass_{iteration}_{timestep}.png'.format(iteration=self.iteration,
+                                                                                                timestep=self.timestep))
 
         response = HttpResponse(content_type="image/png")
         image = Image.open(image_path)
