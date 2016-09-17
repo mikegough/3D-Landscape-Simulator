@@ -6,12 +6,18 @@ from django.conf import settings
 from json import encoder
 from django.http import HttpResponse, JsonResponse
 from PIL import Image
-from OutputProcessing import texture_utils
+from OutputProcessing import texture_utils, raster_utils
 from OutputProcessing.lookups import plugins as lookup_plugins
 from Sagebrush.stsim_utils import stsim_manager
+from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
+
+master_elev_path = settings.LANDFIRE_PATHS['elev']
+master_sc_path = settings.LANDFIRE_PATHS['sc']
+master_veg_path = settings.LANDFIRE_PATHS['bps']
+raster_output_path = os.path.join(settings.STSIM_WORKING_DIR, 'initial_conditions', 'spatial')
 
 
 class HomepageView(TemplateView):
@@ -22,6 +28,81 @@ class HomepageView(TemplateView):
         context = super(HomepageView, self).get_context_data(**kwargs)
         context['available_libraries'] = json.dumps(list(stsim_manager.library_names))
         return context
+
+
+class RasterSelectionView(View):
+    """
+    Clips out the raster extent from the overall dataset.
+    Clipping is necessary as we want to run the model on the spatial extent we selected out.
+    If we didn't need to do this, we would only need simple tile servers...
+    """
+
+    def __init__(self):
+        self.library = None
+        self.stsim = None
+        self.left = None
+        self.bottom = None
+        self.right = None
+        self.top = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.library = kwargs.get('library')
+        self.stsim = stsim_manager.consoles[self.library]
+        self.left = float(kwargs.get('left'))
+        self.bottom = float(kwargs.get('bottom'))
+        self.right = float(kwargs.get('right'))
+        self.top = float(kwargs.get('top'))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+
+        # TODO - generalize to multiple libraries - defaults to LANDFIRE for now
+        raster_uuid = str(uuid4())
+        request.session['raster_uuid'] = raster_uuid
+        raster_utils.clip_from_wgs(master_elev_path,
+                                   os.path.join(raster_output_path, raster_uuid + '-elev.tif'),
+                                  (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(master_sc_path,
+                                   os.path.join(raster_output_path, raster_uuid + '-sc.tif'),
+                                  (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(master_veg_path,
+                                   os.path.join(raster_output_path, raster_uuid + '-veg.tif'),
+                                   (self.left, self.bottom, self.right, self.top))
+
+        return JsonResponse({'uuid': raster_uuid})
+
+
+class RasterTextureView(RasterSelectionView):
+
+    raster_types = ['sc', 'veg', 'elev']
+
+    def __init__(self):
+        self.type = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.type = kwargs.get('type')
+        if self.type not in self.raster_types:
+            raise ValueError(self.type + ' is not a valid data type. Types are ' + str(self.raster_types))
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+
+        raster_uuid = request.session['raster_uuid']
+        path = os.path.join(raster_output_path, raster_uuid + '-' + self.type + '.tif')
+        if self.type == 'elev':
+            texture = texture_utils.elevation_texture(path)
+        elif self.type == 'sc':
+            sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[self.library])
+            texture = texture_utils.stateclass_texture(path, sc_colormap)
+        else:
+            texture = texture_utils.vegtype_texture(path)
+
+        response = HttpResponse(content_type="image/png")
+        texture.save(response, 'PNG')
+
+        return response
 
 
 class STSimBaseView(View):

@@ -77,6 +77,19 @@ def vegtype_texture(strata_path):
         return texture
 
 
+def create_colormap(sc_defs):
+
+    colormap = list()   # TODO - let colors be determined by the UI or by the user?
+    for stateclass in sc_defs.keys():
+        color = sc_defs[stateclass]['Color'].split(',')
+        r = color[1]
+        g = color[2]
+        b = color[3]
+        idx = sc_defs[stateclass]['ID']
+        colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
+    return colormap
+
+
 def stateclass_texture(sc_tif, colormap):
     """ Creates a true-color image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
@@ -124,21 +137,24 @@ def process_stateclass_directory(dir_path, sc_defs):
     :param sc_defs: The stateclass definitions
     :return:
     """
+    #print(sc_defs)
+    #colormap = list()   # TODO - let colors be determined by the UI or by the user?
+    #for stateclass in sc_defs.keys():
+    #    color = sc_defs[stateclass]['Color'].split(',')
+    #    r = color[1]
+    #    g = color[2]
+    #    b = color[3]
+    #    idx = sc_defs[stateclass]['ID']
+    #    colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
 
-    colormap = list()   # TODO - let colors be determined by the UI or by the user?
-    for stateclass in sc_defs.keys():
-        color = sc_defs[stateclass]['Color'].split(',')
-        r = color[1]
-        g = color[2]
-        b = color[3]
-        idx = sc_defs[stateclass]['ID']
-        colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
+
+    #print(colormap)
+    colormap = create_colormap(sc_defs)
 
     file_names = os.listdir(dir_path)
     for f_name in file_names:
         name_parts = f_name.split('-')
 
-        # TODO - replace with regex, since that would be easier to parse
         if name_parts[-1][:2] == 'sc' and name_parts[-1].split(".")[-1] == 'tif':
             # parse iteration, timestep
             iteration = int(name_parts[0][2:])
