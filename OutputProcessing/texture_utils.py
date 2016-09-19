@@ -28,7 +28,7 @@ def elevation_texture(elev_path):
                 g_map[value] = (value & 0xFF00) >> 8
                 b_map[value] = (value & 0xFF0000) >> 16
                 a_map[value] = 255
-            elif value < 255:
+            elif value < -255:
                 r_map[value] = g_map[value] = b_map[value] = a_map[value] = 0
             else:
                 r_map[value] = g_map[value] = b_map[value] = 0
@@ -137,18 +137,7 @@ def process_stateclass_directory(dir_path, sc_defs):
     :param sc_defs: The stateclass definitions
     :return:
     """
-    #print(sc_defs)
-    #colormap = list()   # TODO - let colors be determined by the UI or by the user?
-    #for stateclass in sc_defs.keys():
-    #    color = sc_defs[stateclass]['Color'].split(',')
-    #    r = color[1]
-    #    g = color[2]
-    #    b = color[3]
-    #    idx = sc_defs[stateclass]['ID']
-    #    colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
 
-
-    #print(colormap)
     colormap = create_colormap(sc_defs)
 
     file_names = os.listdir(dir_path)
