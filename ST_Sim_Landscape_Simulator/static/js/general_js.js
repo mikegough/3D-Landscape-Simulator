@@ -1,6 +1,5 @@
 $(document).ready(function() {
 
-
     $("select").selectBoxIt();
 
     // Tooltip popup on management scenarios

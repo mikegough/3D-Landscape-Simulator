@@ -86,11 +86,7 @@ canvas {
 	z-index: 1000;
 	width: 243px;
 }
-/*
-.animation_label {
-	color: white;
-}
-*/
+
 #selected_features {
 	float: right;
 	position: absolute;
