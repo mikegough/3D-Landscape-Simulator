@@ -16,17 +16,17 @@ colors=[
 ];
 
 // Makes state class colors consistent across all charts.
-//i=0;
+i=0;
 state_class_color_map={};
-//$.each(veg_type_state_classes_json, function(veg_type,state_classes){
-//
-//    $.each(state_classes, function(index, state_class){
-//        if (typeof state_class_color_map[state_class] == "undefined") {
-//            state_class_color_map[state_class] = colors[i]
-//        }
-//        i++
-//    });
-//});
+$.each(veg_type_state_classes_json, function(veg_type,state_classes){
+
+    $.each(state_classes, function(index, state_class){
+        if (typeof state_class_color_map[state_class] == "undefined") {
+            state_class_color_map[state_class] = colors[i]
+        }
+        i++
+    });
+});
 
 function create_area_chart(veg_type, chart_div_id) {
 
@@ -130,13 +130,17 @@ function create_area_chart(veg_type, chart_div_id) {
 
 }
 
-function create_area_charts(results_data_json, run) {
+function create_area_charts(results_data_json, run, iteration) {
+
+        if (typeof iteration == "undefined"){
+            iteration=1
+        }
 
         $("#view" + run +"_tab").css("display", "inline")
 
         //Restructure Dictionary
         chart_dict = {}
-        $.each(results_data_json[iteration], function (timestep, results_dict) {    // TODO - update the 0 to be the iteration that we are returning
+        $.each(results_data_json[iteration], function (timestep, results_dict) {
             $.each(results_dict, function (veg_type, value) {
                 if (typeof chart_dict[veg_type] == "undefined") {
                     chart_dict[veg_type] = {}
