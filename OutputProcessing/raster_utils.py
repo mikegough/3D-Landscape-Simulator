@@ -72,7 +72,7 @@ def vegetation_stats(raster_path):
         total = strata_data.size
         unique_codes = list(np.unique(strata_data))
         for code in unique_codes:
-            stats[code] = int((strata_data == code).sum())   # numpy sum function
+            stats[code] = (int((strata_data == code).sum()) / total) * 100   # numpy sum function, convert to percentage
     return stats, total
 
 
@@ -90,6 +90,6 @@ def zonal_stateclass_stats(veg_path, sc_path):
                     sc_cover_by_veg = np.where(sc_data[np.where(veg_data == veg_code)] == sc_code)[0].size
                     if str(veg_code) not in zonal_stateclass_results:
                         zonal_stateclass_results[str(veg_code)] = dict()
-                    zonal_stateclass_results[str(veg_code)][str(sc_code)] = sc_cover_by_veg
+                    zonal_stateclass_results[str(veg_code)][str(sc_code)] = (sc_cover_by_veg / total) * 100
 
     return zonal_stateclass_results, total

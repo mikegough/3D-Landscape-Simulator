@@ -18,7 +18,6 @@ class STSimManager:
             config = loads(f.read())
         self.config = config
         print('Optimizing ST-Sim libraries for usage...')
-        #init_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'init.csv')
         init_path = os.path.join(os.path.dirname(os.path.abspath(__file__)))
         self.library_names = list(config.keys())
 
@@ -43,16 +42,17 @@ class STSimManager:
         # TODO - add transition_groups
 
         self.all_veg_state_classes = {
-            lib_name: self.consoles[lib_name].export_veg_state_classes(sid=self.sids[lib_name],
-                                                                       readonly=True,
-                                                                       state_class_path=os.path.join(init_path, lib_name + '-sc.csv'))
+            lib_name: self.consoles[lib_name].export_veg_state_classes(
+                sid=self.sids[lib_name],
+                readonly=os.path.exists(os.path.join(init_path, lib_name + '-vegsc.csv')),
+                state_class_path=os.path.join(init_path, lib_name + '-vegsc.csv'))
             for lib_name in self.library_names
         }
 
         self.all_probabilistic_transition_types = {
             lib_name: self.consoles[lib_name].export_probabilistic_transitions_types(
                 sid=self.sids[lib_name],
-                readonly=True,
+                readonly=os.path.exists(os.path.join(init_path, lib_name + '-tr.csv')),
                 transitions_path=os.path.join(init_path, lib_name + '-tr.csv')
             )
             for lib_name in self.library_names
@@ -62,16 +62,18 @@ class STSimManager:
 
         # TODO - devise better loading technique. Rapidly decrease startup if the files are still there
         self.vegtype_definitions = {
-            lib_name: self.consoles[lib_name].export_vegtype_definitions(pid=self.pids[lib_name],
-                                                                         readonly=True,
-                                                                         working_path=os.path.join(init_path, lib_name + '-vegdefs.csv'))
+            lib_name: self.consoles[lib_name].export_vegtype_definitions(
+                pid=self.pids[lib_name],
+                readonly=os.path.exists(os.path.join(init_path, lib_name + '-vegdefs.csv')),
+                working_path=os.path.join(init_path, lib_name + '-vegdefs.csv'))
             for lib_name in self.library_names
         }
 
         self.stateclass_definitions = {
-            lib_name: self.consoles[lib_name].export_stateclass_definitions(pid=self.pids[lib_name],
-                                                                            readonly=True,
-                                                                            working_path=os.path.join(init_path, lib_name + '-scdefs.csv'))
+            lib_name: self.consoles[lib_name].export_stateclass_definitions(
+                pid=self.pids[lib_name],
+                readonly=os.path.exists(os.path.join(init_path, lib_name + '-scdefs.csv')),
+                working_path=os.path.join(init_path, lib_name + '-scdefs.csv'))
             for lib_name in self.library_names
         }
 
