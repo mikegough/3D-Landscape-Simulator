@@ -18,4 +18,4 @@ Sagebrush/*.json
 /static/docs/*
 .idea
 */static/deps/*
-Sagebrush/init.csv
+Sagebrush/*.csv
