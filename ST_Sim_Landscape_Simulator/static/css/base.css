@@ -457,7 +457,7 @@ div.callout {
 .manage_callout{
 	width: 93%;
 	float: left;
-	background-color: #444;
+	background-color: #444 !important;
 	background-image: -moz-linear-gradient(top, #444, #444);
 	position: relative;
 	padding: 10px;
@@ -835,5 +835,13 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 
 .initial_veg_cover_input_table {
 
+}
+
+#settings_timesteps{
+	width:140px;
+}
+
+#settings_iterations{
+	width:140px;
 }
 

@@ -24,15 +24,18 @@
 
     <!-- Highcharts -->
     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
 
     <!-- Tabs -->
     <script src="{% static "js/vendor/tabcontent.js" %}" type="text/javascript"></script>
     <link href="{% static "css/vendor/tabcontent.css" %}" rel="stylesheet" type="text/css" />
 
     <!-- Alertify -->
+    {% comment %}
     <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.core.css" %}" rel="stylesheet" type="text/css" />
     <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.default.css" %}" rel="stylesheet" type="text/css" />
     <script src="{% static 'js/vendor/alertify/alertify.js-0.3.11/lib/alertify.min.js' %}"></script>
+    {% endcomment %}
 
     <!--selectBoxIt (Styled Select Boxes) -->
     <link type="text/css" rel="stylesheet" href="{% static 'js/vendor/SelectBoxIt/css/jquery.selectBoxIt.css' %}" />
@@ -162,6 +165,7 @@
         </div>
 
         <div id="output" style="display:block">
+            <div id="column_chart_1_1"></div>
 
             <div id="results">
                 <div id="results_loading"></div>
@@ -196,6 +200,7 @@
                                 <table id="results_table_4" class="results_table"></table>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -222,6 +227,8 @@
 
     <!-- Stacked Area Chart -->
     <script src="{% static 'highcharts/stacked_area.js' %}"></script>
+
+    <script src="{% static 'highcharts/column_chart.js' %}"></script>
 
 
 </body>

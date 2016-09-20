@@ -261,6 +261,7 @@ function run_st_sim(feature_id) {
                 previous_feature_id = feature_id
 
                 create_area_charts(results_data_json, run)
+                //create_column_charts(results_data_json, run)
 
                 document.getElementById("view" + run + "_link").click()
 
@@ -429,35 +430,19 @@ function update_results_table(scenario_label, timestep,run) {
 
 /*************************************************** Slider bars  ****************************************************/
 
-//initialize default values. Change the default labels above as well.
 var enable_environment_settings=false;
-var veg1_slider=0;
-var veg2_slider=0;
-var veg3_slider=0;
-var veg4_slider=0;
-var veg5_slider=0;
-var veg6_slider=0;
-var veg7_slider=0;
-
 var total_input_percent=0;
-
-var veg_slider_values={
-    "Basin Big Sagebrush Upland":veg1_slider,
-    "Curleaf Mountain Mahogany":veg2_slider,
-    "Low Sagebrush":veg3_slider,
-    "Montane Sagebrush Upland":veg4_slider,
-    "Montane Sagebrush Upland With Trees":veg5_slider,
-    "Western Juniper Woodland & Savannah":veg6_slider,
-    "Wyoming and Basin Big Sagebrush Upland":veg7_slider
-};
+var veg_slider_values={}
 
 var landscape_viewer = require('app').default('scene', veg_slider_values);
 
 var veg_slider_values_state_class={}
 
-veg_iteration=1;
+var veg_iteration=1;
 
 $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
+
+    veg_slider_values[veg_type]=0
 
     // Count the number of state classes
     var state_class_count=state_class_list.length
