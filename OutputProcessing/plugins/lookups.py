@@ -7,8 +7,8 @@
     values to the application for consumption.
 """
 
-from django.conf import settings
 import csv
+from Sagebrush.stsim_utils import stsim_manager
 
 
 def landfire_lookup(bps_codes, fieldname):
@@ -21,7 +21,7 @@ def landfire_lookup(bps_codes, fieldname):
 
     result = dict()
 
-    with open(settings.LANDFIRE_PATHS['lookup'], 'r') as f:
+    with open(stsim_manager.lookup_file_path['Landfire'], 'r') as f:
 
         lookup = csv.DictReader(f)
         for table_row in lookup:
@@ -29,7 +29,7 @@ def landfire_lookup(bps_codes, fieldname):
             try:
                 if int(read_bps_code) in bps_codes:
                     value = table_row[fieldname]
-                    result[int(read_bps_code)] = value
+                    result[read_bps_code] = value
             except:
                 continue    # skip all the non-int parseable entries
 

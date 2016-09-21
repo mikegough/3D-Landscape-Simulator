@@ -1,7 +1,7 @@
 import rasterio
 import csv
 import numpy as np
-from django.conf import settings
+from Sagebrush.stsim_utils import stsim_manager
 
 # cover types for LANDFIRE
 cover_string = ['Early Development ', 'Mid Development ', 'Late Development ']
@@ -29,7 +29,7 @@ for cover in cover_map:
 
 
 # collect the description data from LANDFIRE map
-landfire_descriptions_file = settings.LANDFIRE_PATHS['descriptions']
+landfire_descriptions_file = stsim_manager.desc_file_path['Landfire']
 with open(landfire_descriptions_file,'r') as f:
     reader = csv.DictReader(f)
     data = [row for row in reader]

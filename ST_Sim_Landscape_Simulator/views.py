@@ -8,17 +8,12 @@ from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
 from PIL import Image
 from OutputProcessing import texture_utils, raster_utils
 from OutputProcessing.plugins import lookups, conversions
+from Heightmaps.plugins import heights
 from Sagebrush.stsim_utils import stsim_manager
 from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-
-# TODO - define these in the config file
-master_elev_path = settings.LANDFIRE_PATHS['elev']
-master_sc_path = settings.LANDFIRE_PATHS['sc']
-master_veg_path = settings.LANDFIRE_PATHS['bps']
-raster_output_path = os.path.join(settings.STSIM_WORKING_DIR, 'initial_conditions', 'spatial')
 
 
 class HomepageView(TemplateView):
@@ -27,7 +22,7 @@ class HomepageView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(HomepageView, self).get_context_data(**kwargs)
-        context['available_libraries'] = json.dumps(list(stsim_manager.library_names))
+        context['available_libraries'] = stsim_manager.library_names
         return context
 
 
@@ -45,6 +40,7 @@ class RasterSelectionView(View):
         self.bottom = None
         self.right = None
         self.top = None
+        self.output_path = None
         super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
@@ -54,29 +50,32 @@ class RasterSelectionView(View):
         self.bottom = float(kwargs.get('bottom'))
         self.right = float(kwargs.get('right'))
         self.top = float(kwargs.get('top'))
+        self.output_path = stsim_manager.output_paths[self.library]
         return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 
-        # TODO - generalize to multiple libraries - defaults to LANDFIRE for now
         raster_uuid = str(uuid4())
-        elev_path = os.path.join(raster_output_path, raster_uuid + '-elev.tif')
-        sc_path = os.path.join(raster_output_path, raster_uuid + '-sc.tif')
-        veg_path = os.path.join(raster_output_path, raster_uuid + '-veg.tif')
+        elev_path = os.path.join(self.output_path, raster_uuid + '-elev.tif')
+        sc_path = os.path.join(self.output_path, raster_uuid + '-sc.tif')
+        veg_path = os.path.join(self.output_path, raster_uuid + '-veg.tif')
 
-        raster_utils.clip_from_wgs(master_elev_path,
+        if stsim_manager.has_predefined_extent[self.library]:
+            return JsonResponse({'uuid': 'predefined-extent'})
+
+        raster_utils.clip_from_wgs(stsim_manager.elev_paths[self.library],
                                    elev_path,
-                                  (self.left, self.bottom, self.right, self.top))
-        raster_utils.clip_from_wgs(master_sc_path,
+                                   (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(stsim_manager.sc_paths[self.library],
                                    sc_path,
-                                  (self.left, self.bottom, self.right, self.top))
-        raster_utils.clip_from_wgs(master_veg_path,
+                                   (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(stsim_manager.veg_paths[self.library],
                                    veg_path,
                                    (self.left, self.bottom, self.right, self.top))
 
         if stsim_manager.has_lookup_fields[self.library]:
             sc_conversion_func = getattr(conversions, stsim_manager.conversion_functions[self.library])
-            sc_conversion_path = os.path.join(raster_output_path, raster_uuid + '-' +
+            sc_conversion_path = os.path.join(self.output_path, raster_uuid + '-' +
                                               stsim_manager.conversion_extensions[self.library] + '.tif')
             sc_conversion_func(veg_path, sc_path, sc_conversion_path)
 
@@ -88,11 +87,13 @@ class RasterTextureBase(View):
     def __init__(self):
         self.library = None
         self.raster_uuid = None
+        self.output_path = None
         super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
         self.raster_uuid = kwargs.get('uuid')
+        self.output_path = stsim_manager.output_paths[self.library]
         return super().dispatch(request, *args, **kwargs)
 
 
@@ -115,20 +116,29 @@ class RasterTextureView(RasterTextureBase):
 
     def get(self, request, *args, **kwargs):
 
-        ext = self.type if self.type != 'sc' else ( 'sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library])
+        response = HttpResponse(content_type="image/png")
 
-        path = os.path.join(raster_output_path, self.raster_uuid + '-' + ext + '.tif')
+        ext = self.type if self.type != 'sc' else ('sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library])
+        if self.raster_uuid == 'predefined-extent':
+            path = getattr(stsim_manager, self.type + '_paths')[self.library]
+        else:
+            path = os.path.join(self.output_path, self.raster_uuid + '-' + ext + '.tif')
+
         if self.type == 'elev':
-            texture = texture_utils.elevation_texture(path)
+            if stsim_manager.has_predefined_extent[self.library]:
+                elev_func = getattr(heights, stsim_manager.heightmap_functions[self.library])
+                elev_path = stsim_manager.elev_paths[self.library]
+                texture = elev_func(elev_path)
+            else:
+                texture = texture_utils.elevation_texture(path)
         elif self.type == 'sc':
             sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[self.library])
             texture = texture_utils.stateclass_texture(path, sc_colormap)
-        elif self.type =='veg':
+        elif self.type == 'veg':
             texture = texture_utils.vegtype_texture(path)
         else:
             return HttpResponseNotFound()
 
-        response = HttpResponse(content_type="image/png")
         texture.save(response, 'PNG')
         return response
 
@@ -140,45 +150,38 @@ class RasterTextureStats(RasterTextureBase):
 
     def get(self, request, *args, **kwargs):
 
-        # elevation informatikon
-        elev_path = os.path.join(raster_output_path, self.raster_uuid + '-elev.tif')
+        if stsim_manager.has_predefined_extent[self.library]:
+            elev_path = stsim_manager.elev_paths[self.library]
+            sc_path = stsim_manager.sc_paths[self.library]
+            veg_path = stsim_manager.veg_paths[self.library]
+        else:
+            sc_ext = 'sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library]
+            sc_path = os.path.join(self.output_path, self.raster_uuid + '-' + sc_ext + '.tif')
+            elev_path = os.path.join(self.output_path, self.raster_uuid + '-elev.tif')
+            veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
+
+        # elevation information
         elev_stats = raster_utils.elevation_stats(elev_path)
+        veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
+        vegtype_defs = stsim_manager.vegtype_definitions[self.library]
+        stateclass_defs = stsim_manager.stateclass_definitions[self.library]
 
         # zonal veg and stateclass pct cover for the given raster
-        sc_ext = 'sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library]
-        sc_path = os.path.join(raster_output_path, self.raster_uuid + '-' + sc_ext + '.tif')
-        veg_path = os.path.join(raster_output_path, self.raster_uuid + '-veg.tif')
         veg_sc_pcts, total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
-
-        # vegetation names and pct cover for the given raster
-        unique_covers, total = raster_utils.vegetation_stats(veg_path)
-        if stsim_manager.has_lookup_fields[self.library]:
-            lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
-            lookup_field = stsim_manager.lookup_fields[self.library][0]  #TODO - maybe this should be a primary key?
-            veg_name_map = lookup_function(unique_covers.keys(), lookup_field)
-            zonal_veg_defs = {
-                    str(cover_id): {
-                        'num_values': unique_covers[cover_id],
-                        'name': (veg_name_map[cover_id] if cover_id in veg_name_map.keys() else 'None')}
-                    for cover_id in unique_covers.keys()
-                    }
-        else:
-            vegtype_defs = stsim_manager.vegtype_definitions[self.library]
-            zonal_veg_defs = dict()
-            for cover_id in unique_covers.keys():
-                for vegtype in vegtype_defs.keys():
-                    if vegtype_defs[vegtype]['ID'] == cover_id:
-                        zonal_veg_defs[cover_id] = {
-                            'num_values': unique_covers[cover_id],
-                            'name': vegtype
-                        }
-                        break
-
-        stateclass_defs = stsim_manager.stateclass_definitions[self.library]
+        zonal_veg_sc_pcts = dict()
+        for vegtype in veg_state_defs.keys():
+            veg_id = int(vegtype_defs[vegtype]['ID'])
+            if veg_id in veg_sc_pcts.keys():
+                zonal_veg = dict()
+                for sc_type in veg_state_defs[vegtype]:
+                    sc_id = int(stateclass_defs[sc_type]['ID'])
+                    if sc_id in veg_sc_pcts[veg_id].keys():
+                        zonal_veg[sc_type] = veg_sc_pcts[veg_id][sc_id]
+                    else:
+                        zonal_veg[sc_type] = 0
+                zonal_veg_sc_pcts[vegtype] = zonal_veg
         return JsonResponse({'elev': elev_stats,
-                             'veg_sc_pct': veg_sc_pcts,
-                             'veg_defs': zonal_veg_defs,
-                             'sc_defs': stateclass_defs,
+                             'veg_sc_pct': zonal_veg_sc_pcts,
                              'total_cells': total})
 
 
@@ -189,12 +192,14 @@ class STSimBaseView(View):
         self.stsim = None
         self.project_id = None
         self.scenario_id = None
+        self.output_path = None
         super(STSimBaseView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
         self.stsim = stsim_manager.consoles[self.library]
         self.project_id = stsim_manager.pids[self.library]
+        self.output_path = stsim_manager.output_paths[self.library]
         if 'scenario_id' in kwargs:
             self.scenario_id = kwargs.get('scenario_id')
         else:
@@ -203,6 +208,10 @@ class STSimBaseView(View):
 
 
 class LookupView(STSimBaseView):
+    """
+    Lookup for libraries that require additional lookup capabilities.
+    Useful for determining which 3D asset or ID to associate with a given vegetation type.
+    """
 
     def __init__(self):
         self.lookup_field = None
@@ -232,6 +241,13 @@ class LibraryInfoView(STSimBaseView):
         # veg state classes
         response['veg_type_state_classes_json'] = stsim_manager.all_veg_state_classes[self.library]
 
+        # predefined spatial extent?
+        response['has_predefined_extent'] = stsim_manager.has_predefined_extent[self.library]
+
+        # has lookup functionality?
+        response['has_lookup'] = stsim_manager.has_lookup_fields[self.library]
+        response['lookup_fields'] = stsim_manager.lookup_fields[self.library]
+
         # pass the library info the the frontend viz
         sc_defs = stsim_manager.stateclass_definitions[self.library]
         veg_defs = stsim_manager.vegtype_definitions[self.library]
@@ -252,7 +268,7 @@ class LibraryInfoView(STSimBaseView):
         # pass the model config to tell the viz which assets to load
         response['veg_model_config'] = stsim_manager.veg_model_configs[self.library]
 
-        return JsonResponse({self.library: response})
+        return JsonResponse(response)
 
 
 class RunModelView(STSimBaseView):
@@ -273,7 +289,6 @@ class RunModelView(STSimBaseView):
         iterations = int(request.POST['iterations'])
         is_spatial = json.loads(request.POST['spatial'])
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
-        print(stateclass_relative_distribution)
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
 
         # working file path
@@ -299,16 +314,13 @@ class RunModelView(STSimBaseView):
             output_settings['RasterOutputSC'] = True
             output_settings['RasterOutputSCTimesteps'] = step
 
-            veg_path = os.path.join(raster_output_path, self.raster_uuid + '-veg.tif')
-            sc_path = os.path.join(raster_output_path, self.raster_uuid + '-sc.tif')
+            veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
+            sc_path = os.path.join(self.output_path, self.raster_uuid + '-sc.tif')
 
             # check if a conversion to the stateclasses needs to happen before running stsim
             if stsim_manager.has_lookup_fields[self.library]:
-                #sc_conversion_func = getattr(conversions, stsim_manager.conversion_functions[self.library])
-                sc_conversion_path = os.path.join(raster_output_path, self.raster_uuid + '-' +
-                                                  stsim_manager.conversion_extensions[self.library] + '.tif')
-                #sc_conversion_func(veg_path, sc_path, sc_conversion_path)
-                sc_path = sc_conversion_path   # sc_path is what we import into stsim
+                sc_path = os.path.join(self.output_path, self.raster_uuid + '-' +
+                                       stsim_manager.conversion_extensions[self.library] + '.tif')
 
             # import vegtype, stateclass raster into stsim
             self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
@@ -360,7 +372,7 @@ class RunModelView(STSimBaseView):
         return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
 
-class RastersView(STSimBaseView):
+class RasterOutputsView(STSimBaseView):
 
     raster_types = ['veg', 'sc']
 
@@ -368,7 +380,7 @@ class RastersView(STSimBaseView):
         self.type = None
         self.timestep = None
         self.iteration = None
-        super(RastersView, self).__init__()
+        super(RasterOutputsView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.type = kwargs.get('data_type')
