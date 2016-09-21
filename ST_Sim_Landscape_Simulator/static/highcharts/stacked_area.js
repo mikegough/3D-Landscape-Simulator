@@ -12,7 +12,11 @@ colors=[
     "#ACEDE8",
     "#CBC77A",
     "#9AB17A",
-    "#BB845B"
+    "#BB845B",
+    "#8080C0",
+    "#C0BF9C",
+    "#408080",
+    "#994F4F",
 ];
 
 // Makes state class colors consistent across all charts.

@@ -261,7 +261,7 @@ function run_st_sim(feature_id) {
                 previous_feature_id = feature_id
 
                 create_area_charts(results_data_json, run)
-                //create_column_charts(results_data_json, run)
+                create_column_charts(results_data_json, run)
 
                 document.getElementById("view" + run + "_link").click()
 
@@ -317,7 +317,7 @@ function update_results_table(scenario_label, timestep,run) {
 
     /*
     $("#selected_location_table_" + run).html("<tr><th colspan='3'>County: " + feature_id + "</th></tr>");
-    $("#selected_location_table_" + run).append("<tr class='veg_type_percent_tr'><td class='scenario_th' colspan='3'>Scenario: " + scenario_label + "</td></tr>");
+    $("#selected_location_table_" + run).append("<tr class='veg_type_percent_tr'><td class='sceario_th' colspan='3'>Scenario: " + scenario_label + "</td></tr>");
     */
 
     if (typeof probabilistic_transitions_slider_values != "undefined") {
