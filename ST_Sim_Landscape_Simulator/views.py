@@ -45,6 +45,8 @@ class RasterSelectionView(View):
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
         self.stsim = stsim_manager.consoles[self.library]
         self.left = float(kwargs.get('left'))
         self.bottom = float(kwargs.get('bottom'))
@@ -92,6 +94,8 @@ class RasterTextureBase(View):
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
         self.raster_uuid = kwargs.get('uuid')
         self.output_path = stsim_manager.output_paths[self.library]
         return super().dispatch(request, *args, **kwargs)
@@ -150,11 +154,14 @@ class RasterTextureStats(RasterTextureBase):
 
     def get(self, request, *args, **kwargs):
 
-        if stsim_manager.has_predefined_extent[self.library]:
+        if self.raster_uuid == 'predefined-extent' and stsim_manager.has_predefined_extent[self.library]:
             elev_path = stsim_manager.elev_paths[self.library]
             sc_path = stsim_manager.sc_paths[self.library]
             veg_path = stsim_manager.veg_paths[self.library]
-        else:
+        elif self.raster_uuid != 'predefined-extent' and stsim_manager.has_predefined_extent[self.library] \
+                or self.raster_uuid == 'predefined-extent' and not stsim_manager.has_predefined_extent[self.library]:
+            return HttpResponseNotFound()
+        else:   # raster_uuid is a uuid and the library is boundless
             sc_ext = 'sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library]
             sc_path = os.path.join(self.output_path, self.raster_uuid + '-' + sc_ext + '.tif')
             elev_path = os.path.join(self.output_path, self.raster_uuid + '-elev.tif')
@@ -162,12 +169,13 @@ class RasterTextureStats(RasterTextureBase):
 
         # elevation information
         elev_stats = raster_utils.elevation_stats(elev_path)
+
+        # determine vegetation initial coverage by state class
         veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
         vegtype_defs = stsim_manager.vegtype_definitions[self.library]
         stateclass_defs = stsim_manager.stateclass_definitions[self.library]
-
-        # zonal veg and stateclass pct cover for the given raster
         veg_sc_pcts, total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
+
         zonal_veg_sc_pcts = dict()
         for vegtype in veg_state_defs.keys():
             veg_id = int(vegtype_defs[vegtype]['ID'])
@@ -197,6 +205,8 @@ class STSimBaseView(View):
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
         self.stsim = stsim_manager.consoles[self.library]
         self.project_id = stsim_manager.pids[self.library]
         self.output_path = stsim_manager.output_paths[self.library]
@@ -314,16 +324,18 @@ class RunModelView(STSimBaseView):
             output_settings['RasterOutputSC'] = True
             output_settings['RasterOutputSCTimesteps'] = step
 
-            veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
-            sc_path = os.path.join(self.output_path, self.raster_uuid + '-sc.tif')
+            if not stsim_manager.has_predefined_extent[self.library]:
 
-            # check if a conversion to the stateclasses needs to happen before running stsim
-            if stsim_manager.has_lookup_fields[self.library]:
-                sc_path = os.path.join(self.output_path, self.raster_uuid + '-' +
-                                       stsim_manager.conversion_extensions[self.library] + '.tif')
+                veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
+                sc_path = os.path.join(self.output_path, self.raster_uuid + '-sc.tif')
 
-            # import vegtype, stateclass raster into stsim
-            self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
+                # check if a conversion to the stateclasses needs to happen before running stsim
+                if stsim_manager.has_lookup_fields[self.library]:
+                    sc_path = os.path.join(self.output_path, self.raster_uuid + '-' +
+                                           stsim_manager.conversion_extensions[self.library] + '.tif')
+
+                # import vegtype, stateclass raster into stsim
+                self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
                                                          strata_path=veg_path, sc_path=sc_path)
         else:
             self.stsim.import_nonspatial_distribution(self.scenario_id,

@@ -83,7 +83,6 @@ def zonal_stateclass_stats(veg_path, sc_path):
         sc_data = sc_src.read(1)
         unique_sc = list(np.unique(sc_data))
         with rasterio.open(veg_path, 'r') as veg_src:
-
             veg_data = veg_src.read(1)
             for veg_code in veg_stats.keys():
                 for sc_code in unique_sc:
@@ -91,5 +90,4 @@ def zonal_stateclass_stats(veg_path, sc_path):
                     if veg_code not in zonal_stateclass_results:
                         zonal_stateclass_results[veg_code] = dict()
                     zonal_stateclass_results[veg_code][sc_code] = (sc_cover_by_veg / total) * 100
-
     return zonal_stateclass_results, total
