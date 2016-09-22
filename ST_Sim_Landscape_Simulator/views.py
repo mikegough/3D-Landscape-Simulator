@@ -261,8 +261,8 @@ class LibraryInfoView(STSimBaseView):
         # pass the library info the the frontend viz
         sc_defs = stsim_manager.stateclass_definitions[self.library]
         veg_defs = stsim_manager.vegtype_definitions[self.library]
-        response['stateclass_definitions'] = {name: sc_defs[name]['ID'] for name in sc_defs.keys()}
-        response['vegtype_definitions'] = {name: veg_defs[name]['ID'] for name in veg_defs.keys()}
+        response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
+        response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
 
         # TODO - Add transition target / transition group types, for each library
 
