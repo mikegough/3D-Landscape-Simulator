@@ -183,7 +183,7 @@ function show_input_options (){
 
 }
 
-run=1
+run=0
 iteration=1
 timestep=0
 
@@ -254,6 +254,14 @@ function run_st_sim(feature_id) {
                 var scenario_label = $("input:checked + label").text();
 
 
+                // Maximum of 4 model runs
+                if (run == 4) {
+                    run = 1;
+                }
+                else {
+                    run += 1;
+                }
+
                 $("#tab_container").css("display", "block")
                 update_results_table(scenario_label, timestep, run)
 
@@ -265,13 +273,6 @@ function run_st_sim(feature_id) {
 
                 document.getElementById("view" + run + "_link").click()
 
-                // Maximum of 4 model runs
-                if (run == 4) {
-                    run = 1;
-                }
-                else {
-                    run += 1;
-                }
 
 
             },
@@ -296,6 +297,8 @@ function run_st_sim(feature_id) {
 
 }
 
+/****************************************  Results Table & Output Charts **********************************************/
+
 function update_results_table(scenario_label, timestep,run) {
 
      // sum state class values for display in scene and table header
@@ -313,13 +316,7 @@ function update_results_table(scenario_label, timestep,run) {
 
     $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'> </div>")
 
-   // $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Scenario </td><td colspan='2'><div class='overflow_ellipses'>" + scenario_label + "</div></td></tr>");
-
-    /*
-    $("#selected_location_table_" + run).html("<tr><th colspan='3'>County: " + feature_id + "</th></tr>");
-    $("#selected_location_table_" + run).append("<tr class='veg_type_percent_tr'><td class='sceario_th' colspan='3'>Scenario: " + scenario_label + "</td></tr>");
-    */
-
+    // Probabilistic Transitions
     if (typeof probabilistic_transitions_slider_values != "undefined") {
         var sum_probabilities=0
 
@@ -350,19 +347,30 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
+    // Chart Type
+    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Chart Type</td><td colspan='1'><span class='column_charts_button' id='column_charts_button_" + run + "' >Column</span></td><td class='scenario_th' colspan='1'><span class='stacked_area_charts_button' id='stacked_area_charts_button_" + run +"'>Area</span></td></tr>");
+
+    $("#stacked_area_charts_button_" + run).click(function(){
+        create_area_charts(results_data_json,run)
+    });
+
+    $("#column_charts_button_" + run).click(function(){
+        create_column_charts(results_data_json,run)
+    });
+
+    // Iteration
     $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Display</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
-    $("#iteration_to_plot_" + run).on('keyup', function(){
+    $(".iteration_to_plot_" + run).on('keyup', function(){
         $("#area_charts_" +run).empty()
         create_area_charts(results_data_json, run, this.value)
-    })
-
+    });
 
     // Create a list of all the veg types and create a sorted list.
     var veg_type_list = new Array()
     $.each(results_data_json[iteration][timestep], function(key,value){
         veg_type_list.push(key)
-    })
+    });
 
     var sorted_veg_type_list = veg_type_list.sort()
 
@@ -377,7 +385,7 @@ function update_results_table(scenario_label, timestep,run) {
         // Write veg type and % headers
        //$("#results_table").append("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value + " " + (results_data_json_totals[value]).toFixed(1) + "%" +
         $("#results_table").html("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value +
-            "<span class='show_state_classes_results_link'> <img class='dropdown_arrows' src='/static/img/down_arrow.png'></span>" +
+                "<span class='show_state_classes_results_link'> <img class='dropdown_arrows' src='/static/img/down_arrow.png'></span>" +
             "</td></tr>");
 
         // Create a list of all the state classes and create a sorted list.
@@ -428,7 +436,7 @@ function update_results_table(scenario_label, timestep,run) {
     });
 }
 
-/*************************************************** Slider bars  ****************************************************/
+/*************************************** Initial Vegetation Cover Inputs **********************************************/
 
 var enable_environment_settings=false;
 var total_input_percent=0;

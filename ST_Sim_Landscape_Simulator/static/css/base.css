@@ -247,6 +247,8 @@ label, td{
 	text-align: left;
 	color: white;
 	font-weight: bold;
+	white-space: nowrap;
+	padding-right: 15px;
 }
 
 .probabilistic_transitions_th {
@@ -845,3 +847,10 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	width:140px;
 }
 
+.column_charts_button{
+	cursor:pointer
+}
+
+.stacked_area_charts_button{
+	cursor:pointer
+}

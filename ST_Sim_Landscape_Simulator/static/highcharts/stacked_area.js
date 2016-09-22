@@ -136,11 +136,13 @@ function create_area_chart(veg_type, chart_div_id) {
 
 function create_area_charts(results_data_json, run, iteration) {
 
+        $("#view" + run +"_tab").css("display", "inline")
+
+        $("#area_charts_" +run).empty()
+
         if (typeof iteration == "undefined"){
             iteration=1
         }
-
-        $("#view" + run +"_tab").css("display", "inline")
 
         //Restructure Dictionary
         chart_dict = {}
