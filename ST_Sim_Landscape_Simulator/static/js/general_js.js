@@ -253,7 +253,6 @@ function run_st_sim(feature_id) {
                 results_data_json = JSON.parse(response["results_json"])
                 var scenario_label = $("input:checked + label").text();
 
-
                 // Maximum of 4 model runs
                 if (run == 4) {
                     run = 1;
@@ -314,7 +313,7 @@ function update_results_table(scenario_label, timestep,run) {
     // Create the Results Table
     $("#results_table_" + run).html("<tr class='location_tr'><td class='location_th' colspan='1'>Location </td><td colspan='2'>" + feature_id + "</td></tr>");
 
-    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'> </div>")
+    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'></div><div style='display:none' id='column_charts_" + run +"' class='column_charts'> </div>")
 
     // Probabilistic Transitions
     if (typeof probabilistic_transitions_slider_values != "undefined") {
@@ -351,11 +350,15 @@ function update_results_table(scenario_label, timestep,run) {
     $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Chart Type</td><td colspan='1'><span class='column_charts_button' id='column_charts_button_" + run + "' >Column</span></td><td class='scenario_th' colspan='1'><span class='stacked_area_charts_button' id='stacked_area_charts_button_" + run +"'>Area</span></td></tr>");
 
     $("#stacked_area_charts_button_" + run).click(function(){
-        create_area_charts(results_data_json,run)
+        //create_area_charts(results_data_json,run)
+        $("#column_charts_" + run).hide()
+        $("#area_charts_" + run).show()
     });
 
     $("#column_charts_button_" + run).click(function(){
-        create_column_charts(results_data_json,run)
+        //create_column_charts(results_data_json,run)
+        $("#column_charts_" + run).show()
+        $("#area_charts_" + run).hide()
     });
 
     // Iteration

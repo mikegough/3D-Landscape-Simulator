@@ -162,6 +162,11 @@ canvas {
     top:-40px;
 }
 
+.column_charts {
+	position: relative;
+	top: -40px;
+}
+
 .scenario_radio_label{
     font-size:.95em;
 }

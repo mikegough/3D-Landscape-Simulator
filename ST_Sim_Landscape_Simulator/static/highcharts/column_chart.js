@@ -53,8 +53,6 @@ function create_column_charts(results_data_json, run) {
 
         $("#view" + run +"_tab").css("display", "inline")
 
-        $("#area_charts_" +run).empty()
-
         number_of_iterations=settings["iterations"]
         last_timestep=20
 
@@ -102,14 +100,14 @@ function create_column_charts(results_data_json, run) {
         chart_count=1
         $.each(column_chart_dict_final, function(veg_type,state_classes) {
 
-            chart_div_id="chart_" + run + "_"  + chart_count
+            chart_div_id="column_chart_" + run + "_"  + chart_count
 
-            $("#area_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
+            $("#column_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
 
-            "<span class='show_stacked_area_chart_link' id='show_stacked_area_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
+            "<span class='show_column_chart_link' id='show_column_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 
             //add a new chart div
-            $("#area_charts_" + run).append("<div id='" + chart_div_id + "'></div>")
+            $("#column_charts_" + run).append("<div id='" + chart_div_id + "'></div>")
 
             median_vals=[]
             min_max_vals=[]
@@ -141,7 +139,24 @@ function create_column_charts(results_data_json, run) {
                     type: 'errorbar',
                     data: min_max_vals,
                 })
+
+                bind_click_to_collapse(chart_div_id, run)
                 chart_count++;
 
         });
 }
+
+function bind_click_to_collapse(chart_div_id, run) {
+
+    $("#show_stacked_area_chart_link_" + chart_count + "_" + run).click(function () {
+        if ($("#" + chart_div_id).is(":visible")) {
+            $(this).html(" <img class='dropdown_arrows' src='/static/img/down_arrow.png'>")
+            $("#" + chart_div_id).hide()
+        }
+        else {
+            $(this).html(" <img class='dropdown_arrows' src='/static/img/up_arrow.png'>")
+            $("#" + chart_div_id).show()
+        }
+    });
+}
+
