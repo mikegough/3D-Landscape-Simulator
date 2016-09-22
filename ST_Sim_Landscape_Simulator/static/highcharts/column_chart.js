@@ -8,7 +8,7 @@ function create_column_chart(veg_type, chart_div_id, x_axis_categories) {
                 marginBottom: 100,
                 marginLeft:58,
                 marginRight:10,
-                marginTop:5,
+                marginTop:10,
             },
             title: {
                 text: ''
@@ -42,7 +42,8 @@ function create_column_chart(veg_type, chart_div_id, x_axis_categories) {
                     borderWidth: 1
                 },
                 series: {
-                    groupPadding: 0.05
+                    groupPadding: 0.05,
+                    borderWidth: 1
                 }
             },
         });
@@ -104,7 +105,7 @@ function create_column_charts(results_data_json, run) {
 
             $("#column_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
 
-            "<span class='show_column_chart_link' id='show_column_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
+            "<span class='show_chart_link' id='show_column_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 
             //add a new chart div
             $("#column_charts_" + run).append("<div id='" + chart_div_id + "'></div>")
@@ -140,15 +141,15 @@ function create_column_charts(results_data_json, run) {
                     data: min_max_vals,
                 })
 
-                bind_click_to_collapse(chart_div_id, run)
+                bind_click_to_collapse_column(chart_div_id, run)
                 chart_count++;
 
         });
 }
 
-function bind_click_to_collapse(chart_div_id, run) {
+function bind_click_to_collapse_column(chart_div_id, run) {
 
-    $("#show_stacked_area_chart_link_" + chart_count + "_" + run).click(function () {
+    $("#show_column_chart_link_" + chart_count + "_" + run).click(function () {
         if ($("#" + chart_div_id).is(":visible")) {
             $(this).html(" <img class='dropdown_arrows' src='/static/img/down_arrow.png'>")
             $("#" + chart_div_id).hide()

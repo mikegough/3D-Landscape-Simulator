@@ -313,7 +313,7 @@ function update_results_table(scenario_label, timestep,run) {
     // Create the Results Table
     $("#results_table_" + run).html("<tr class='location_tr'><td class='location_th' colspan='1'>Location </td><td colspan='2'>" + feature_id + "</td></tr>");
 
-    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'></div><div style='display:none' id='column_charts_" + run +"' class='column_charts'> </div>")
+    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts' style='display:none'></div><div id='column_charts_" + run +"' class='column_charts'> </div>")
 
     // Probabilistic Transitions
     if (typeof probabilistic_transitions_slider_values != "undefined") {

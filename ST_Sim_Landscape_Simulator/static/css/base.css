@@ -508,7 +508,7 @@ div.callout {
 	margin-bottom: 3px;
 }
 
-.show_stacked_area_chart_link {
+.show_chart_link {
 	font-size: .7em;
 	color: #007BB0;
 	cursor: pointer;
@@ -518,6 +518,7 @@ div.callout {
 	right: 10px;
 	position: relative;
 }
+
 .state_class_tr{
     display:none;
 }
