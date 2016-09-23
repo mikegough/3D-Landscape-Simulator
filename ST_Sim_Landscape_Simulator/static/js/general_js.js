@@ -136,7 +136,9 @@ function show_input_options (){
     $("#general_settings").show();
     $("#input_probabilistic_transitions").show();
 
+    // Just going to run a single scenario. This sets the management sceanario to minimum management.
     // configure the input_management_scenario div to show the correct values for available scenario IDs
+    /*
     var scenario_types;
     if (landscape_viewer.isSpatial()) {
         scenario_types = scenario_types_json['spatial']
@@ -159,6 +161,7 @@ function show_input_options (){
         )
     });
     $("#input_management_scenario").show();
+    */
 
     $("#run_button").on("click", function(){
             run_st_sim(feature_id)
@@ -206,7 +209,13 @@ function run_st_sim(feature_id) {
     $("#output").show()
     $("#running_st_sim").html("Running ST-Sim...")
     $("#results_loading").html("<img src='/static/img/spinner.gif'>")
-    var scenario = $("input[name=scenario]:checked").val()
+
+    //This was giving us the mimimum management scenario, since the radio buttons were all flagged as checked when they are created dynamically.
+    //Hard code below instead
+
+    //scenario = $("input[name=scenario]:checked").val()
+
+    // TODO: specify the scenario in the config file.
 
     if (landscape_viewer.isSpatial()) {
         // spatial run
@@ -231,6 +240,8 @@ function run_st_sim(feature_id) {
     }
     else {
         // non-spatial run
+        // Hard code to current management scenario.
+        scenario = '264';
 
         veg_slider_values_string = JSON.stringify(veg_slider_values)
         veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
@@ -315,13 +326,13 @@ function update_results_table(scenario_label, timestep,run) {
 
     $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts' style='display:none'></div><div id='column_charts_" + run +"' class='column_charts'> </div>")
 
-    // Probabilistic Transitions
+    // Probabilistic Transitions Row
     if (typeof probabilistic_transitions_slider_values != "undefined") {
         var sum_probabilities=0
 
         $.each(probabilistic_transitions_slider_values, function (transition_type, probability) {
             sum_probabilities+=Math.abs(probability)
-        })
+        });
 
         if (sum_probabilities != 0) {
 
@@ -346,24 +357,41 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
-    // Chart Type
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Chart Type</td><td colspan='1'><span class='column_charts_button' id='column_charts_button_" + run + "' >Column</span></td><td class='scenario_th' colspan='1'><span class='stacked_area_charts_button' id='stacked_area_charts_button_" + run +"'>Area</span></td></tr>");
+    // Chart Type row
+    $("#results_table_" + run).append("<tr class='chart_type_tr'>" +
+        "<td class='chart_type_th' colspan='1'>Chart Type</td>" +
+        "<td class='selected_td_button' id='column_chart_td_button_" + run + "'>Column</td>" +
+        "<td class='unselected_td_button' id='stacked_area_chart_td_button_" + run + "'>Area</td>" +
+        "</td>");
 
-    $("#stacked_area_charts_button_" + run).click(function(){
-        //create_area_charts(results_data_json,run)
-        $("#column_charts_" + run).hide()
-        $("#iteration_tr_" + run ).show()
-        $("#area_charts_" + run).show()
-    });
 
-    $("#column_charts_button_" + run).click(function(){
-        //create_column_charts(results_data_json,run)
+    // Chart button click functions
+    $("#column_chart_td_button_" + run).click(function(){
+        $(this).removeClass("unselected_td_button")
+        $(this).addClass("selected_td_button")
+        $("#stacked_area_chart_td_button_" + run).addClass("unselected_td_button")
+        $("#stacked_area_chart_td_button_" + run).removeClass("selected_td_button")
+        $(this).addClass("selected_td_button")
         $("#column_charts_" + run).show()
         $("#iteration_tr_" + run ).hide()
         $("#area_charts_" + run).hide()
+        $("#veg_output_th_" + run).html("Vegetation Cover in " + settings["timesteps"] + " Years")
     });
 
-    // Iteration
+    // Chart button click functions
+    $("#stacked_area_chart_td_button_" + run).click(function(){
+        $(this).removeClass("unselected_td_button")
+        $(this).addClass("selected_td_button")
+        $("#column_chart_td_button_" + run).addClass("unselected_td_button")
+        $("#column_chart_td_button_" + run).removeClass("selected_td_button")
+        $("#column_charts_" + run).hide()
+        $("#iteration_tr_" + run ).show()
+        $("#area_charts_" + run).show()
+        $("#veg_output_th_" + run).html("Vegetation Cover across " + settings["timesteps"] + " Years")
+    });
+
+
+    // Iteration row
     $("#results_table_" + run).append("<tr class='iteration_tr' id='iteration_tr_" + run +"'><td class='iteration_th' colspan='2'>Iteration to Display</td><td colspan='1'><input class='iteration_to_plot' id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
     $("#iteration_to_plot_" + run).on('keyup', function(){
@@ -381,7 +409,7 @@ function update_results_table(scenario_label, timestep,run) {
 
     $("#running_st_sim").html("ST-Sim Model Results")
 
-    $("#results_table_" + run).append("<tr class='veg_output_tr'><td class='veg_output_th' colspan='3'>Vegetation Cover</td></tr>");
+    $("#results_table_" + run).append("<tr class='veg_output_tr'><td class='veg_output_th' id='veg_output_th_" + run + "' colspan='3'>Vegetation Cover in " + settings["timesteps"] + " Years</td></tr>");
     // Go through each sorted veg_type
     $.each(sorted_veg_type_list, function (index, value) {
 

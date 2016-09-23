@@ -97,7 +97,7 @@ function create_area_chart(veg_type, chart_div_id) {
                     var y_value;
 
                     for(index = 0; index < pointsLength; index += 1) {
-                        y_value = (points[index].y).toFixed(2)
+                        y_value = (points[index].y).toFixed(1)
 
                         if (y_value > 0) {
                             tooltipMarkup += '<span style="color:' + points[index].series.color + '">\u25CF</span> ' + points[index].series.name + ': <b>' + y_value + '%</b><br/>';

@@ -256,6 +256,18 @@ label, td{
 	padding-right: 15px;
 }
 
+.chart_type_tr td {
+	background-color: #4C9ED9;
+	text-align: left;
+	color: white;
+	font-weight: bold;
+	white-space: nowrap;
+	padding-right: 15px;
+	height: 22px;
+	max-height: 22px;
+	line-height: 22px;
+}
+
 .iteration_tr td {
 	background-color: #4C9ED9;
 	text-align: left;
@@ -722,6 +734,20 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	line-height:30px;
 }
 
+
+.selected_td_button{
+	background-color: rgb(46, 178, 66);
+	box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) inset;
+}
+
+.unselected_td_button {
+	color: #878787 !important;
+	background-color: #c4c4c4 !important;
+	box-shadow: inset 1px 2px 3px rgba(245,255,255,0.5);
+	border: 1px solid #C4C4C4;
+	cursor:pointer;
+}
+
 #run_mode_div {
 }
 
@@ -872,9 +898,9 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 }
 
 .column_charts_button{
-	cursor:pointer
+	cursor: default;
 }
 
 .stacked_area_charts_button{
-	cursor:pointer
+	cursor: default;
 }

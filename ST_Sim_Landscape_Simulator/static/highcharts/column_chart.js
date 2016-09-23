@@ -56,7 +56,7 @@ function create_column_charts(results_data_json, run) {
         $("#iteration_tr_" + run ).hide()
 
         number_of_iterations=settings["iterations"]
-        last_timestep=20
+        last_timestep=19
 
         //Restructure Dictionary
         //Creates a dictionary of all the final timestep values by veg_type/state class.
