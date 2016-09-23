@@ -80,7 +80,9 @@ export function createTerrain(params: TerrainParams) {
 			ambientProduct: {type: "c", value: AMBIENT},
 			diffuseProduct: {type: "c", value: DIFFUSE},
 			specularProduct: {type: "c", value: SPEC},
-			shininess: {type: "f", value: SHINY}
+			shininess: {type: "f", value: SHINY},
+			// height exageration
+			disp: {type: "f", value: params.disp}
 			},
 		vertexShader: params.vertShader,
 		fragmentShader: params.fragShader

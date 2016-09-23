@@ -1,8 +1,8 @@
 // terrain.vert
-// phong lighting courtest of Prof. Orr, Willamette, via Angel.hpp
 
 // heightmap to get vertical amounts from
 uniform sampler2D heightmap;
+uniform float disp;
 
 // texel varyings
 varying float vAmount;
@@ -16,11 +16,15 @@ varying vec3 fN;
 varying vec3 fE;
 varying vec3 fL;
 
+float decodeElevation(vec4 texture) {
+    return (texture.r + texture.g * 256.0) * disp;
+}
+
 void main() 
 { 
     vUV = uv;
-    vAmount = texture2D(heightmap, uv).r;
-    
+    vAmount = decodeElevation(texture2D(heightmap, uv));
+
     // vertical amount based on heightmap texture
     vec4 pos = vec4(position, 1.0);
     

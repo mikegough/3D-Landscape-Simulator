@@ -1,13 +1,5 @@
 // utils.ts
 
-export function $e (id: string) {
-	return document.getElementById(id)
-}
-
-export function $i (id: string) {
-	return document.getElementById(id) as HTMLInputElement
-}
-
 export function detectWebGL() {
 	try {
 		const canvas = document.createElement('canvas')

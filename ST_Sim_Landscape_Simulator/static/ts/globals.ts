@@ -13,18 +13,7 @@ export const TERRAIN_DISP = 5.0 / RESOLUTION // the amount of displacement we im
 export const MAX_CLUSTER_RADIUS = 30.0	// max radius to grow around a cluster
 
 // global colors
-
 export const WHITE = 'rgb(255,255,255)'
-
-export interface VegParams {		// THIS INTERFACE IS SUBJECT TO CHANGE
-	"Basin Big Sagebrush Upland"?: 				number, 
-	"Curleaf Mountain Mahogany"?: 				number, 
-	"Low Sagebrush"?: 			  				number, 
-	"Montane Sagebrush Upland"?:				number, 
-	"Montane Sagebrush Upland With Trees"?: 	number,
-	"Western Juniper Woodland & Savannah"?: 	number,
-	"Wyoming and Basin Big Sagebrush Upland"?: 	number
-}
 
 export function getVegetationAssetsName(vegname: string) : string {
 
