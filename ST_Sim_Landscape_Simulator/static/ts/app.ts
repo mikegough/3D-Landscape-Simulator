@@ -2,8 +2,7 @@
 
 import * as globals from './globals'
 import {createTerrain, createDataTerrain} from './terrain'
-//import {createVegetation, VegetationOptions, Cluster} 0from './veg'
-import {createSpatialVegetation /*, createDataVegetation*/} from './veg'
+import {createSpatialVegetation/*, createDataVegetation*/} from './veg'
 import {detectWebGL} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
@@ -194,6 +193,7 @@ export default function run(container_id: string) {
 		})
 		realismGroup.add(realismTerrain)
 		const realismVegetation = createSpatialVegetation({
+			zonalVegtypes: currentConditions.veg_sc_pct,
 			vegtypes: currentDefinitions.vegtype_definitions,
 			config: currentDefinitions.veg_model_config,
 			strataTexture: loadedAssets.textures['veg_tex'],

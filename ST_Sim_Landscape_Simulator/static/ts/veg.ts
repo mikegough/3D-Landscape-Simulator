@@ -27,6 +27,7 @@ SPEC.multiplyScalar(KS * INTENSITY)
 
 
 interface SpatialVegetationParams {
+	zonalVegtypes: {[vegtype: string] : {[stateclass: string] : number}}
 	vegtypes: STSIM.DefinitionMapping
 	config: STSIM.VisualizationConfig
 	strataTexture: THREE.Texture
@@ -100,8 +101,8 @@ export function createSpatialVegetation(params: SpatialVegetationParams) {
 
 
 	const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h)
-	for (var name in params.vegtypes) {
-
+	//for (var name in params.vegtypes) {
+	for (var name in params.zonalVegtypes) {	
 		// TODO - replace with the actual asset name
 		//const assetName = globals.getVegetationAssetsName(name)
 		//const veg_geo = params.geometries[assetName]
@@ -164,7 +165,6 @@ function computeStrataPositions(vegtypes: any, data: Uint32Array, w: number, h: 
 		for (let x = 0; x < w; ++x) {
 			idx = (x + y * w)
 			cc = strata_data[idx]
-			//rc = (cc<128?0:255)
 			rc = (cc<mid?0:upper)
 			err = cc-rc
 			strata_data[idx] = rc
@@ -255,8 +255,8 @@ function createVegtype(params: Vegtype3D) {
 	// generate offsets
 	let i = 0
 	let x: number, y:number, idx:number, posx: number, posy: number, tx:number, ty: number
-	for (y = 0; y < params.height; y++) {
-		for (x = 0; x < params.width; x++) {
+	for (y = 0; y < params.height; y += 5) {
+		for (x = 0; x < params.width; x += 5) {
 
 			idx = (x + y * params.width)
 

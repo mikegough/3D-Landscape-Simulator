@@ -353,7 +353,8 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         veg_geo.scale(10, 10, 10);
         const veg_tex = params.textures['material'];
         const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h);
-        for (var name in params.vegtypes) {
+        //for (var name in params.vegtypes) {
+        for (var name in params.zonalVegtypes) {
             // TODO - replace with the actual asset name
             //const assetName = globals.getVegetationAssetsName(name)
             //const veg_geo = params.geometries[assetName]
@@ -410,7 +411,6 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
             for (let x = 0; x < w; ++x) {
                 idx = (x + y * w);
                 cc = strata_data[idx];
-                //rc = (cc<128?0:255)
                 rc = (cc < mid ? 0 : upper);
                 err = cc - rc;
                 strata_data[idx] = rc;
@@ -481,8 +481,8 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         // generate offsets
         let i = 0;
         let x, y, idx, posx, posy, tx, ty;
-        for (y = 0; y < params.height; y++) {
-            for (x = 0; x < params.width; x++) {
+        for (y = 0; y < params.height; y += 5) {
+            for (x = 0; x < params.width; x += 5) {
                 idx = (x + y * params.width);
                 if (params.map[idx]) {
                     posx = (x - params.width / 2);
@@ -842,6 +842,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             });
             realismGroup.add(realismTerrain);
             const realismVegetation = veg_1.createSpatialVegetation({
+                zonalVegtypes: currentConditions.veg_sc_pct,
                 vegtypes: currentDefinitions.vegtype_definitions,
                 config: currentDefinitions.veg_model_config,
                 strataTexture: loadedAssets.textures['veg_tex'],
