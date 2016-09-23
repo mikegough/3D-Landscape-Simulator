@@ -53,6 +53,7 @@ function create_column_chart(veg_type, chart_div_id, x_axis_categories) {
 function create_column_charts(results_data_json, run) {
 
         $("#view" + run +"_tab").css("display", "inline")
+        $("#iteration_tr_" + run ).hide()
 
         number_of_iterations=settings["iterations"]
         last_timestep=20

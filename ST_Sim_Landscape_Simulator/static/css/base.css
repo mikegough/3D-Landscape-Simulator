@@ -256,6 +256,15 @@ label, td{
 	padding-right: 15px;
 }
 
+.iteration_tr td {
+	background-color: #4C9ED9;
+	text-align: left;
+	color: white;
+	font-weight: bold;
+	white-space: nowrap;
+	padding-right: 15px;
+}
+
 .probabilistic_transitions_th {
 	background-color: #DE5448;
 	font-weight: bold;
@@ -292,6 +301,15 @@ label, td{
 	line-height: 25px !important;
 	background-color: #DADAF8 !important;
 }
+
+.scenario_th {
+	background-color: #4C9ED9 !important;
+	color: white;
+	font-weight: bold;
+	text-align: right;
+	padding-right: 5px;
+}
+
 .scenario_th {
 	background-color: #4C9ED9 !important;
 	color: white;

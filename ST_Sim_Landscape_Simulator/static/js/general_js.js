@@ -352,19 +352,21 @@ function update_results_table(scenario_label, timestep,run) {
     $("#stacked_area_charts_button_" + run).click(function(){
         //create_area_charts(results_data_json,run)
         $("#column_charts_" + run).hide()
+        $("#iteration_tr_" + run ).show()
         $("#area_charts_" + run).show()
     });
 
     $("#column_charts_button_" + run).click(function(){
         //create_column_charts(results_data_json,run)
         $("#column_charts_" + run).show()
+        $("#iteration_tr_" + run ).hide()
         $("#area_charts_" + run).hide()
     });
 
     // Iteration
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Display</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
+    $("#results_table_" + run).append("<tr class='iteration_tr' id='iteration_tr_" + run +"'><td class='iteration_th' colspan='2'>Iteration to Display</td><td colspan='1'><input class='iteration_to_plot' id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
-    $(".iteration_to_plot_" + run).on('keyup', function(){
+    $("#iteration_to_plot_" + run).on('keyup', function(){
         $("#area_charts_" +run).empty()
         create_area_charts(results_data_json, run, this.value)
     });
@@ -435,7 +437,7 @@ function update_results_table(scenario_label, timestep,run) {
             $(this).children('img').attr('src', '/static/img/down_arrow.png')
             $(this).children('.show_disturbance_probabilities_link_text').html('Show')
         }
-        $(this).closest('tr').nextUntil('tr.veg_output_tr').slideToggle(0);
+        $(this).closest('tr').nextUntil('tr.scenario_tr').slideToggle(0);
     });
 }
 
