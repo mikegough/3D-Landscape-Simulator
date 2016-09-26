@@ -264,16 +264,13 @@ class LibraryInfoView(STSimBaseView):
         response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
         response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
 
-        # TODO - Add transition target / transition group types, for each library
-
         # our probabilistic transition types for this application
         probabilistic_transition_types = stsim_manager.probabilistic_transition_types[self.library]
-        if not all(value in stsim_manager.all_probabilistic_transition_types[self.library]
-                   for value in probabilistic_transition_types):
-            raise KeyError("Invalid transition type specified for this library. Supplied values: " +
-                           str([value for value in probabilistic_transition_types]))
         probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
         response['probabilistic_transitions_json'] = probabilistic_transition_dict
+
+        # transition groups, used for specifying transition targets in the UI
+        response['management_actions'] = stsim_manager.probabilistic_transition_groups[self.library]
 
         # pass the model config to tell the viz which assets to load
         response['veg_model_config'] = stsim_manager.veg_model_configs[self.library]

@@ -33,6 +33,7 @@ class STSimManager:
         self.pids = {lib_name: config[lib_name]['pid'] for lib_name in self.library_names}
         self.sids = {lib_name: config[lib_name]['default_sid'] for lib_name in self.library_names}
         self.probabilistic_transition_types = {lib_name: config[lib_name]['transition_types'] for lib_name in self.library_names}
+        self.probabilistic_transition_groups = {lib_name: config[lib_name]['transition_groups'] for lib_name in self.library_names}
 
         # asset paths
         asset_dir = {lib_name: config[lib_name]['asset_directory'] for lib_name in self.library_names}
@@ -59,8 +60,7 @@ class STSimManager:
         self.has_predefined_extent = {lib_name: config[lib_name]['has_predefined_extent'] for lib_name in self.library_names}
         self.heightmap_functions = {lib_name: config[lib_name]['heightmap_function'] for lib_name in self.library_names}
 
-        # TODO - add transition_groups
-
+        # validation b/w configuration and library information
         self.all_veg_state_classes = {
             lib_name: self.consoles[lib_name].export_veg_state_classes(
                 sid=self.sids[lib_name],
@@ -78,7 +78,25 @@ class STSimManager:
             for lib_name in self.library_names
         }
 
-        # TODO - add 'all_probabilistic_transition_groups'
+        for library in self.library_names:
+            if not all(value in self.all_probabilistic_transition_types[library]
+                       for value in self.probabilistic_transition_types[library]):
+                raise KeyError("Invalid transition type specified in configuration for this library. "
+                               "Check configuration.")
+
+        self.all_probabilistic_transition_groups = {
+            lib_name: self.consoles[lib_name].export_transition_group_types(
+                pid=self.pids[lib_name],
+                readonly=os.path.exists(os.path.join(init_path, lib_name + '-trg.csv')),
+                working_path=os.path.join(init_path, lib_name + '-trg.csv'))
+            for lib_name in self.library_names
+        }
+
+        for library in self.library_names:
+            if not all(value in self.all_probabilistic_transition_groups[library]
+                       for value in self.probabilistic_transition_groups[library]):
+                raise KeyError("Invalid transition group specified in configuration for this library. "
+                               "Check configuration.")
 
         self.vegtype_definitions = {
             lib_name: self.consoles[lib_name].export_vegtype_definitions(
