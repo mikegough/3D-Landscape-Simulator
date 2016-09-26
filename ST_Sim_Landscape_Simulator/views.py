@@ -270,7 +270,7 @@ class LibraryInfoView(STSimBaseView):
         response['probabilistic_transitions_json'] = probabilistic_transition_dict
 
         # transition groups, used for specifying transition targets in the UI
-        response['management_actions'] = stsim_manager.probabilistic_transition_groups[self.library]
+        response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
 
         # pass the model config to tell the viz which assets to load
         response['veg_model_config'] = stsim_manager.veg_model_configs[self.library]
@@ -290,9 +290,10 @@ class RunModelView(STSimBaseView):
 
     def post(self, request, *args, **kwargs):
 
-        step = int(request.POST['step_size'])
-        min_step = int(request.POST['min_step'])
-        max_step = int(request.POST['max_step'])
+        timesteps = int(request.POST['timesteps'])
+        step = 1        # TODO - provide min/max timesteps in interface (under advanced tab)?
+        min_step = 0
+        max_step = timesteps
         iterations = int(request.POST['iterations'])
         is_spatial = json.loads(request.POST['spatial'])
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
