@@ -35,6 +35,7 @@ export function useSymmetry(vegname: string) : boolean {
 			  || vegname.includes('Juniper'))
 }
 
+// TODO - make this part of the configuration
 export function getVegetationScale(vegname: string) : number {
 	if (vegname.includes("Sagebrush")) {
 		return 10.0
@@ -46,6 +47,7 @@ export function getVegetationScale(vegname: string) : number {
 	return 1.0 
 }
 
+// TODO - same as above
 export function getRenderOrder(vegname: string) : number {
 	// sagebrush should always be rendered first
 	if (!vegname.includes('Sagebrush')) {

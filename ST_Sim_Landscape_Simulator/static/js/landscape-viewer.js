@@ -31,6 +31,7 @@ define("globals", ["require", "exports"], function (require, exports) {
             || vegname.includes('Juniper'));
     }
     exports.useSymmetry = useSymmetry;
+    // TODO - make this part of the configuration
     function getVegetationScale(vegname) {
         if (vegname.includes("Sagebrush")) {
             return 10.0;
@@ -44,6 +45,7 @@ define("globals", ["require", "exports"], function (require, exports) {
         return 1.0;
     }
     exports.getVegetationScale = getVegetationScale;
+    // TODO - same as above
     function getRenderOrder(vegname) {
         // sagebrush should always be rendered first
         if (!vegname.includes('Sagebrush')) {
@@ -431,7 +433,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         }
         // convert to boolean and return the map
         for (var i = 0; i < strata_data.length; i++) {
-            strata_map.push(strata_data[i] == 0 || i % 3 == 0 ? true : false);
+            strata_map.push(strata_data[i] != 0 && i % 15 == 0 ? true : false);
         }
         return strata_map;
     }
@@ -707,10 +709,10 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         camera.position.z = 600;
         controls.maxPolarAngle = Math.PI / 2;
         // Custom event handlers since we only want to render when something happens.
-        //renderer.domElement.addEventListener('mousedown', animate, false)
-        //renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-        //renderer.domElement.addEventListener('mousewheel', render, false)
-        //renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+        renderer.domElement.addEventListener('mousedown', animate, false);
+        renderer.domElement.addEventListener('mouseup', stopAnimate, false);
+        renderer.domElement.addEventListener('mousewheel', render, false);
+        renderer.domElement.addEventListener('MozMousePixelScroll', render, false); // firefox
         initialize();
         // Load initial assets
         function initialize() {
@@ -1030,7 +1032,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         function isInitialized() {
             return initialized;
         }
-        animate();
         return {
             isInitialized: isInitialized,
             resize: resize,

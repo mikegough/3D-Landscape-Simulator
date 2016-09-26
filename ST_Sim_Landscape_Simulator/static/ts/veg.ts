@@ -187,8 +187,7 @@ function computeStrataPositions(vegtypes: any, data: Uint32Array, w: number, h: 
 
 	// convert to boolean and return the map
 	for (var i = 0; i < strata_data.length; i++) {
-		strata_map.push(strata_data[i] == 0 || i % 3 == 0? true: false)
-		//strata_map.push(strata_data[i] == 0 || i % 3 == 0 ? false: true)
+		strata_map.push(strata_data[i] != 0 && i % 15 == 0? true: false)
 	}
 	return strata_map
 }

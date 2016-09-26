@@ -20,31 +20,29 @@ $(document).ready(function() {
         }
     );
 
-    $(".show_state_classes_link").click(function() {
+    //$(".show_state_classes_link").click(function() {
+    $(document).on('click', '.show_state_classes_link', function() {
         if ($(this).siblings(".sub_slider_text_inputs").is(":visible")) {
-            //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
             $(this).siblings(".sub_slider_text_inputs").hide()
         }
         else {
-           // $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/up_arrow.png'>")
             $(this).siblings(".sub_slider_text_inputs").show()
         }
     });
 
-    $(".manage_div").click(function() {
+    //$(".manage_div").click(function() {
+    $(document).on('click', '.manage_div', function() {
         if ($(this).siblings(".management_action_inputs").is(":visible")) {
-            //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
             $(this).siblings(".management_action_inputs").hide()
         }
         else {
-            // $(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/up_arrow.png'>")
             $(this).siblings(".management_action_inputs").show()
         }
     });
 
-    // On state class value entry move slider bar and call 3D function on state class entry
-    $(".veg_state_class_entry").keyup(function(){
-
+    // On state class value entry move slider bar
+    //$(".veg_state_class_entry").keyup(function(){
+    $(document).on('keyup', '.veg_state_class_entry', function() {
         veg_type_id=this.id.split("_")[1];
         veg_type=this.closest('table').title;
 
@@ -72,9 +70,6 @@ $(document).ready(function() {
             $("#veg" + veg_type_id + "_slider").slider("value", veg_state_class_value_totals)
             var this_veg_slider_value=$("#veg" + veg_type_id  + "_slider").slider("option", "value");
             veg_slider_values[veg_type]=this_veg_slider_value
-            if (landscape_viewer.isInitialized()) {
-                landscape_viewer.updateVegetation(veg_slider_values)
-            }
         }
 
         $( "#veg" + veg_type_id + "_label" ).val( veg_state_class_value_totals.toFixed(0) + "%");
@@ -99,19 +94,16 @@ $(document).ready(function() {
 
         }
 
-        if (total_input_cover != 100) {
-            $("#run_button").addClass('disabled');
-            $('input:submit').attr("disabled", true);
-        }
+        // TODO - remove? This only throws errors and doesn't seem to do anything.
+        //if (total_input_cover != 100) {
+        //    $("#run_button").addClass('disabled');
+        //    $('input:submit').attr("disabled", true);
+        //}
 
     });
 
 });
 
-$(window).load(function(){
-    $(".current_slider_setting").val(0);
-    $(".current_probability_slider_setting").val("Default Probabilities");
-});
 
 // Disable Run Model button on model run.
 $(document).ajaxStart(function(){
@@ -135,34 +127,6 @@ function show_input_options (){
     $("#input_initial_veg").show();
     $("#general_settings").show();
     $("#input_probabilistic_transitions").show();
-
-    // Just going to run a single scenario. This sets the management sceanario to minimum management.
-    // configure the input_management_scenario div to show the correct values for available scenario IDs
-    /*
-    var scenario_types;
-    if (landscape_viewer.isSpatial()) {
-        scenario_types = scenario_types_json['spatial']
-    }
-    else {
-        scenario_types = scenario_types_json['nonspatial']
-    }
-    $("#management_scenario_radios").empty();
-    $.each(scenario_types, function(key, value) {
-        console.log(key);
-        console.log(value);
-        var name = value.name;
-        var sid = value.sid;
-        var checked = (key == 0) ? " checked" : "";
-        $("#management_scenario_radios").append(
-            "<input type='radio' name='scenario' value='" + sid + "'" + checked + ">" +
-            "<label for='" + sid +
-            "' class='scenario_radio_label' id='This is the description for this scenario.'>" +
-            name + "</label><br>"
-        )
-    });
-    $("#input_management_scenario").show();
-    */
-
     $("#run_button").on("click", function(){
             run_st_sim(feature_id)
         }
@@ -196,9 +160,10 @@ settings["spatial"]=false
 
 function run_st_sim(feature_id) {
 
-    settings["library"]=$("#settings_library").val()
-    settings["timesteps"]=$("#settings_timesteps").val()
-    settings["iterations"]=$("#settings_iterations").val()
+    settings["library"]= $("#settings_library").val()
+    settings["timesteps"]= $("#settings_timesteps").val()
+    settings["iterations"]= $("#settings_iterations").val()
+    settings["spatial"]= $("#spatial_button").hasClass('selected')
 
     $(document).ajaxStart(function(){
         $("#run_button").val('Please Wait...');
@@ -210,91 +175,55 @@ function run_st_sim(feature_id) {
     $("#running_st_sim").html("Running ST-Sim...")
     $("#results_loading").html("<img src='/static/img/spinner.gif'>")
 
-    //This was giving us the mimimum management scenario, since the radio buttons were all flagged as checked when they are created dynamically.
-    //Hard code below instead
 
-    //scenario = $("input[name=scenario]:checked").val()
+    var veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
+    var probabilistic_transitions_slider_values_string = JSON.stringify(probabilistic_transitions_slider_values)
 
-    // TODO: specify the scenario in the config file.
+    $.ajax({
+        url: settings['library'] + "/run_st_sim/", // the endpoint (for a specific view configured in urls.conf /view_name/)
+        type: "POST", // http method
+        data: {
+            'veg_slider_values_state_class': veg_slider_values_state_class_string,
+            'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string,
+            'timesteps': settings['timesteps'],
+            'iterations': settings['iterations'],
+            'spatial': settings['spatial']
+        },
 
-    if (landscape_viewer.isSpatial()) {
-        // spatial run
-        scenario = '210';   // hard code since we are working with exactly one scenario for castle creek
-        var project = '2';
-        $.ajax({
-            url: "/spatial/run_st_sim/" + project + '/' + scenario + '/',
-            type: "POST",
-            success: function(json) {
-                $("#running_st_sim").html("ST-Sim Model Results (Use Slider)");
-                $("#results_loading").empty()
-                landscape_viewer.updateSpatialVegetation(json.data);
-            },
-            // handle a non-successful response
-            error: function (xhr, errmsg, err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
-                    " <a href='#' class='close'>&times;</a></div>");
-                console.log(xhr.status + ": " + xhr.responseText);
+        // handle a successful response
+        success: function (json) {
+            $("#results_loading").empty()
+            var response = JSON.parse(json)
+            results_data_json = JSON.parse(response["results_json"])
+
+            // Maximum of 4 model runs
+            if (run == 4) {
+                run = 1;
             }
-        })
-
-    }
-    else {
-        // non-spatial run
-        // Hard code to current management scenario.
-        scenario = '264';
-
-        veg_slider_values_string = JSON.stringify(veg_slider_values)
-        veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
-
-        probabilistic_transitions_slider_values_string = JSON.stringify(probabilistic_transitions_slider_values)
-
-        $.ajax({
-            url: "/run_st_sim/" + scenario, // the endpoint (for a specific view configured in urls.conf /view_name/)
-            type: "POST", // http method
-            data: {
-                'veg_slider_values_state_class': veg_slider_values_state_class_string,
-                'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string,
-                'settings': settings
-            },
-
-            // handle a successful response
-            success: function (json) {
-                $("#results_loading").empty()
-                var response = JSON.parse(json)
-                results_data_json = JSON.parse(response["results_json"])
-                var scenario_label = $("input:checked + label").text();
-
-                // Maximum of 4 model runs
-                if (run == 4) {
-                    run = 1;
-                }
-                else {
-                    run += 1;
-                }
-
-                $("#tab_container").css("display", "block")
-                update_results_table(scenario_label, timestep, run)
-
-                landscape_viewer.updateVegetation(results_data_json_totals)
-                previous_feature_id = feature_id
-
-                create_area_charts(results_data_json, run)
-                create_column_charts(results_data_json, run)
-
-                document.getElementById("view" + run + "_link").click()
-
-
-
-            },
-
-            // handle a non-successful response
-            error: function (xhr, errmsg, err) {
-                $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
-                    " <a href='#' class='close'>&times;</a></div>");
-                console.log(xhr.status + ": " + xhr.responseText);
+            else {
+                run += 1;
             }
-        });
-    }
+
+            $("#tab_container").css("display", "block")
+            update_results_table(timestep, run)
+
+            previous_feature_id = feature_id
+
+            create_area_charts(results_data_json, run)
+            create_column_charts(results_data_json, run)
+
+            document.getElementById("view" + run + "_link").click()
+
+
+        },
+
+        // handle a non-successful response
+        error: function (xhr, errmsg, err) {
+            $('#results').html("<div class='alert-box alert radius' data-alert>Oops! We have encountered an error: " + errmsg +
+                " <a href='#' class='close'>&times;</a></div>");
+            console.log(xhr.status + ": " + xhr.responseText);
+        }
+    });
 
     // Required here in order to disable button on page load.
     $(document).ajaxComplete(function() {
@@ -309,7 +238,7 @@ function run_st_sim(feature_id) {
 
 /****************************************  Results Table & Output Charts **********************************************/
 
-function update_results_table(scenario_label, timestep,run) {
+function update_results_table(timestep,run) {
 
      // sum state class values for display in scene and table header
     results_data_json_totals={}
@@ -475,173 +404,229 @@ var enable_environment_settings=false;
 var total_input_percent=0;
 var veg_slider_values={}
 
-var landscape_viewer = require('app').default('scene', veg_slider_values);
+var landscape_viewer = require('app').default('scene');
 
 var veg_slider_values_state_class={}
 
-var veg_iteration=1;
 
-$.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
+var library_initialized = false;
 
-    veg_slider_values[veg_type]=0
+function updateStudyArea(extent) {
 
-    // Count the number of state classes
-    var state_class_count=state_class_list.length
+    var libraryName = $('#settings_library').val();
 
-    //Create a skeleton to house the intital conditions slider bar and  state class input table.
-    veg_table_id=veg_type.replace(/ /g, "_").replace(/&/g, "__")
-    management_table_id = veg_table_id + "_management"
-    $("#vegTypeSliderTable").append("<tr><td>" +
-            "<table class='initial_veg_cover_input_table'>" +
-            "<tr><td colspan='4'>" +
-                "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_type + " </div></label><br>" +
-            "</td></tr>"+
-            "<tr><td>"+
-                "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
-            "</td><td>" +
-                "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>"  +
-            "</td>" +
-            "<td>" +
-                "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
-                "<div class='sub_slider_text_inputs' style='display:none'>" +
-                "<div class='callout right '>" +
-                "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
-                "</div></div>" +
-            "</td><td>" +
-                "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
-                "<div class='management_action_inputs' style='display:none'>" +
-                "<div class='manage_callout callout right'>" +
-                "<table id='" + management_table_id + "' class='sub_slider_table' title='" + veg_type  + "'></table>" +
-                "</div>"+
-                "</div>" +
-            "</td></tr></table>" +
-            "</td></tr>"
-    );
-
-    // Create a slider bar
-    create_slider(veg_iteration, veg_type, state_class_count)
-
-    // Make a row for each state class.
-    var state_class_count=1;
-    $.each(state_class_list, function (index, state_class) {
-        $("#"+veg_table_id).append("<tr><td>" + state_class + " </td><td><input class='veg_state_class_entry' id='" + "veg_"  + veg_iteration + "_" + state_class_count + "' type='text' size='2' value='0'>%</td></tr>" )
-        state_class_count++
-    });
-
-    var management_action_count=1;
-    // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
-    management_actions_dict={}
-    management_actions_dict[veg_type]=["Prescribed Fire","Exotic Control","Restoration Tree Encroached","Thin/Mech/Chem"]
-    $.each(management_actions_dict[veg_type], function(index, management_action) {
-        $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input class='veg_state_class_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
-        management_action_count++
-    });
-
-    $("#vegTypeSliderTable").append("</td></td>")
-    veg_iteration++;
-
-});
-
-slider_values={}
-veg_proportion={}
-
-function create_slider(iterator, veg_type, state_class_count) {
-
-    $(function () {
-        slider_values[iterator] = 0
-        veg_proportion[iterator] = 0
-        counter_variable = "veg" + iterator + "_slider"
-
-        $("#veg" + iterator + "_slider").slider({
-            range: "min",
-            value: slider_values[iterator],
-            min: 0,
-            max: 100,
-            step:1,
-            slide: function (event, ui) {
-                veg_slider_values[veg_type] = ui.value
-                $("#veg" + iterator + "_label").val(ui.value + "%");
-                $("#total_input_percent").html(total_input_percent + ui.value + "%");
-                total_percent_action(total_input_percent + ui.value)
-
-                landscape_viewer.updateVegetation(veg_slider_values)
-
-                // Populate state class values equally
-                veg_proportion[iterator] = (ui.value / state_class_count).toFixed(2)
-                for (i = 1; i <= state_class_count; i++) {
-                    $("#veg_" + iterator + "_" + i).val(veg_proportion[iterator])
-                }
-
-                veg_slider_values_state_class[veg_type] = {}
-            },
-            start: function (event, ui) {
-                total_input_percent = total_input_percent - ui.value
-            },
-            stop: function (event, ui) {
-                total_input_percent = total_input_percent + ui.value
-
-                $.each(veg_type_state_classes_json[veg_type], function (index, state_class)
-                {
-                    veg_slider_values_state_class[veg_type][state_class]=veg_proportion[iterator]
-
-                })
-
+    if (!library_initialized) {
+        // setup the sidebar for the first time
+        $.getJSON(libraryName + '/info/').done(function(definitions) {
+            setLibrary(libraryName, definitions);
+            landscape_viewer.setLibraryDefinitions(libraryName, definitions);
+            // select the extent the user just selected
+            if (!definitions.has_predefined_extent) {
+                updateExtent(libraryName, extent);
             }
         });
+    } else {
+        updateExtent(libraryName, extent);
+    }
 
-    });
 }
 
-probability_iteration=1;
+function updateExtent(libraryName, extent) {
+    $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
 
-$.each(probabilistic_transitions_json, function (transition_type, state_class_list) {
+        var raster_uuid = uuid_res['uuid'];
+        $.getJSON(libraryName + '/select/' + raster_uuid + '/stats/').done(function (initConditions) {
+            setInitialConditionsSidebar(initConditions);
+            landscape_viewer.setStudyArea(raster_uuid, initConditions);
+        }).always(show_input_options);
+    })
+}
 
-    //Create a skeleton to house the intital conditions slider bar and  state class input table.
-    probabilistic_transitions_table_id=transition_type.replace(/ /g, "_").replace(/&/g, "__")
-    $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='transition_type'>" + transition_type + ": </span></label>" +
-        "<input type='text' id='probabilistic_transition" + probability_iteration + "_label' class='current_probability_slider_setting' readonly>" +
-        "<div class='slider_bars probabilistic_transition_sliders' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
-        "</td></tr>"
-    );
+var veg_type_state_classes_json, management_actions_list, probabilistic_transitions_json;
+var probabilistic_transitions_slider_values = {}
 
-    // Create a slider bar
-    create_probability_slider(probability_iteration, transition_type, 0)
 
-    $("#probabilisticTransitionSliderTable").append("</td></td>")
+function setLibrary(libraryName, definitions) {
+    veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
+    management_actions_list = definitions['management_actions_list'];
+    probabilistic_transitions_json = definitions['probabilistic_transitions_json'];
+    landscape_viewer.setLibraryDefinitions(libraryName, definitions);
 
-    probability_iteration++;
+    if (definitions.has_predefined_extent) {
+        $.getJSON(libraryName + '/select/predefined-extent/stats/').done(function (initConditions) {
+            setInitialConditionsSidebar(initConditions);
+            landscape_viewer.setStudyArea('predefined-extent', initConditions);
+        }).always(show_input_options);
+    }
+}
 
-});
+var slider_values = {};
+var veg_proportion = {};
+var management_actions_dict = {};
+var probability_labels = {};
+    probability_labels[-1] = "0% Probability";
+    probability_labels[-.75] = "Very Low (-75%)";
+    probability_labels[-.50] = "Low (-50%)";
+    probability_labels[-.25] = "Moderately Low (-25%)";
+    probability_labels[0] = "Default Probabilities";
+    probability_labels[.25] = "Moderately High (+25%)";
+    probability_labels[.50] = "High (+50%)";
+    probability_labels[.75] = "Very High (+75%)";
+    probability_labels[1] = "100% Probability";
 
-probability_labels={}
-probability_labels[-1]="0% Probability"
-probability_labels[-.75]="Very Low (-75%)"
-probability_labels[-.50]="Low (-50%)"
-probability_labels[-.25]="Moderately Low (-25%)"
-probability_labels[0]="Default Probabilities"
-probability_labels[.25]="Moderately High (+25%)"
-probability_labels[.50]="High (+50%)"
-probability_labels[.75]="Very High (+75%)"
-probability_labels[1]="100% Probability"
+function setInitialConditionsSidebar(initial_conditions) {
 
-probabilistic_transitions_slider_values={}
+    var veg_iteration = 1;
 
-function create_probability_slider(iterator, transition_type) {
+    $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
-    $(function () {
-        $("#probabilistic_transition" + iterator + "_slider").slider({
-            range: "min",
-            value: 0,
-            min: -1,
-            max:1,
-            step:.25,
-            slide: function (event, ui) {
-                probabilistic_transitions_slider_values[transition_type] = ui.value
-                $("#probabilistic_transition" + iterator + "_label").val(probability_labels[ui.value]);
-            },
+        veg_slider_values[veg_type] = 0
+
+        // Count the number of state classes
+        var state_class_count = state_class_list.length
+
+        //Create a skeleton to house the intital conditions slider bar and  state class input table.
+        var veg_table_id = veg_type.replace(/ /g, "_").replace(/&/g, "__")
+        var management_table_id = veg_table_id + "_management"
+        $("#vegTypeSliderTable").append("<tr><td>" +
+            "<table class='initial_veg_cover_input_table'>" +
+            "<tr><td colspan='4'>" +
+            "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_type + " </div></label><br>" +
+            "</td></tr>" +
+            "<tr><td>" +
+            "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
+            "</td><td>" +
+            "<input type='text' id='veg" + veg_iteration + "_label' class='current_slider_setting' readonly>" +
+            "</td>" +
+            "<td>" +
+            "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
+            "<div class='sub_slider_text_inputs' style='display:none'>" +
+            "<div class='callout right '>" +
+            "<table id='" + veg_table_id + "' class='sub_slider_table' title='" + veg_type + "'></table>" +
+            "</div></div>" +
+            "</td><td>" +
+            "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
+            "<div class='management_action_inputs' style='display:none'>" +
+            "<div class='manage_callout callout right'>" +
+            "<table id='" + management_table_id + "' class='sub_slider_table' title='" + veg_type + "'></table>" +
+            "</div>" +
+            "</div>" +
+            "</td></tr></table>" +
+            "</td></tr>"
+        );
+
+        // Create a slider bar
+        create_slider(veg_iteration, veg_type, state_class_count)
+
+        // Make a row for each state class.
+        state_class_count = 1;
+        $.each(state_class_list, function (index, state_class) {
+            $("#" + veg_table_id).append("<tr><td>" + state_class + " </td><td><input class='veg_state_class_entry' id='" + "veg_" + veg_iteration + "_" + state_class_count + "' type='text' size='2' value='0'>%</td></tr>")
+            state_class_count++
         });
 
+        var management_action_count = 1;
+        // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
+        management_actions_dict[veg_type] = management_actions_list;
+        $.each(management_actions_dict[veg_type], function (index, management_action) {
+            $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input class='veg_state_class_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
+            management_action_count++
+        });
+
+        $("#vegTypeSliderTable").append("</td></td>")
+        veg_iteration++;
+
     });
+
+    function create_slider(iterator, veg_type, state_class_count) {
+
+        $(function () {
+            slider_values[iterator] = 0
+            veg_proportion[iterator] = 0
+            //counter_variable = "veg" + iterator + "_slider" // TODO - remove?
+
+            $("#veg" + iterator + "_slider").slider({
+                range: "min",
+                value: slider_values[iterator],
+                min: 0,
+                max: 100,
+                step: 1,
+                slide: function (event, ui) {
+                    veg_slider_values[veg_type] = ui.value
+                    $("#veg" + iterator + "_label").val(ui.value + "%");
+                    $("#total_input_percent").html(total_input_percent + ui.value + "%");
+                    total_percent_action(total_input_percent + ui.value)
+
+                    // Populate state class values equally
+                    veg_proportion[iterator] = (ui.value / state_class_count).toFixed(2)
+                    for (i = 1; i <= state_class_count; i++) {
+                        $("#veg_" + iterator + "_" + i).val(veg_proportion[iterator])
+                    }
+
+                    veg_slider_values_state_class[veg_type] = {}
+                },
+                start: function (event, ui) {
+                    total_input_percent = total_input_percent - ui.value
+                },
+                stop: function (event, ui) {
+                    total_input_percent = total_input_percent + ui.value
+
+                    $.each(veg_type_state_classes_json[veg_type], function (index, state_class) {
+                        veg_slider_values_state_class[veg_type][state_class] = veg_proportion[iterator]
+
+                    })
+
+                }
+            });
+
+        });
+    }
+
+    var probability_iteration = 1;
+
+    $.each(probabilistic_transitions_json, function (transition_type, state_class_list) {
+
+        //Create a skeleton to house the intital conditions slider bar and  state class input table.
+        probabilistic_transitions_table_id = transition_type.replace(/ /g, "_").replace(/&/g, "__")
+        $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='transition_type'>" + transition_type + ": </span></label>" +
+            "<input type='text' id='probabilistic_transition" + probability_iteration + "_label' class='current_probability_slider_setting' readonly>" +
+            "<div class='slider_bars probabilistic_transition_sliders' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
+            "</td></tr>"
+        );
+
+        // Create a slider bar
+        create_probability_slider(probability_iteration, transition_type, 0)
+
+        $("#probabilisticTransitionSliderTable").append("</td></td>")
+
+        probability_iteration++;
+
+    });
+
+
+
+
+    function create_probability_slider(iterator, transition_type) {
+
+        $(function () {
+            $("#probabilistic_transition" + iterator + "_slider").slider({
+                range: "min",
+                value: 0,
+                min: -1,
+                max: 1,
+                step: .25,
+                slide: function (event, ui) {
+                    probabilistic_transitions_slider_values[transition_type] = ui.value
+                    $("#probabilistic_transition" + iterator + "_label").val(probability_labels[ui.value]);
+                },
+            });
+
+        });
+    }
+
+    initializeStateClassColorMap();
+    $(".current_probability_slider_setting").val("Default Probabilities");
+    $(".current_slider_setting").val('0%');    // TODO - remove, since we're going to populate the setting values
 }
 
 function total_percent_action(value){
@@ -679,42 +664,21 @@ function activate_scene(){
     $("#selected_features").show()
 }
 
-$("#aspatial_link").click(function(){
-    activate_aspatial()
-})
-
 $("#spatial_link").click(function(){
-   settings["spatial"]=true
-   activate_spatial_scene()
+    var button = $('#spatial_button');
+    if (button.hasClass('selected')) {
+        button.removeClass('selected');
+    } else {
+        button.addClass('selected');
+    }
+    settings['spatial'] = button.hasClass('selected');
 })
 
 $("#settings_library").on('change', function(){
     console.log(this.value)
+    var newLibraryName = $(this).val();
+    $.getJSON(newLibraryName + '/info/').done(function(definitions) {
+        setLibrary(newLibraryName, definitions);
+    })
 })
-
-function activate_aspatial(){
-    $("#spatial_button").removeClass("selected")
-    $("#aspatial_button").addClass("selected")
-}
-
-// TODO - remove and replace with better options. Dev only.
-function activate_spatial_scene() {
-    feature_id = 'Castle Creek';
-    landscape_viewer.updateSpatialTerrain(2, true);
-    show_input_options();
-
-    $("#spatial_button").addClass("selected")
-    $("#aspatial_button").removeClass("selected")
-
-    // override various things since we are testing
-    $('#input_initial_veg').addClass("disabled");
-    $('#run_button').removeClass("disabled");
-    $('input:submit').attr("disabled", false);
-    $("#run_button").val('Run Model');
-    $("#map_button").removeClass("selected");
-    $("#scene_button").addClass("selected");
-    $("#scene").show();
-    $("#map").hide();
-}
-
 

@@ -51,18 +51,13 @@ map.on('draw:created', function (e) {
     drawnItems.addLayer(e.layer);
 
     //drawn_wkt=toWKT(layer);
-    var bottom = e.layer._bounds._southWest.lat
-    var top = e.layer._bounds._northEast.lat
-    var left = e.layer._bounds._southWest.lng
-    var right = e.layer._bounds._northEast.lng
-
-    extent=[top,bottom,right,left]
-    landscape_viewer.updateTerrain(extent, true)  // also updates the vegetation to the user-specified conditions
-
-    feature_id="User Defined Area"
-
-    show_input_options(feature_id)
-
+    var bottom = e.layer._bounds._southWest.lat;
+    var top = e.layer._bounds._northEast.lat;
+    var left = e.layer._bounds._southWest.lng;
+    var right = e.layer._bounds._northEast.lng;
+    var extent = [left, bottom, right, top];
+    feature_id="User Defined Area";
+    updateStudyArea(extent);
 })
 
 //END USER DEFINED AREA FUNCTIONS
@@ -74,18 +69,14 @@ var counties = L.geoJson(sagebrush_counties, {
 }).addTo(map);
 
 counties.on('click', function (e) {
-    var bottom = e.layer._bounds._southWest.lat
-    var top = e.layer._bounds._northEast.lat
-    var left = e.layer._bounds._southWest.lng
-    var right = e.layer._bounds._northEast.lng
-    feature_id = e.layer.feature.properties.NAME
-    console.log(e.layer)
+    var bottom = e.layer._bounds._southWest.lat;
+    var top = e.layer._bounds._northEast.lat;
+    var left = e.layer._bounds._southWest.lng;
+    var right = e.layer._bounds._northEast.lng;
+    feature_id = e.layer.feature.properties.NAME;
+    var extent = [left, bottom, right, top];
+    updateStudyArea(extent);
 
-    extent=[top,bottom,right,left]
-    landscape_viewer.updateTerrain(extent, true)  // also updates the vegetation to the user-specified conditions
-
+    // TODO - do we need this? Maybe for something in the backend...
     var user_wkt = "POINT(" + e.latlng.lng + " " + e.latlng.lat + ")";
-
-    show_input_options(feature_id)
-
 });

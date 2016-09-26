@@ -22,15 +22,17 @@ colors=[
 // Makes state class colors consistent across all charts.
 i=0;
 state_class_color_map={};
-$.each(veg_type_state_classes_json, function(veg_type,state_classes){
+function initializeStateClassColorMap() {
+    $.each(veg_type_state_classes_json, function (veg_type, state_classes) {
 
-    $.each(state_classes, function(index, state_class){
-        if (typeof state_class_color_map[state_class] == "undefined") {
-            state_class_color_map[state_class] = colors[i]
-        }
-        i++
+        $.each(state_classes, function (index, state_class) {
+            if (typeof state_class_color_map[state_class] == "undefined") {
+                state_class_color_map[state_class] = colors[i]
+            }
+            i++
+        });
     });
-});
+}
 
 function create_area_chart(veg_type, chart_div_id) {
 
