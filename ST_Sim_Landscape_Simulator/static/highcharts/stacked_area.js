@@ -12,7 +12,11 @@ colors=[
     "#ACEDE8",
     "#CBC77A",
     "#9AB17A",
-    "#BB845B"
+    "#BB845B",
+    "#8080C0",
+    "#C0BF9C",
+    "#408080",
+    "#994F4F",
 ];
 
 // Makes state class colors consistent across all charts.
@@ -93,7 +97,7 @@ function create_area_chart(veg_type, chart_div_id) {
                     var y_value;
 
                     for(index = 0; index < pointsLength; index += 1) {
-                        y_value = (points[index].y).toFixed(2)
+                        y_value = (points[index].y).toFixed(1)
 
                         if (y_value > 0) {
                             tooltipMarkup += '<span style="color:' + points[index].series.color + '">\u25CF</span> ' + points[index].series.name + ': <b>' + y_value + '%</b><br/>';
@@ -132,11 +136,14 @@ function create_area_chart(veg_type, chart_div_id) {
 
 function create_area_charts(results_data_json, run, iteration) {
 
+        $("#view" + run +"_tab").css("display", "inline")
+
+
+        $("#area_charts_" +run).empty()
+
         if (typeof iteration == "undefined"){
             iteration=1
         }
-
-        $("#view" + run +"_tab").css("display", "inline")
 
         //Restructure Dictionary
         chart_dict = {}
@@ -164,7 +171,7 @@ function create_area_charts(results_data_json, run, iteration) {
 
             $("#area_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
 
-            "<span class='show_stacked_area_chart_link' id='show_stacked_area_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
+            "<span class='show_chart_link' id='show_stacked_area_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 
             //add a new chart div
             $("#area_charts_" + run).append("<div id='" + chart_div_id + "'></div>")

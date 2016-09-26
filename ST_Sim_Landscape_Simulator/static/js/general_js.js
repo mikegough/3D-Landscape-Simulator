@@ -136,7 +136,9 @@ function show_input_options (){
     $("#general_settings").show();
     $("#input_probabilistic_transitions").show();
 
+    // Just going to run a single scenario. This sets the management sceanario to minimum management.
     // configure the input_management_scenario div to show the correct values for available scenario IDs
+    /*
     var scenario_types;
     if (landscape_viewer.isSpatial()) {
         scenario_types = scenario_types_json['spatial']
@@ -159,6 +161,7 @@ function show_input_options (){
         )
     });
     $("#input_management_scenario").show();
+    */
 
     $("#run_button").on("click", function(){
             run_st_sim(feature_id)
@@ -183,7 +186,7 @@ function show_input_options (){
 
 }
 
-run=1
+run=0
 iteration=1
 timestep=0
 
@@ -206,7 +209,13 @@ function run_st_sim(feature_id) {
     $("#output").show()
     $("#running_st_sim").html("Running ST-Sim...")
     $("#results_loading").html("<img src='/static/img/spinner.gif'>")
-    var scenario = $("input[name=scenario]:checked").val()
+
+    //This was giving us the mimimum management scenario, since the radio buttons were all flagged as checked when they are created dynamically.
+    //Hard code below instead
+
+    //scenario = $("input[name=scenario]:checked").val()
+
+    // TODO: specify the scenario in the config file.
 
     if (landscape_viewer.isSpatial()) {
         // spatial run
@@ -231,6 +240,8 @@ function run_st_sim(feature_id) {
     }
     else {
         // non-spatial run
+        // Hard code to current management scenario.
+        scenario = '264';
 
         veg_slider_values_string = JSON.stringify(veg_slider_values)
         veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
@@ -253,6 +264,13 @@ function run_st_sim(feature_id) {
                 results_data_json = JSON.parse(response["results_json"])
                 var scenario_label = $("input:checked + label").text();
 
+                // Maximum of 4 model runs
+                if (run == 4) {
+                    run = 1;
+                }
+                else {
+                    run += 1;
+                }
 
                 $("#tab_container").css("display", "block")
                 update_results_table(scenario_label, timestep, run)
@@ -261,16 +279,10 @@ function run_st_sim(feature_id) {
                 previous_feature_id = feature_id
 
                 create_area_charts(results_data_json, run)
+                create_column_charts(results_data_json, run)
 
                 document.getElementById("view" + run + "_link").click()
 
-                // Maximum of 4 model runs
-                if (run == 4) {
-                    run = 1;
-                }
-                else {
-                    run += 1;
-                }
 
 
             },
@@ -295,6 +307,8 @@ function run_st_sim(feature_id) {
 
 }
 
+/****************************************  Results Table & Output Charts **********************************************/
+
 function update_results_table(scenario_label, timestep,run) {
 
      // sum state class values for display in scene and table header
@@ -310,21 +324,15 @@ function update_results_table(scenario_label, timestep,run) {
     // Create the Results Table
     $("#results_table_" + run).html("<tr class='location_tr'><td class='location_th' colspan='1'>Location </td><td colspan='2'>" + feature_id + "</td></tr>");
 
-    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts'> </div>")
+    $("#view"+run).append("<table id='selected_location_table_" + run + "' class='selected_location_table' ><tr></tr></table> <div id='area_charts_" + run +"' class='area_charts' style='display:none'></div><div id='column_charts_" + run +"' class='column_charts'> </div>")
 
-   // $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='1'>Scenario </td><td colspan='2'><div class='overflow_ellipses'>" + scenario_label + "</div></td></tr>");
-
-    /*
-    $("#selected_location_table_" + run).html("<tr><th colspan='3'>County: " + feature_id + "</th></tr>");
-    $("#selected_location_table_" + run).append("<tr class='veg_type_percent_tr'><td class='scenario_th' colspan='3'>Scenario: " + scenario_label + "</td></tr>");
-    */
-
+    // Probabilistic Transitions Row
     if (typeof probabilistic_transitions_slider_values != "undefined") {
         var sum_probabilities=0
 
         $.each(probabilistic_transitions_slider_values, function (transition_type, probability) {
             sum_probabilities+=Math.abs(probability)
-        })
+        });
 
         if (sum_probabilities != 0) {
 
@@ -349,25 +357,59 @@ function update_results_table(scenario_label, timestep,run) {
         }
     }
 
-    $("#results_table_" + run).append("<tr class='scenario_tr'><td class='scenario_th' colspan='2'>Iteration to Display</td><td colspan='1'><input id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
+    // Chart Type row
+    $("#results_table_" + run).append("<tr class='chart_type_tr'>" +
+        "<td class='chart_type_th' colspan='1'>Chart Type</td>" +
+        "<td class='selected_td_button' id='column_chart_td_button_" + run + "'>Column</td>" +
+        "<td class='unselected_td_button' id='stacked_area_chart_td_button_" + run + "'>Area</td>" +
+        "</td>");
+
+
+    // Chart button click functions
+    $("#column_chart_td_button_" + run).click(function(){
+        $(this).removeClass("unselected_td_button")
+        $(this).addClass("selected_td_button")
+        $("#stacked_area_chart_td_button_" + run).addClass("unselected_td_button")
+        $("#stacked_area_chart_td_button_" + run).removeClass("selected_td_button")
+        $(this).addClass("selected_td_button")
+        $("#column_charts_" + run).show()
+        $("#iteration_tr_" + run ).hide()
+        $("#area_charts_" + run).hide()
+        $("#veg_output_th_" + run).html("Vegetation Cover in " + settings["timesteps"] + " Years")
+    });
+
+    // Chart button click functions
+    $("#stacked_area_chart_td_button_" + run).click(function(){
+        $(this).removeClass("unselected_td_button")
+        $(this).addClass("selected_td_button")
+        $("#column_chart_td_button_" + run).addClass("unselected_td_button")
+        $("#column_chart_td_button_" + run).removeClass("selected_td_button")
+        $("#column_charts_" + run).hide()
+        $("#iteration_tr_" + run ).show()
+        $("#area_charts_" + run).show()
+        $("#veg_output_th_" + run).html("Vegetation Cover across " + settings["timesteps"] + " Years")
+    });
+
+
+    // Iteration row
+    $("#results_table_" + run).append("<tr class='iteration_tr' id='iteration_tr_" + run +"'><td class='iteration_th' colspan='2'>Iteration to Display</td><td colspan='1'><input class='iteration_to_plot' id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
     $("#iteration_to_plot_" + run).on('keyup', function(){
         $("#area_charts_" +run).empty()
         create_area_charts(results_data_json, run, this.value)
-    })
-
+    });
 
     // Create a list of all the veg types and create a sorted list.
     var veg_type_list = new Array()
     $.each(results_data_json[iteration][timestep], function(key,value){
         veg_type_list.push(key)
-    })
+    });
 
     var sorted_veg_type_list = veg_type_list.sort()
 
     $("#running_st_sim").html("ST-Sim Model Results")
 
-    $("#results_table_" + run).append("<tr class='veg_output_tr'><td class='veg_output_th' colspan='3'>Vegetation Cover</td></tr>");
+    $("#results_table_" + run).append("<tr class='veg_output_tr'><td class='veg_output_th' id='veg_output_th_" + run + "' colspan='3'>Vegetation Cover in " + settings["timesteps"] + " Years</td></tr>");
     // Go through each sorted veg_type
     $.each(sorted_veg_type_list, function (index, value) {
 
@@ -376,7 +418,7 @@ function update_results_table(scenario_label, timestep,run) {
         // Write veg type and % headers
        //$("#results_table").append("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value + " " + (results_data_json_totals[value]).toFixed(1) + "%" +
         $("#results_table").html("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value +
-            "<span class='show_state_classes_results_link'> <img class='dropdown_arrows' src='/static/img/down_arrow.png'></span>" +
+                "<span class='show_state_classes_results_link'> <img class='dropdown_arrows' src='/static/img/down_arrow.png'></span>" +
             "</td></tr>");
 
         // Create a list of all the state classes and create a sorted list.
@@ -423,41 +465,25 @@ function update_results_table(scenario_label, timestep,run) {
             $(this).children('img').attr('src', '/static/img/down_arrow.png')
             $(this).children('.show_disturbance_probabilities_link_text').html('Show')
         }
-        $(this).closest('tr').nextUntil('tr.veg_output_tr').slideToggle(0);
+        $(this).closest('tr').nextUntil('tr.scenario_tr').slideToggle(0);
     });
 }
 
-/*************************************************** Slider bars  ****************************************************/
+/*************************************** Initial Vegetation Cover Inputs **********************************************/
 
-//initialize default values. Change the default labels above as well.
 var enable_environment_settings=false;
-var veg1_slider=0;
-var veg2_slider=0;
-var veg3_slider=0;
-var veg4_slider=0;
-var veg5_slider=0;
-var veg6_slider=0;
-var veg7_slider=0;
-
 var total_input_percent=0;
-
-var veg_slider_values={
-    "Basin Big Sagebrush Upland":veg1_slider,
-    "Curleaf Mountain Mahogany":veg2_slider,
-    "Low Sagebrush":veg3_slider,
-    "Montane Sagebrush Upland":veg4_slider,
-    "Montane Sagebrush Upland With Trees":veg5_slider,
-    "Western Juniper Woodland & Savannah":veg6_slider,
-    "Wyoming and Basin Big Sagebrush Upland":veg7_slider
-};
+var veg_slider_values={}
 
 var landscape_viewer = require('app').default('scene', veg_slider_values);
 
 var veg_slider_values_state_class={}
 
-veg_iteration=1;
+var veg_iteration=1;
 
 $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
+
+    veg_slider_values[veg_type]=0
 
     // Count the number of state classes
     var state_class_count=state_class_list.length
