@@ -20,7 +20,7 @@ $(document).ready(function() {
         }
     );
 
-    $(".show_state_classes_link").click(function() {
+    $(".show_state_classes_link").on("click", function() {
         if ($(this).siblings(".sub_slider_text_inputs").is(":visible")) {
             //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
             $(this).siblings(".sub_slider_text_inputs").hide()
@@ -31,7 +31,7 @@ $(document).ready(function() {
         }
     });
 
-    $(".manage_div").click(function() {
+    $(".manage_div").on("click", function() {
         if ($(this).siblings(".management_action_inputs").is(":visible")) {
             //$(this).html(" <img class='dropdown_arrows_rotate' src='/static/img/down_arrow.png'>")
             $(this).siblings(".management_action_inputs").hide()
