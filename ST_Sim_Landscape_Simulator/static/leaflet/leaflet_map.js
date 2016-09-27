@@ -3,8 +3,6 @@ var map = L.map('map', {
     }
 ).setView([39,-113], 5);
 
-total_area=500000
-
 // BEGIN MAP CONTROLS
 
 // Info control in upper right
@@ -30,7 +28,6 @@ L.control.zoom({
 }).addTo(map);
 
 // END MAP CONTROLS
-
 
 //BEGIN USER DEFINED AREA FUNCTIONS
 drawnItems = L.featureGroup().addTo(map);
@@ -67,7 +64,7 @@ map.on('draw:created', function (e) {
     // Reset styling on the entire layer in order to "de-select" the previous selected feature
     reporting_units.eachLayer(function(l){reporting_units.resetStyle(l);});
 
-    //prevents mouseover function from keeping the selected feature highlighted
+    // Prevents mouseover function from keeping the selected feature highlighted
     delete selected_feature
 
     if (typeof drawn_layer != "undefined" && map.hasLayer(drawn_layer)){
@@ -167,6 +164,7 @@ function selectFeature(e) {
     var left = selected_feature._bounds._southWest.lng
     var right = selected_feature._bounds._northEast.lng
     feature_id = selected_feature.feature.properties.NAME
+    libraries = selected_feature.feature.properties.LIBRARIES
     console.log(selected_feature)
 
     extent = [top, bottom, right, left]
