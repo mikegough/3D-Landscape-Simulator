@@ -135,7 +135,7 @@ function resetHighlight(e) {
         info.update();
     }
 }
-
+var libraries;
 function selectFeature(e) {
 
     if (typeof drawn_layer != "undefined" && map.hasLayer(drawn_layer)){
@@ -158,8 +158,19 @@ function selectFeature(e) {
     var right = selected_feature._bounds._northEast.lng;
     var extent = [left, bottom, right, top];
     feature_id = selected_feature.feature.properties.NAME;
-    var libraries = selected_feature.feature.properties.LIBRARIES;
-    console.log(selected_feature);
+    libraries = selected_feature.feature.properties.LIBRARIES;
+
+    // setup the library dropdown
+    $('#ss1').empty();
+    $('#ss1').append('<select id="settings_library"></select>');
+    for (var i = 0; i < libraries.length; i++) {
+        var lib = libraries[i];
+        var selected = "";
+        if (lib == 'Landfire') selected = " selected";  // Our default library.
+        $('#settings_library').append("<option value='" + lib + "'" + selected +">" + lib +"</option>");
+    }
+    $("select").selectBoxIt();
+
     updateStudyArea(extent);
 
 }

@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-    $("select").selectBoxIt();
+    //$("select").selectBoxIt();
 
     // Tooltip popup on management scenarios
     $(".scenario_radio_label").hover(function(e) {
@@ -689,7 +689,7 @@ $("#spatial_link").click(function(){
     settings['spatial'] = button.hasClass('selected');
 })
 
-$("#settings_library").on('change', function(){
+$(document).on('change', '#settings_library', function() {
     var newLibraryName = $(this).val();
     $.getJSON(newLibraryName + '/info/').done(function(definitions) {
         setLibrary(newLibraryName, definitions);
