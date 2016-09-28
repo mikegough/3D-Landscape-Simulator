@@ -188,8 +188,18 @@ class RasterTextureStats(RasterTextureBase):
                     else:
                         zonal_veg[sc_type] = 0
                 zonal_veg_sc_pcts[vegtype] = zonal_veg
+
+        veg_codes = zonal_veg_sc_pcts.keys()
+        if stsim_manager.has_lookup_fields[self.library]:
+            input_codes = [int(code) for code in veg_codes]
+            lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
+            veg_names = lookup_function(input_codes, stsim_manager.lookup_fields[self.library][0])
+        else:
+            veg_names = {name: name for name in veg_codes}
+
         return JsonResponse({'elev': elev_stats,
                              'veg_sc_pct': zonal_veg_sc_pcts,
+                             'veg_names': veg_names,
                              'total_cells': total})
 
 
@@ -402,18 +412,21 @@ class RasterOutputsView(STSimBaseView):
 
     def get(self, request, *args, **kwargs):
 
-        # TODO - construct a path to the actual directory serving the output tifs from STSim
-        image_directory = os.path.join(settings.STSIM_WORKING_DIR, 'initial_conditions', 'spatial')
         if self.type == 'veg':
-            image_path = os.path.join(image_directory, 'veg.png')          # TODO - replace with the selected area of interest
-        elif self.timestep == 0 and self.iteration == 0:
-            image_path = os.path.join(image_directory, 'stateclass_0_0.png')   # TODO - ^^
+            image = self.serve_vegetation_output()
         else:
-            image_path = os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
-                                      'Spatial', 'stateclass_{iteration}_{timestep}.png'.format(iteration=self.iteration,
-                                                                                                timestep=self.timestep))
+            image = self.serve_stateclass_output()
 
         response = HttpResponse(content_type="image/png")
-        image = Image.open(image_path)
         image.save(response, 'PNG')
         return response
+
+    def serve_stateclass_output(self):
+        image_directory = os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(self.scenario_id), 'Spatial')
+        return Image.open(os.path.join(image_directory,
+                                       'stateclass_{iteration}_{timestep}.png'.format(iteration=self.iteration,
+                                                                                      timestep=self.timestep)))
+
+    def serve_vegetation_output(self):
+        # TODO - serve veg/strata output raster
+        return Image.new('L', (64, 64))
