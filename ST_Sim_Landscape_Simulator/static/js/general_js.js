@@ -134,6 +134,7 @@ function show_input_options (){
 
     $("#step1").hide()
     $("#selected_features").show()
+    $("#intro").hide()
 
     landscape_viewer.resize()
 
@@ -198,6 +199,8 @@ function run_st_sim(feature_id) {
             else {
                 run += 1;
             }
+            $("#column_charts_" + run).empty()
+            $("#area_charts" + run).empty()
 
             $("#tab_container").css("display", "block")
             update_results_table(timestep, run)
