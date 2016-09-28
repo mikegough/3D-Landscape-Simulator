@@ -15,6 +15,7 @@ export const MAX_CLUSTER_RADIUS = 30.0	// max radius to grow around a cluster
 // global colors
 export const WHITE = 'rgb(255,255,255)'
 
+/*
 export function getVegetationAssetsName(vegname: string) : string {
 
 	if (vegname.includes("Sagebrush")) {
@@ -28,6 +29,7 @@ export function getVegetationAssetsName(vegname: string) : string {
 
 	return 'grass' 
 }
+
 
 export function useSymmetry(vegname: string) : boolean {
 	return  !(vegname.includes('Sagebrush')
@@ -55,6 +57,7 @@ export function getRenderOrder(vegname: string) : number {
 	}
 	return 0
 }
+*/
 
 export function getVegetationLightPosition(vegname: string) : number[] {
 	if (vegname.includes("Sagebrush")) {

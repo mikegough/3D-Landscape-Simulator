@@ -178,16 +178,20 @@ function createVegtype(params: Vegtype3D) {
 	const halfPatch = new THREE.Geometry()
 	halfPatch.merge(params.geo)
 	
+	/*
 	if (globals.useSymmetry(name)) {
 		params.geo.rotateY(Math.PI)
 		halfPatch.merge(params.geo)
-	}
+	}*/
+
 
 	const inst_geo = new THREE.InstancedBufferGeometry()
 	inst_geo.fromGeometry(halfPatch)
 	halfPatch.dispose()
+	/*
 	const s = globals.getVegetationScale(name)
 	inst_geo.scale(s,s,s)
+	*/
 
 	// always remove the color buffer since we are using textures
 	if ( inst_geo.attributes['color'] ) {
@@ -253,7 +257,7 @@ function createVegtype(params: Vegtype3D) {
 
 	const mesh = new THREE.Mesh(inst_geo, mat)
 	mesh.name = name
-	mesh.renderOrder = globals.getRenderOrder(name)
+	//mesh.renderOrder = globals.getRenderOrder(name)
 	mesh.frustumCulled = false
 
 	return mesh

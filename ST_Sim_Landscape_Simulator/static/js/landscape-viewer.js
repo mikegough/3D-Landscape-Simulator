@@ -12,48 +12,49 @@ define("globals", ["require", "exports"], function (require, exports) {
     exports.MAX_CLUSTER_RADIUS = 30.0; // max radius to grow around a cluster
     // global colors
     exports.WHITE = 'rgb(255,255,255)';
-    function getVegetationAssetsName(vegname) {
+    /*
+    export function getVegetationAssetsName(vegname: string) : string {
+    
         if (vegname.includes("Sagebrush")) {
-            return 'sagebrush';
-        }
-        else if (vegname.includes("Juniper")) {
-            return 'juniper';
+            return 'sagebrush'
+        } else if (vegname.includes("Juniper")) {
+            return 'juniper'
         }
         else if (vegname.includes("Mahogany")) {
-            return 'tree';
+            return 'tree'
         }
-        return 'grass';
+    
+        return 'grass'
     }
-    exports.getVegetationAssetsName = getVegetationAssetsName;
-    function useSymmetry(vegname) {
-        return !(vegname.includes('Sagebrush')
-            || vegname.includes('Mahogany')
-            || vegname.includes('Juniper'));
+    
+    
+    export function useSymmetry(vegname: string) : boolean {
+        return  !(vegname.includes('Sagebrush')
+                  || vegname.includes('Mahogany')
+                  || vegname.includes('Juniper'))
     }
-    exports.useSymmetry = useSymmetry;
+    
     // TODO - make this part of the configuration
-    function getVegetationScale(vegname) {
+    export function getVegetationScale(vegname: string) : number {
         if (vegname.includes("Sagebrush")) {
-            return 10.0;
+            return 10.0
+        } else if (vegname.includes("Juniper")) {
+            return 1.
+        } else if (vegname.includes("Mahogany")) {
+            return 15.0
         }
-        else if (vegname.includes("Juniper")) {
-            return 1.;
-        }
-        else if (vegname.includes("Mahogany")) {
-            return 15.0;
-        }
-        return 1.0;
+        return 1.0
     }
-    exports.getVegetationScale = getVegetationScale;
+    
     // TODO - same as above
-    function getRenderOrder(vegname) {
+    export function getRenderOrder(vegname: string) : number {
         // sagebrush should always be rendered first
         if (!vegname.includes('Sagebrush')) {
-            return 1;
+            return 1
         }
-        return 0;
+        return 0
     }
-    exports.getRenderOrder = getRenderOrder;
+    */
     function getVegetationLightPosition(vegname) {
         if (vegname.includes("Sagebrush")) {
             return [0.0, -5.0, 5.0];
@@ -415,15 +416,18 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
     function createVegtype(params) {
         const halfPatch = new THREE.Geometry();
         halfPatch.merge(params.geo);
+        /*
         if (globals.useSymmetry(name)) {
-            params.geo.rotateY(Math.PI);
-            halfPatch.merge(params.geo);
-        }
+            params.geo.rotateY(Math.PI)
+            halfPatch.merge(params.geo)
+        }*/
         const inst_geo = new THREE.InstancedBufferGeometry();
         inst_geo.fromGeometry(halfPatch);
         halfPatch.dispose();
-        const s = globals.getVegetationScale(name);
-        inst_geo.scale(s, s, s);
+        /*
+        const s = globals.getVegetationScale(name)
+        inst_geo.scale(s,s,s)
+        */
         // always remove the color buffer since we are using textures
         if (inst_geo.attributes['color']) {
             inst_geo.removeAttribute('color');
@@ -478,7 +482,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         });
         const mesh = new THREE.Mesh(inst_geo, mat);
         mesh.name = name;
-        mesh.renderOrder = globals.getRenderOrder(name);
+        //mesh.renderOrder = globals.getRenderOrder(name)
         mesh.frustumCulled = false;
         return mesh;
     }
