@@ -104,7 +104,7 @@ function create_column_charts(results_data_json, run) {
 
             chart_div_id="column_chart_" + run + "_"  + chart_count
 
-            $("#column_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
+            $("#column_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + actualVegName(veg_type) +
 
             "<span class='show_chart_link' id='show_column_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 

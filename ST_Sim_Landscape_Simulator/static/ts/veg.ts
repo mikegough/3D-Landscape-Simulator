@@ -169,7 +169,6 @@ function computeVegtypePositions(id: number, position_map: boolean[], type_data:
 		}
 	}
 
-	console.log(numValid);
 	return {map: vegtype_map, numValid: numValid}
 }
 

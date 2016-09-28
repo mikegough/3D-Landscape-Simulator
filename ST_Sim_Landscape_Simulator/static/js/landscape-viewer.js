@@ -410,7 +410,6 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
                 vegtype_map.push(valid);
             }
         }
-        console.log(numValid);
         return { map: vegtype_map, numValid: numValid };
     }
     function createVegtype(params) {

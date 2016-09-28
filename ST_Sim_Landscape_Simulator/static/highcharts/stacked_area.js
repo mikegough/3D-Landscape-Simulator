@@ -171,7 +171,7 @@ function create_area_charts(results_data_json, run, iteration) {
 
             chart_div_id="chart_" + run + "_"  + chart_count
 
-            $("#area_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + veg_type +
+            $("#area_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + actualVegName(veg_type) +
 
             "<span class='show_chart_link' id='show_stacked_area_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 

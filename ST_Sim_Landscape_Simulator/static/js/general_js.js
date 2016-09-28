@@ -437,6 +437,15 @@ var veg_type_state_classes_json, management_actions_list, probabilistic_transiti
 var probabilistic_transitions_slider_values = {};
 var veg_slider_values_state_class={};
 var veg_has_lookup = false;
+var veg_initial_conditions;
+
+function actualVegName(vegtype) {
+    if (veg_has_lookup) {
+        return veg_initial_conditions.veg_names[Number(vegtype)] + ' (' + vegtype + ')';
+    }
+    return vegtype
+}
+
 
 function setLibrary(libraryName, definitions) {
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
@@ -469,8 +478,9 @@ var probability_labels = {};
 
 function setInitialConditionsSidebar(initial_conditions) {
 
+    total_input_percent = 0;
+    veg_initial_conditions = initial_conditions;
     var veg_iteration = 1;
-
     //console.log(initial_conditions.veg_names);
     //console.log(initial_conditions.veg_sc_pct);
 
@@ -480,18 +490,10 @@ function setInitialConditionsSidebar(initial_conditions) {
 
     $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
-        if (!(veg_type in initial_conditions.veg_sc_pct)) {
+        if (!(veg_type in veg_initial_conditions.veg_sc_pct)) {
             return true;    // skips this entry
         }
 
-        // get the initial conditions information
-        var veg_init_conditions = initial_conditions.veg_sc_pct[veg_type];
-        var veg_actual_name;
-        if (veg_has_lookup) {
-            veg_actual_name = initial_conditions.veg_names[Number(veg_type)] + ' (' + veg_type + ')';
-        } else {
-            veg_actual_name = veg_type;
-        }
 
         veg_slider_values[veg_type] = 0
 
@@ -504,7 +506,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         $("#vegTypeSliderTable").append("<tr><td>" +
             "<table class='initial_veg_cover_input_table'>" +
             "<tr><td colspan='4'>" +
-            "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_actual_name + " </div></label><br>" +
+            "<label for='amount_veg1'><div class='imageOverlayLink'>" + actualVegName(veg_type) + " </div></label><br>" +
             "</td></tr>" +
             "<tr><td>" +
             "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
