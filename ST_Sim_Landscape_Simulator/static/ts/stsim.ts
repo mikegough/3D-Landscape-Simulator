@@ -41,6 +41,7 @@ export interface ElevationStatistics {
 export interface LibraryInitConditions {
 	veg_sc_pct : {[veg_name: string] : {[stateclass_name: string] : number}}
 	total_cells : number
+	veg_names: {[veg_name: string] : string}
 	elev: {
 		dem_height: number,
 		dem_max: number,

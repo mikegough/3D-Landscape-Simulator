@@ -28,6 +28,7 @@ SPEC.multiplyScalar(KS * INTENSITY)
 
 interface SpatialVegetationParams {
 	zonalVegtypes: {[vegtype: string] : {[stateclass: string] : number}}
+	veg_names: {[veg_name: string] : string}
 	vegtypes: STSIM.DefinitionMapping
 	config: STSIM.VisualizationConfig
 	strataTexture: THREE.Texture
@@ -78,7 +79,6 @@ export function createSpatialVegetation(params: SpatialVegetationParams) {
 	let vegGroup = new THREE.Group()
 
 	const strata_map = params.strataTexture
-	//const vegtypes = params.data
 	const image = strata_map.image
 	let w = image.naturalWidth
 	let h = image.naturalHeight
@@ -91,17 +91,19 @@ export function createSpatialVegetation(params: SpatialVegetationParams) {
 	// get the image data and convert to IDs
 	let raw_image_data = ctx.getImageData(0,0,w,h).data
 	let strata_data = decodeStrataImage(raw_image_data)
-
 	raw_image_data = null
-
 	
 	const veg_geo = params.geometries['geometry']	// REMOVE, only for testing
 	veg_geo.scale(10,10,10)
 	const veg_tex = params.textures['material']
 
-
 	const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h)
-	//for (var name in params.vegtypes) {
+
+	if (params.config.lookup_field) {
+		console.log('Has lookup', params.config.lookup_field)
+		// lookup the viz_model lookup field
+	}
+
 	for (var name in params.zonalVegtypes) {	
 		// TODO - replace with the actual asset name
 		//const assetName = globals.getVegetationAssetsName(name)
@@ -137,57 +139,9 @@ function computeStrataPositions(vegtypes: any, data: Uint32Array, w: number, h: 
 	let strata_map: boolean[] = new Array()		// declare boolean array
 	let strata_data = data.slice()
 
-	// calculate max from strata indices
-	let max = 0
-	for (var key in vegtypes) {
-		max = vegtypes[key] > max ? vegtypes[key] : max
-	}
-
-	// compute the dither
-	// Adapted from http://blog.ivank.net/floyd-steinberg-dithering-in-javascript.html
-	
-	// set upper threshold and middle threshold
-	let mid : number, shift: number
-	if (max < 256) {
-		mid = 128
-		shift = 4
-	} else if (max < 65536) {
-		mid = 32768
-		shift = 8
-	} else {
-		mid = 8388608
-		shift = 12
-	}
-	const upper = mid * 2 - 1
-	
-	let idx: number, cc: number, rc: number, err: number
-	for (let y = 0; y < h; ++y) {
-		for (let x = 0; x < w; ++x) {
-			idx = (x + y * w)
-			cc = strata_data[idx]
-			rc = (cc<mid?0:upper)
-			err = cc-rc
-			strata_data[idx] = rc
-			if (x+1<w) {
-				strata_data[idx+1] += (err*7)>>shift 		// right neighbor
-			}
-			if (y+1==h) {	
-				continue	// last line, go back to top
-			}
-			if (x > 0) {
-				strata_data[idx + w - 1] += (err*3)>>shift;	// bottom left neighbor
-			}
-			strata_data[idx + w] += (err*5)>>shift			// bottom neighbor
-			if (x + 1 < w) {
-				strata_data[idx + w + 1] += (err*1)>>shift	// bottom right neighbor
-			}
-		}
-	}
-	
-
 	// convert to boolean and return the map
 	for (var i = 0; i < strata_data.length; i++) {
-		strata_map.push(strata_data[i] != 0 && i % 15 == 0? true: false)
+		strata_map.push(strata_data[i] != 0 && i % Math.floor((Math.random()*75)) == 0? true: false)
 	}
 	return strata_map
 }

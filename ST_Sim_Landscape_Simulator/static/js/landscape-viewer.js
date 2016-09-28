@@ -338,7 +338,6 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         console.log('Generating realistic vegetation...');
         let vegGroup = new THREE.Group();
         const strata_map = params.strataTexture;
-        //const vegtypes = params.data
         const image = strata_map.image;
         let w = image.naturalWidth;
         let h = image.naturalHeight;
@@ -355,7 +354,9 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         veg_geo.scale(10, 10, 10);
         const veg_tex = params.textures['material'];
         const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h);
-        //for (var name in params.vegtypes) {
+        if (params.config.lookup_field) {
+            console.log('Has lookup', params.config.lookup_field);
+        }
         for (var name in params.zonalVegtypes) {
             // TODO - replace with the actual asset name
             //const assetName = globals.getVegetationAssetsName(name)
@@ -386,54 +387,9 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
     function computeStrataPositions(vegtypes, data, w, h) {
         let strata_map = new Array(); // declare boolean array
         let strata_data = data.slice();
-        // calculate max from strata indices
-        let max = 0;
-        for (var key in vegtypes) {
-            max = vegtypes[key] > max ? vegtypes[key] : max;
-        }
-        // compute the dither
-        // Adapted from http://blog.ivank.net/floyd-steinberg-dithering-in-javascript.html
-        // set upper threshold and middle threshold
-        let mid, shift;
-        if (max < 256) {
-            mid = 128;
-            shift = 4;
-        }
-        else if (max < 65536) {
-            mid = 32768;
-            shift = 8;
-        }
-        else {
-            mid = 8388608;
-            shift = 12;
-        }
-        const upper = mid * 2 - 1;
-        let idx, cc, rc, err;
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; ++x) {
-                idx = (x + y * w);
-                cc = strata_data[idx];
-                rc = (cc < mid ? 0 : upper);
-                err = cc - rc;
-                strata_data[idx] = rc;
-                if (x + 1 < w) {
-                    strata_data[idx + 1] += (err * 7) >> shift; // right neighbor
-                }
-                if (y + 1 == h) {
-                    continue; // last line, go back to top
-                }
-                if (x > 0) {
-                    strata_data[idx + w - 1] += (err * 3) >> shift; // bottom left neighbor
-                }
-                strata_data[idx + w] += (err * 5) >> shift; // bottom neighbor
-                if (x + 1 < w) {
-                    strata_data[idx + w + 1] += (err * 1) >> shift; // bottom right neighbor
-                }
-            }
-        }
         // convert to boolean and return the map
         for (var i = 0; i < strata_data.length; i++) {
-            strata_map.push(strata_data[i] != 0 && i % 15 == 0 ? true : false);
+            strata_map.push(strata_data[i] != 0 && i % Math.floor((Math.random() * 75)) == 0 ? true : false);
         }
         return strata_map;
     }
@@ -707,6 +663,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         controls.enableKeys = false;
         camera.position.y = 350;
         camera.position.z = 600;
+        //const camera_start_position = camera.position.copy(new THREE.Vector3())
+        const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         controls.maxPolarAngle = Math.PI / 2;
         // Custom event handlers since we only want to render when something happens.
         renderer.domElement.addEventListener('mousedown', animate, false);
@@ -774,6 +732,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             if (uuid != currentUUID) {
                 currentUUID = uuid;
                 currentConditions = initialConditions;
+                camera.position.set(camera_start.x, camera_start.y, camera_start.z);
                 // remove current terrain and vegetation cover
                 if (scene.getObjectByName('terrain') != undefined) {
                     scene.remove(scene.getObjectByName('data'));
@@ -822,7 +781,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             masterAssets[currentLibraryName] = loadedAssets;
             const heightmapTexture = loadedAssets.textures['elevation'];
             const heights = computeHeights(heightmapTexture);
-            const disp = 3.0 / 30.0;
+            const disp = 2.0 / 30.0;
             // define the realism group
             let realismGroup = new THREE.Group();
             realismGroup.name = 'realism';
@@ -845,6 +804,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             realismGroup.add(realismTerrain);
             const realismVegetation = veg_1.createSpatialVegetation({
                 zonalVegtypes: currentConditions.veg_sc_pct,
+                veg_names: currentConditions.veg_names,
                 vegtypes: currentDefinitions.vegtype_definitions,
                 config: currentDefinitions.veg_model_config,
                 strataTexture: loadedAssets.textures['veg_tex'],
@@ -874,8 +834,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 disp: 2.0/ 30.0
             })
             dataGroup.add(dataTerrain)
-            */
-            /*
+            
+            
             const dataVegetation = createDataVegetation({
                 strataTexture: spatialAssets.textures['init_veg'],
                 stateclassTexture: spatialAssets.textures['init_sc'],

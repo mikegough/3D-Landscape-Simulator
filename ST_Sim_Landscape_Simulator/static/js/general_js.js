@@ -20,25 +20,20 @@ $(document).ready(function() {
         }
     );
 
-    //$(".show_state_classes_link").click(function() {
-    $(document).on('click', '.show_state_classes_link', function() {
-        if ($(this).siblings(".sub_slider_text_inputs").is(":visible")) {
-            $(this).siblings(".sub_slider_text_inputs").hide()
-        }
-        else {
-            $(this).siblings(".sub_slider_text_inputs").show()
-        }
-    });
+    // delegate the popup menus for any that occur on the page.
+    function delegatedPopupContext(selector, element) {
+        $(document).on('click', selector, function () {
+            if ($(this).siblings(element).is(":visible")) {
+                $(this).siblings(element).hide()
+            }
+            else {
+                $(this).siblings(element).show()
+            }
+        });
+    }
 
-    //$(".manage_div").click(function() {
-    $(document).on('click', '.manage_div', function() {
-        if ($(this).siblings(".management_action_inputs").is(":visible")) {
-            $(this).siblings(".management_action_inputs").hide()
-        }
-        else {
-            $(this).siblings(".management_action_inputs").show()
-        }
-    });
+    delegatedPopupContext('.show_state_classes_link', '.sub_slider_text_inputs');
+    delegatedPopupContext('.manage_div', '.management_action_inputs');
 
     // On state class value entry move slider bar
     //$(".veg_state_class_entry").keyup(function(){
@@ -406,9 +401,6 @@ var veg_slider_values={}
 
 var landscape_viewer = require('app').default('scene');
 
-var veg_slider_values_state_class={}
-
-
 var library_initialized = false;
 
 function updateStudyArea(extent) {
@@ -433,7 +425,6 @@ function updateStudyArea(extent) {
 
 function updateExtent(libraryName, extent) {
     $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
-
         var raster_uuid = uuid_res['uuid'];
         $.getJSON(libraryName + '/select/' + raster_uuid + '/stats/').done(function (initConditions) {
             setInitialConditionsSidebar(initConditions);
@@ -443,15 +434,17 @@ function updateExtent(libraryName, extent) {
 }
 
 var veg_type_state_classes_json, management_actions_list, probabilistic_transitions_json;
-var probabilistic_transitions_slider_values = {}
-
+var probabilistic_transitions_slider_values = {};
+var veg_slider_values_state_class={};
+var veg_has_lookup = false;
 
 function setLibrary(libraryName, definitions) {
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
     management_actions_list = definitions['management_actions_list'];
     probabilistic_transitions_json = definitions['probabilistic_transitions_json'];
+    veg_has_lookup = definitions['has_lookup']
     landscape_viewer.setLibraryDefinitions(libraryName, definitions);
-
+    library_initialized = true;
     if (definitions.has_predefined_extent) {
         $.getJSON(libraryName + '/select/predefined-extent/stats/').done(function (initConditions) {
             setInitialConditionsSidebar(initConditions);
@@ -478,7 +471,27 @@ function setInitialConditionsSidebar(initial_conditions) {
 
     var veg_iteration = 1;
 
+    //console.log(initial_conditions.veg_names);
+    //console.log(initial_conditions.veg_sc_pct);
+
+    // empty the tables
+    $("#vegTypeSliderTable").empty();
+    $("#probabilisticTransitionSliderTable").empty();
+
     $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
+
+        if (!(veg_type in initial_conditions.veg_sc_pct)) {
+            return true;    // skips this entry
+        }
+
+        // get the initial conditions information
+        var veg_init_conditions = initial_conditions.veg_sc_pct[veg_type];
+        var veg_actual_name;
+        if (veg_has_lookup) {
+            veg_actual_name = initial_conditions.veg_names[Number(veg_type)] + ' (' + veg_type + ')';
+        } else {
+            veg_actual_name = veg_type;
+        }
 
         veg_slider_values[veg_type] = 0
 
@@ -491,7 +504,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         $("#vegTypeSliderTable").append("<tr><td>" +
             "<table class='initial_veg_cover_input_table'>" +
             "<tr><td colspan='4'>" +
-            "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_type + " </div></label><br>" +
+            "<label for='amount_veg1'><div class='imageOverlayLink'>" + veg_actual_name + " </div></label><br>" +
             "</td></tr>" +
             "<tr><td>" +
             "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
@@ -587,7 +600,7 @@ function setInitialConditionsSidebar(initial_conditions) {
     $.each(probabilistic_transitions_json, function (transition_type, state_class_list) {
 
         //Create a skeleton to house the intital conditions slider bar and  state class input table.
-        probabilistic_transitions_table_id = transition_type.replace(/ /g, "_").replace(/&/g, "__")
+        //probabilistic_transitions_table_id = transition_type.replace(/ /g, "_").replace(/&/g, "__")   // TODO - is this used?
         $("#probabilisticTransitionSliderTable").append("<tr><td><label for='amount_veg1'><span class='transition_type'>" + transition_type + ": </span></label>" +
             "<input type='text' id='probabilistic_transition" + probability_iteration + "_label' class='current_probability_slider_setting' readonly>" +
             "<div class='slider_bars probabilistic_transition_sliders' id='probabilistic_transition" + probability_iteration + "_slider'></div>" +
@@ -602,9 +615,6 @@ function setInitialConditionsSidebar(initial_conditions) {
         probability_iteration++;
 
     });
-
-
-
 
     function create_probability_slider(iterator, transition_type) {
 
@@ -675,10 +685,12 @@ $("#spatial_link").click(function(){
 })
 
 $("#settings_library").on('change', function(){
-    console.log(this.value)
     var newLibraryName = $(this).val();
     $.getJSON(newLibraryName + '/info/').done(function(definitions) {
         setLibrary(newLibraryName, definitions);
+        if (definitions.has_predefined_extent) {
+            feature_id = newLibraryName;
+        }
     })
 })
 

@@ -30,6 +30,10 @@ export default function run(container_id: string) {
 	controls.enableKeys = false
 	camera.position.y = 350
 	camera.position.z = 600
+
+	//const camera_start_position = camera.position.copy(new THREE.Vector3())
+	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
+
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
@@ -111,6 +115,7 @@ export default function run(container_id: string) {
 		if (uuid != currentUUID) {
 			currentUUID = uuid
 			currentConditions = initialConditions
+			camera.position.set(camera_start.x, camera_start.y, camera_start.z)
 
 			// remove current terrain and vegetation cover
 			if (scene.getObjectByName('terrain') != undefined) {
@@ -170,7 +175,7 @@ export default function run(container_id: string) {
 
 		const heightmapTexture = loadedAssets.textures['elevation']
 		const heights = computeHeights(heightmapTexture)
-		const disp = 3.0 / 30.0
+		const disp = 2.0 / 30.0
 
 		// define the realism group
 		let realismGroup = new THREE.Group()
@@ -194,6 +199,7 @@ export default function run(container_id: string) {
 		realismGroup.add(realismTerrain)
 		const realismVegetation = createSpatialVegetation({
 			zonalVegtypes: currentConditions.veg_sc_pct,
+			veg_names: currentConditions.veg_names,
 			vegtypes: currentDefinitions.vegtype_definitions,
 			config: currentDefinitions.veg_model_config,
 			strataTexture: loadedAssets.textures['veg_tex'],
@@ -224,8 +230,8 @@ export default function run(container_id: string) {
 					disp: 2.0/ 30.0
 				})
 				dataGroup.add(dataTerrain)
-				*/
-				/*
+				
+				
 				const dataVegetation = createDataVegetation({
 					strataTexture: spatialAssets.textures['init_veg'],
 					stateclassTexture: spatialAssets.textures['init_sc'],

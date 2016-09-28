@@ -3,7 +3,8 @@ var map = L.map('map', {
     }
 ).setView([39,-113], 5);
 
-total_area=500000
+var total_area=500000;  // TODO - what is this used for?
+var feature_id;
 
 L.control.zoom({
      position:'topright'
@@ -35,9 +36,9 @@ var drawButtons = new L.Control.Draw({
         },
         showArea:true,
     },
-})
+});
 
-map.addControl(drawButtons)
+map.addControl(drawButtons);
 
 map.on('draw:created', function (e) {
 
@@ -58,7 +59,7 @@ map.on('draw:created', function (e) {
     var extent = [left, bottom, right, top];
     feature_id="User Defined Area";
     updateStudyArea(extent);
-})
+});
 
 //END USER DEFINED AREA FUNCTIONS
 
@@ -78,5 +79,5 @@ counties.on('click', function (e) {
     updateStudyArea(extent);
 
     // TODO - do we need this? Maybe for something in the backend...
-    var user_wkt = "POINT(" + e.latlng.lng + " " + e.latlng.lat + ")";
+    //var user_wkt = "POINT(" + e.latlng.lng + " " + e.latlng.lat + ")";
 });
