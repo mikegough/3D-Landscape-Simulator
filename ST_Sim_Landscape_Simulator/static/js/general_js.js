@@ -136,7 +136,8 @@ function show_input_options (){
     $("#selected_features").show()
     $("#intro").hide()
 
-    landscape_viewer.resize()
+    window.addEventListener('resize', landscape_viewer.resize, false);
+    landscape_viewer.resize();
 
     $("#run_button").show();
 
@@ -409,7 +410,6 @@ var library_initialized = false;
 function updateStudyArea(extent) {
 
     var libraryName = $('#settings_library').val();
-
     if (!library_initialized) {
         // setup the sidebar for the first time
         $.getJSON(libraryName + '/info/').done(function(definitions) {
@@ -668,6 +668,7 @@ function activate_map() {
     $("#scene").hide()
     $("#step1").show()
     $("#selected_features").hide()
+    window.removeEventListener('resize', landscape_viewer.resize, false);
 }
 
 function activate_scene(){
@@ -677,6 +678,8 @@ function activate_scene(){
     $("#map").hide()
     $("#step1").hide()
     $("#selected_features").show()
+    window.addEventListener('resize', landscape_viewer.resize, false);
+    landscape_viewer.resize();
 }
 
 $("#spatial_link").click(function(){
@@ -687,7 +690,7 @@ $("#spatial_link").click(function(){
         button.addClass('selected');
     }
     settings['spatial'] = button.hasClass('selected');
-})
+});
 
 $(document).on('change', '#settings_library', function() {
     var newLibraryName = $(this).val();
