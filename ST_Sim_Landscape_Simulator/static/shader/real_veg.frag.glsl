@@ -3,10 +3,10 @@
 precision highp float;
 
 uniform sampler2D tex;
-uniform sampler2D heightmap;
+uniform sampler2D sc_tex;
 
 varying vec2 vUV;
-varying float vAmount;
+varying vec2 scUV;
 
 // light color uniforms
 uniform vec3 ambientProduct;
@@ -25,7 +25,9 @@ varying vec3 negfN;
 void main() {
 
     vec4 myColor = texture2D(tex, vUV);
-    if (myColor.a <= 0.3) {  // if alpha is 0, discard
+    vec4 sc_color = texture2D(sc_tex, scUV);
+
+    if (myColor.a <= 0.3 || sc_color.rgb == vec3(0.)) {  // if alpha is 0, discard
     	discard;
     }
     else {

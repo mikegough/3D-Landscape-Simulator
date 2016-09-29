@@ -2,7 +2,7 @@
 
 import * as globals from './globals'
 import {createTerrain, createDataTerrain} from './terrain'
-import {createSpatialVegetation/*, createDataVegetation*/} from './veg'
+import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
@@ -177,12 +177,12 @@ export default function run(container_id: string) {
 		const heights = computeHeights(heightmapTexture)
 		const disp = 2.0 / 30.0
 
+		const terrainAssets = masterAssets['terrain']
+		const vegetationAssets = masterAssets['vegetation']
+
 		// define the realism group
 		let realismGroup = new THREE.Group()
 		realismGroup.name = 'realism'
-		const terrainAssets = masterAssets['terrain']
-		const vegetationAssets = masterAssets['vegetation']
-		// create normal terrain
 		const realismTerrain = createTerrain({
 			rock: terrainAssets.textures['terrain_rock'],
 			snow: terrainAssets.textures['terrain_snow'],
@@ -197,24 +197,7 @@ export default function run(container_id: string) {
 			disp: disp
 		})
 		realismGroup.add(realismTerrain)
-		const realismVegetation = createSpatialVegetation({
-			zonalVegtypes: currentConditions.veg_sc_pct,
-			veg_names: currentConditions.veg_names,
-			vegtypes: currentDefinitions.vegtype_definitions,
-			config: currentDefinitions.veg_model_config,
-			strataTexture: loadedAssets.textures['veg_tex'],
-			stateclassTexture: loadedAssets.textures['sc_tex'],
-			heightmap: heightmapTexture,
-			geometries: loadedAssets.geometries,
-			textures: loadedAssets.textures,
-			vertexShader: vegetationAssets.text['real_veg_vert'],
-			fragmentShader: vegetationAssets.text['real_veg_frag'],
-			heightStats: currentConditions.elev,
-			disp: disp
-		})
-		realismGroup.add(realismVegetation)		
-		scene.add(realismGroup)
-
+		
 		// define the data group
 		let dataGroup = new THREE.Group()
 		dataGroup.name = 'data'
@@ -226,26 +209,51 @@ export default function run(container_id: string) {
 			data: currentConditions.elev,
 			vertShader: terrainAssets.text['data_terrain_vert'],
 			fragShader: terrainAssets.text['data_terrain_frag'],
-			disp: 2.0/ 30.0
+			disp: disp
 		})
 		dataGroup.add(dataTerrain)
 
-		/*
-		const dataVegetation = createDataVegetation({
-			strataTexture: spatialAssets.textures['init_veg'],
-			stateclassTexture: spatialAssets.textures['init_sc'],
+		// create the vegetation
+		const vegGroups = createSpatialVegetation({
+			zonalVegtypes: currentConditions.veg_sc_pct,
+			veg_names: currentConditions.veg_names,
+			vegtypes: currentDefinitions.vegtype_definitions,
+			config: currentDefinitions.veg_model_config,
+			strataTexture: loadedAssets.textures['veg_tex'],
+			stateclassTexture: loadedAssets.textures['sc_tex'],
 			heightmap: heightmapTexture,
-			vegGeometries: masterAssets.geometries,
-			vegTextures: masterAssets.textures,
-			vertShader: masterAssets.text['data_veg_vert'],
-			fragShader: masterAssets.text['data_veg_frag'],
-			data: vegetationStats,
-			heightData: heightmapStats,
-			disp: 2.0 / 30.0
-		})
-		dataGroup.add(dataVegetation)
-		*/
+			geometries: loadedAssets.geometries,
+			textures: loadedAssets.textures,
+			realismVertexShader: vegetationAssets.text['real_veg_vert'],
+			realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+			dataVertexShader: vegetationAssets.text['data_veg_vert'],
+			dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+			heightStats: currentConditions.elev,
+			disp: disp
+		}) as VegetationGroups
+		realismGroup.add(vegGroups.realism)		
+		dataGroup.add(vegGroups.data)
+
+		scene.add(realismGroup)
 		scene.add(dataGroup)
+
+
+		// show the animation controls for the outputs
+    	$('#animation_container').show();
+
+		// activate the checkbox
+		$('#viz_type').on('change', function() {
+			//const dataGroup = scene.getObjectByName('data')
+			//const realismGroup = scene.getObjectByName('realism')
+			if (dataGroup.visible) {
+				dataGroup.visible = false
+				realismGroup.visible = true
+			} else {
+				dataGroup.visible = true
+				realismGroup.visible = false
+			}
+			render()
+		})
 				
 		// render the scene once everything is finished being processed
 		console.log('Vegetation Rendered!')
@@ -387,8 +395,9 @@ export default function run(container_id: string) {
 	}
 
 	function resize() {
-		renderer.setSize(container.offsetWidth, container.offsetHeight)
-		camera.aspect = container.offsetWidth / container.offsetHeight
+		const newContainer = document.getElementById(container_id)
+		renderer.setSize(newContainer.offsetWidth, newContainer.offsetHeight)
+		camera.aspect = newContainer.offsetWidth / newContainer.offsetHeight
 		camera.updateProjectionMatrix()
 		render()
 	}
