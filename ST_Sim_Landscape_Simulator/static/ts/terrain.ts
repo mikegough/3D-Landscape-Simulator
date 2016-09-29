@@ -16,7 +16,7 @@ DIFFUSE.multiplyScalar(KD * INTENSITY)
 SPEC.multiplyScalar(KS * INTENSITY)
 
 const SUN = [1.0, 3.0, -1.0]	// light position for the terrain, i.e. the ball in the sky
-													// shines from the top and slightly behind and west
+								// shines from the top and slightly behind and west
 
 
 interface TerrainParams {
@@ -113,9 +113,6 @@ export function createDataTerrain(params: DataTerrainParams) {
 	const width = params.data.dem_width
 	const height = params.data.dem_height
 
-	// make sure the textures repeat wrap
-	params.heightmap.wrapS = params.heightmap.wrapT = THREE.RepeatWrapping
-
 	const geo = new THREE.PlaneBufferGeometry(width, height, width-1, height-1)
 	geo.rotateX(-Math.PI / 2)
 
@@ -131,7 +128,12 @@ export function createDataTerrain(params: DataTerrainParams) {
 		uniforms: {
 			// textures for color blending
 			heightmap: {type: "t", value: params.heightmap},
-			tex: {type: "t", value: params.stateclassTexture}
+			//tex: {type: "t", value: params.stateclassTexture},
+			lightPosition: {type: "3f", value: SUN},
+			ambientProduct: {type: "c", value: AMBIENT},
+			diffuseProduct: {type: "c", value: DIFFUSE},
+			specularProduct: {type: "c", value: SPEC},
+			shininess: {type: "f", value: SHINY},
 			},
 		vertexShader: params.vertShader,
 		fragmentShader: params.fragShader,

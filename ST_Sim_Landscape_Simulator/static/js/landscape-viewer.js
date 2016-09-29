@@ -129,8 +129,6 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
     function createDataTerrain(params) {
         const width = params.data.dem_width;
         const height = params.data.dem_height;
-        // make sure the textures repeat wrap
-        params.heightmap.wrapS = params.heightmap.wrapT = THREE.RepeatWrapping;
         const geo = new THREE.PlaneBufferGeometry(width, height, width - 1, height - 1);
         geo.rotateX(-Math.PI / 2);
         let vertices = geo.getAttribute('position');
@@ -142,7 +140,12 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             uniforms: {
                 // textures for color blending
                 heightmap: { type: "t", value: params.heightmap },
-                tex: { type: "t", value: params.stateclassTexture }
+                //tex: {type: "t", value: params.stateclassTexture},
+                lightPosition: { type: "3f", value: SUN },
+                ambientProduct: { type: "c", value: AMBIENT },
+                diffuseProduct: { type: "c", value: DIFFUSE },
+                specularProduct: { type: "c", value: SPEC },
+                shininess: { type: "f", value: SHINY },
             },
             vertexShader: params.vertShader,
             fragmentShader: params.fragShader,
@@ -442,8 +445,8 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         // generate offsets
         let i = 0;
         let x, y, idx, posx, posy, tx, ty;
-        for (y = 0; y < params.height; y += 5) {
-            for (x = 0; x < params.width; x += 5) {
+        for (y = 0; y < params.height; y += 1) {
+            for (x = 0; x < params.width; x += 1) {
                 idx = (x + y * params.width);
                 if (params.map[idx]) {
                     posx = (x - params.width / 2);
@@ -822,23 +825,21 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             });
             realismGroup.add(realismVegetation);
             scene.add(realismGroup);
-            /*
             // define the data group
-            let dataGroup = new THREE.Group()
-            dataGroup.name = 'data'
-            dataGroup.visible = false	// initially set to false
-            const dataTerrain = createDataTerrain({
+            let dataGroup = new THREE.Group();
+            dataGroup.name = 'data';
+            dataGroup.visible = false; // initially set to false
+            const dataTerrain = terrain_1.createDataTerrain({
                 heightmap: heightmapTexture,
                 heights: heights,
-                stateclassTexture: loadedAssets.textures['init_sc'],
-                data: heightmapStats,
+                stateclassTexture: loadedAssets.textures['sc_tex'],
+                data: currentConditions.elev,
                 vertShader: terrainAssets.text['data_terrain_vert'],
                 fragShader: terrainAssets.text['data_terrain_frag'],
-                disp: 2.0/ 30.0
-            })
-            dataGroup.add(dataTerrain)
-            
-            
+                disp: 2.0 / 30.0
+            });
+            dataGroup.add(dataTerrain);
+            /*
             const dataVegetation = createDataVegetation({
                 strataTexture: spatialAssets.textures['init_veg'],
                 stateclassTexture: spatialAssets.textures['init_sc'],
@@ -852,8 +853,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 disp: 2.0 / 30.0
             })
             dataGroup.add(dataVegetation)
-            scene.add(dataGroup)
             */
+            scene.add(dataGroup);
             // render the scene once everything is finished being processed
             console.log('Vegetation Rendered!');
             render();
@@ -964,9 +965,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             let idx;
             for (let y = 0; y < h; ++y) {
                 for (let x = 0; x < w; ++x) {
-                    // idx pixel we want to get. Image has rgba, but we only need the r channel
                     idx = (x + y * w) * 4;
-                    // scale & store this altitude
                     heights[x + y * w] = (data[idx] | (data[idx + 1] << 8) | (data[idx + 2] << 16)) + data[idx + 3] - 255;
                 }
             }

@@ -211,8 +211,8 @@ function createVegtype(params: Vegtype3D) {
 	// generate offsets
 	let i = 0
 	let x: number, y:number, idx:number, posx: number, posy: number, tx:number, ty: number
-	for (y = 0; y < params.height; y += 5) {
-		for (x = 0; x < params.width; x += 5) {
+	for (y = 0; y < params.height; y += 1) {
+		for (x = 0; x < params.width; x += 1) {
 
 			idx = (x + y * params.width)
 

@@ -215,40 +215,38 @@ export default function run(container_id: string) {
 		realismGroup.add(realismVegetation)		
 		scene.add(realismGroup)
 
-				/*
-				// define the data group
-				let dataGroup = new THREE.Group()
-				dataGroup.name = 'data'
-				dataGroup.visible = false	// initially set to false
-				const dataTerrain = createDataTerrain({
-					heightmap: heightmapTexture,
-					heights: heights,
-					stateclassTexture: loadedAssets.textures['init_sc'],
-					data: heightmapStats,
-					vertShader: terrainAssets.text['data_terrain_vert'],
-					fragShader: terrainAssets.text['data_terrain_frag'],
-					disp: 2.0/ 30.0
-				})
-				dataGroup.add(dataTerrain)
-				
-				
-				const dataVegetation = createDataVegetation({
-					strataTexture: spatialAssets.textures['init_veg'],
-					stateclassTexture: spatialAssets.textures['init_sc'],
-					heightmap: heightmapTexture,
-					vegGeometries: masterAssets.geometries,
-					vegTextures: masterAssets.textures,
-					vertShader: masterAssets.text['data_veg_vert'],
-					fragShader: masterAssets.text['data_veg_frag'],
-					data: vegetationStats,
-					heightData: heightmapStats,
-					disp: 2.0 / 30.0
-				})
-				dataGroup.add(dataVegetation)
-				scene.add(dataGroup)
-				*/
+		// define the data group
+		let dataGroup = new THREE.Group()
+		dataGroup.name = 'data'
+		dataGroup.visible = false	// initially set to false
+		const dataTerrain = createDataTerrain({
+			heightmap: heightmapTexture,
+			heights: heights,
+			stateclassTexture: loadedAssets.textures['sc_tex'],
+			data: currentConditions.elev,
+			vertShader: terrainAssets.text['data_terrain_vert'],
+			fragShader: terrainAssets.text['data_terrain_frag'],
+			disp: 2.0/ 30.0
+		})
+		dataGroup.add(dataTerrain)
 
-
+		/*
+		const dataVegetation = createDataVegetation({
+			strataTexture: spatialAssets.textures['init_veg'],
+			stateclassTexture: spatialAssets.textures['init_sc'],
+			heightmap: heightmapTexture,
+			vegGeometries: masterAssets.geometries,
+			vegTextures: masterAssets.textures,
+			vertShader: masterAssets.text['data_veg_vert'],
+			fragShader: masterAssets.text['data_veg_frag'],
+			data: vegetationStats,
+			heightData: heightmapStats,
+			disp: 2.0 / 30.0
+		})
+		dataGroup.add(dataVegetation)
+		*/
+		scene.add(dataGroup)
+				
 		// render the scene once everything is finished being processed
 		console.log('Vegetation Rendered!')
 		render()	
@@ -363,10 +361,7 @@ export default function run(container_id: string) {
 		let idx: number
 		for (let y = 0; y < h; ++y) {
 			for (let x = 0; x < w; ++x) {
-				// idx pixel we want to get. Image has rgba, but we only need the r channel
 				idx = (x + y * w) * 4
-
-				// scale & store this altitude
 				heights[x + y * w] = (data[idx] | (data[idx+1] << 8) | (data[idx+2] << 16)) + data[idx+3] - 255  
 			}
 		}

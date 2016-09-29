@@ -33,7 +33,7 @@ varying vec3 fE;
 varying vec3 fL;
 
 float decodeElevation(vec4 texture) {
-    return (texture.r + texture.g * 256.0) * disp * 256.0;
+    return (texture.r + texture.g * 256.0) * disp * 255.0;
 }
 
 // Rotate by angle
