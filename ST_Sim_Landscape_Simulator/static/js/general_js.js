@@ -460,7 +460,7 @@ var veg_initial_conditions;
 
 function actualVegName(vegtype) {
     if (veg_has_lookup) {
-        return veg_initial_conditions.veg_names[Number(vegtype)] + ' (' + vegtype + ')';
+        return veg_initial_conditions.veg_names[vegtype] + ' (' + vegtype + ')';
     }
     return vegtype
 }
