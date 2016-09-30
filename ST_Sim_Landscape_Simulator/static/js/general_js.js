@@ -177,7 +177,7 @@ function run_st_sim(feature_id) {
     var probabilistic_transitions_slider_values_string = JSON.stringify(probabilistic_transitions_slider_values)
 
     $.ajax({
-        url: settings['library'] + "/run_st_sim/", // the endpoint (for a specific view configured in urls.conf /view_name/)
+        url: settings['library'] + "/run_st_sim/" + current_uuid + '/', // the endpoint (for a specific view configured in urls.conf /view_name/)
         type: "POST", // http method
         data: {
             'veg_slider_values_state_class': veg_slider_values_state_class_string,
@@ -436,9 +436,12 @@ function updateStudyArea(extent) {
 
 }
 
+
+var current_uuid;
 function updateExtent(libraryName, extent) {
     $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
         var raster_uuid = uuid_res['uuid'];
+        current_uuid = raster_uuid;
         $.getJSON(libraryName + '/select/' + raster_uuid + '/stats/').done(function (initConditions) {
             setInitialConditionsSidebar(initConditions);
             landscape_viewer.setStudyArea(raster_uuid, initConditions);

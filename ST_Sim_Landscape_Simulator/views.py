@@ -21,7 +21,7 @@ class HomepageView(TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
-        context = super(HomepageView, self).get_context_data(**kwargs)
+        context = super().get_context_data(**kwargs)
         context['available_libraries'] = stsim_manager.library_names
         return context
 
@@ -235,7 +235,7 @@ class LookupView(STSimBaseView):
 
     def __init__(self):
         self.lookup_field = None
-        super(STSimBaseView, self).__init__()
+        super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.lookup_field = kwargs.get('lookup_field')
@@ -296,7 +296,7 @@ class RunModelView(STSimBaseView):
 
     def dispatch(self, request, *args, **kwargs):
         self.raster_uuid = kwargs.get('uuid')
-        return super(RunModelView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
 
@@ -341,7 +341,6 @@ class RunModelView(STSimBaseView):
                 if stsim_manager.has_lookup_fields[self.library]:
                     sc_path = os.path.join(self.output_path, self.raster_uuid + '-' +
                                            stsim_manager.conversion_extensions[self.library] + '.tif')
-
                 # import vegtype, stateclass raster into stsim
                 self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
                                                          strata_path=veg_path, sc_path=sc_path)
@@ -400,7 +399,7 @@ class RasterOutputsView(STSimBaseView):
         self.type = None
         self.timestep = None
         self.iteration = None
-        super(RasterOutputsView, self).__init__()
+        super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.type = kwargs.get('type')
@@ -408,7 +407,7 @@ class RasterOutputsView(STSimBaseView):
             raise ValueError(self.type + ' is not a valid data type. Types are ' + str(self.raster_types) + '.')
         self.timestep = int(kwargs.get('timestep'))
         self.iteration = int(kwargs.get('iteration'))
-        return super(RasterOutputsView, self).dispatch(request, *args, **kwargs)
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 

@@ -12,7 +12,7 @@ urlpatterns = [
     url(r'^(?P<library>[\w ]+)/', include([
         url(r'^info/$', LibraryInfoView.as_view()),
         url(r'^lookup/(?P<lookup_field>[\w ]+)/$', LookupView.as_view()),
-        url(r'^run_st_sim/$', csrf_exempt(RunModelView.as_view())),
+        url(r'^run_st_sim/(?P<uuid>predefined-extent|[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[89ab][a-f0-9]{3}-?[a-f0-9]{12})/$', csrf_exempt(RunModelView.as_view())),
         url(r'^outputs/(?P<scenario_id>\d+)/(?P<type>[a-z]+)/(?P<iteration>\d+)/(?P<timestep>\d+)/$',
             RasterOutputsView.as_view()),
         url(r'^select/', include([
