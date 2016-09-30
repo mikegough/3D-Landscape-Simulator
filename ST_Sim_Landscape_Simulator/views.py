@@ -211,7 +211,7 @@ class STSimBaseView(View):
         self.project_id = None
         self.scenario_id = None
         self.output_path = None
-        super(STSimBaseView, self).__init__()
+        super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
         self.library = kwargs.get('library')
