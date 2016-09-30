@@ -144,7 +144,7 @@ function create_area_charts(results_data_json, run, iteration) {
         $("#area_charts_" +run).empty()
 
         if (typeof iteration == "undefined"){
-            iteration=1
+            iteration=0
         }
 
         //Restructure Dictionary

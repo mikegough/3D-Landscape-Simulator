@@ -147,9 +147,9 @@ function show_input_options (){
 
 }
 
-run=0
-iteration=1
-timestep=0
+run=0;
+iteration=0;
+timestep=0;
 
 // Send the scenario and initial conditions to ST-Sim.
 settings=[]
@@ -157,10 +157,10 @@ settings["spatial"]=false
 
 function run_st_sim(feature_id) {
 
-    settings["library"]= $("#settings_library").val()
-    settings["timesteps"]= $("#settings_timesteps").val()
-    settings["iterations"]= $("#settings_iterations").val()
-    settings["spatial"]= $("#spatial_button").hasClass('selected')
+    settings["library"]= $("#settings_library").val();
+    settings["timesteps"]= $("#settings_timesteps").val();
+    settings["iterations"]= Number($("#settings_iterations").val()) - 1;    // number of iterations is actually 1 less
+    settings["spatial"]= $("#spatial_button").hasClass('selected');
 
     $(document).ajaxStart(function(){
         $("#run_button").val('Please Wait...');
@@ -204,8 +204,8 @@ function run_st_sim(feature_id) {
             $("#area_charts" + run).empty()
 
             $("#tab_container").css("display", "block")
-            update_results_table(timestep, run)
-
+            //update_results_table(timestep, run)
+            update_results_table(run);
             previous_feature_id = feature_id
 
             create_area_charts(results_data_json, run)
@@ -247,9 +247,11 @@ function run_st_sim(feature_id) {
 
 /****************************************  Results Table & Output Charts **********************************************/
 
-function update_results_table(timestep,run) {
+//function update_results_table(timestep,run) {
+function update_results_table(run) {
 
      // sum state class values for display in scene and table header
+    /*
     results_data_json_totals={}
     $.each(results_data_json[iteration][timestep], function(key,value){
         var total=0
@@ -258,6 +260,7 @@ function update_results_table(timestep,run) {
         });
         results_data_json_totals[key] = total * 100
     });
+    */
 
     // Create the Results Table
     $("#results_table_" + run).html("<tr class='location_tr'><td class='location_th' colspan='1'>Location </td><td colspan='2'>" + feature_id + "</td></tr>");
@@ -333,8 +336,8 @@ function update_results_table(timestep,run) {
     $("#results_table_" + run).append("<tr class='iteration_tr' id='iteration_tr_" + run +"'><td class='iteration_th' colspan='2'>Iteration to Display</td><td colspan='1'><input class='iteration_to_plot' id='iteration_to_plot_" + run + "' type='text' size='3' value=1></td></tr>");
 
     $("#iteration_to_plot_" + run).on('keyup', function(){
-        $("#area_charts_" +run).empty()
-        create_area_charts(results_data_json, run, this.value)
+        $("#area_charts_" +run).empty();
+        create_area_charts(results_data_json, run, Number(this.value) - 1);
     });
 
     // Create a list of all the veg types and create a sorted list.

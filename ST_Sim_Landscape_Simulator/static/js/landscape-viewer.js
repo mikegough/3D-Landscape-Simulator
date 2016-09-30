@@ -754,8 +754,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             $('#animation_container').show();
             // activate the checkbox
             $('#viz_type').on('change', function () {
-                //const dataGroup = scene.getObjectByName('data')
-                //const realismGroup = scene.getObjectByName('realism')
                 if (dataGroup.visible) {
                     dataGroup.visible = false;
                     realismGroup.visible = true;
@@ -778,7 +776,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             const srcSpatialTexturePath = runControl.library + '/outputs/' + sid;
             let model_outputs = new Array();
             for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
-                for (var it = 1; it <= runControl.iterations; it += 1) {
+                for (var it = 0; it <= runControl.iterations; it += 1) {
                     model_outputs.push({ name: String(it) + '_' + String(step), url: srcSpatialTexturePath + '/sc/' + it + '/' + step + '/' });
                     if (step == runControl.min_step)
                         break; // Only need to get the initial timestep 1 time for all iterations			
@@ -797,15 +795,16 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 realismGroup.visible = false;
                 render();
                 // create an animation slider and update the stateclass texture to the last one in the timeseries, poc
+                $('#viz_type').prop('checked', true);
                 const animationSlider = $('#animation_slider');
-                const currentIteration = 1; // TODO - show other iterations
+                const currentIteration = 0; // TODO - show other iterations
                 animationSlider.attr('max', runControl.max_step);
                 animationSlider.attr('step', runControl.step_size);
                 animationSlider.on('input', function () {
                     const timestep = animationSlider.val();
                     let timeTexture;
                     if (timestep == 0 || timestep == '0') {
-                        timeTexture = masterAssets[String(sid)].textures['1_0'];
+                        timeTexture = masterAssets[String(sid)].textures['0_0'];
                     }
                     else {
                         timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)];
