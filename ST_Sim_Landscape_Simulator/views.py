@@ -403,12 +403,12 @@ class RasterOutputsView(STSimBaseView):
         super(RasterOutputsView, self).__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.type = kwargs.get('data_type')
+        self.type = kwargs.get('type')
         if self.type not in self.raster_types:
             raise ValueError(self.type + ' is not a valid data type. Types are ' + str(self.raster_types) + '.')
         self.timestep = int(kwargs.get('timestep'))
         self.iteration = int(kwargs.get('iteration'))
-        return super(STSimBaseView, self).dispatch(request, *args, **kwargs)
+        return super(RasterOutputsView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 

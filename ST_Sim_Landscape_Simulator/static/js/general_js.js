@@ -213,6 +213,16 @@ function run_st_sim(feature_id) {
 
             document.getElementById("view" + run + "_link").click()
 
+            var run_control = {
+                'library': settings['library'],
+                'min_step': 0,
+                'max_step': settings['timesteps'],
+                'step_size': 1,
+                'iterations': settings['iterations'],
+                'spatial': settings['spatial'],
+                'result_scenario_id': JSON.parse(response["result_scenario_id"])
+            };
+            landscape_viewer.collectSpatialOutputs(run_control);
 
         },
 

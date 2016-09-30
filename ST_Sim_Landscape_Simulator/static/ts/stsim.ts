@@ -2,9 +2,12 @@
 
 
 export interface RunControl {
+	library: string,
 	min_step : number,
 	max_step : number,
 	step_size : number,
+	iterations : number,
+	spatial: boolean,
 	result_scenario_id: number
 }
 

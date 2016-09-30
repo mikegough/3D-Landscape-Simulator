@@ -82,6 +82,7 @@ export function createSpatialVegetation(params: SpatialVegetationParams) : Veget
 
 	let realismGroup = new THREE.Group()
 	let dataGroup = new THREE.Group()
+	dataGroup.name = realismGroup.name = 'vegetation'
 
 	const strata_map = params.strataTexture
 	const image = strata_map.image

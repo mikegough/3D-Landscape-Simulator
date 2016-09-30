@@ -262,43 +262,31 @@ export default function run(container_id: string) {
 
 
 
-	function updateSpatialVegetation(runControl: STSIM.RunControl) {
+	function collectSpatialOutputs(runControl: STSIM.RunControl) {
+
+		if (!runControl.spatial) return
 		console.log('Updating vegetation covers')
-		/*
-		// updating the vegetation means getting the new stateclass textures to animate over
+		
 		const sid = runControl.result_scenario_id
-		//const srcSpatialTexturePath = srcSpatialTextureBase + _project_id + '/' + sid 
-		const srcSpatialTexturePath = srcSpatialTextureBase + 'Castle Creek'
+		const srcSpatialTexturePath = runControl.library + '/outputs/' + sid
 
 		let model_outputs : AssetDescription[] = new Array()
 		for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
-			model_outputs.push({name: String(step), url: srcSpatialTexturePath + '/stateclass/' + step + '/'})
+			for (var it = 1; it <= runControl.iterations; it += 1) {
+				
+				model_outputs.push({name: String(it) + '_' + String(step), url: srcSpatialTexturePath + '/sc/' + it + '/' + step + '/'})
+				if (step == runControl.min_step) break;	// Only need to get the initial timestep 1 time for all iterations			
+			}
 		}
-		const tempLoader = Loader()
-		tempLoader.load({
+		const outputsLoader = Loader()
+		outputsLoader.load({
 				textures: model_outputs,
 			},
 			function(loadedAssets: Assets) {
 				console.log('Animation assets loaded!')
-				console.log(loadedAssets.textures)
-				animationAssets = loadedAssets
-
-				// show the animation controls for the outputs
-    			$('#animation_container').show();
-
-				// activate the checkbox
-				$('#viz_type').on('change', function() {
-					const dataGroup = scene.getObjectByName('data')
-					const realismGroup = scene.getObjectByName('realism')
-					if (dataGroup.visible) {
-						dataGroup.visible = false
-						realismGroup.visible = true
-					} else {
-						dataGroup.visible = true
-						realismGroup.visible = false
-					}
-					render()
-				})
+				//console.log(loadedAssets.textures)
+				
+				masterAssets[String(sid)] = loadedAssets
 
 				const dataGroup = scene.getObjectByName('data') as THREE.Group
 				const realismGroup = scene.getObjectByName('realism') as THREE.Group
@@ -308,41 +296,36 @@ export default function run(container_id: string) {
 
 				// create an animation slider and update the stateclass texture to the last one in the timeseries, poc
 				const animationSlider = $('#animation_slider')
+				const currentIteration = 1								// TODO - show other iterations
 				animationSlider.attr('max', runControl.max_step)
 				animationSlider.attr('step', runControl.step_size)
 				animationSlider.on('input', function() {
-					const value = animationSlider.val()
+					const timestep = animationSlider.val()
 					let timeTexture: THREE.Texture
 
-					if (value == 0 || value == '0') {
-						timeTexture = spatialAssets.textures['init_sc']
+					if (timestep == 0 || timestep == '0') {
+						timeTexture = masterAssets[String(sid)].textures['1_0']
 					}
 					else {
-						timeTexture = animationAssets.textures[String(value)]
+						timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
 					}
 
 					// update the dataGroup terrain and vegtypes
-					let child: THREE.Object3D
 					const dataGroup = scene.getObjectByName('data') as THREE.Group
-					for (var i = 0; i < dataGroup.children.length; i++) {
-						child = dataGroup.children[i]
-						if (child.name == 'terrain') {
-							child.material.uniforms.tex.value = timeTexture
-							child.material.needsUpdate = true
-						}
-						else {
-							// iterate through the child group
-							for (var j = 0; j < child.children.length; j++) {
-								child.children[j].material.uniforms.sc_tex.value = timeTexture
-								child.children[j].material.needsUpdate = true
-							}
-						}
-	
+					console.log(dataGroup);
+					let vegetation = dataGroup.getObjectByName('vegetation')
+					let childMaterial: THREE.RawShaderMaterial
+					for (var i = 0; i < vegetation.children.length; i++) {
+						const child = vegetation.children[i] as THREE.Mesh
+						childMaterial = child.material as THREE.RawShaderMaterial
+						childMaterial.uniforms.sc_tex.value = timeTexture
+						childMaterial.needsUpdate = true
 					}
 
 					render()
+					
 				})
-
+				
 			},
 			function(progress: number) {
 				console.log("Loading model assets... " + progress * 100 + "%")
@@ -352,7 +335,7 @@ export default function run(container_id: string) {
 				return
 			}
 		)
-		*/
+		
 	}
 
 	function computeHeights(hmTexture: THREE.Texture ) { //, stats: STSIM.ElevationStatistics) {
@@ -409,24 +392,13 @@ export default function run(container_id: string) {
 	return {
 		isInitialized: isInitialized,
 		resize: resize,
-		// debug 
 		scene: scene,
 		camera: camera,
 		setLibraryDefinitions: setLibraryDefinitions,
 		setStudyArea: setStudyArea,
 		libraryDefinitions: masterAssets[currentLibraryName],
-		//collectSpatialOutput: updateSpatialVegetation
-
-		// TODO - remove in production
-		currentLibrary: getCurrentDefinitions
+		collectSpatialOutputs: collectSpatialOutputs,
 	}
-
-
-	// debug functions
-	function getCurrentDefinitions() {
-		return currentDefinitions
-	}
-
 }
 
 function reportProgress(progress: number) {
