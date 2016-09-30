@@ -875,7 +875,10 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	white-space: nowrap;
 }
 
-#vegTypeSliderTable{
+#vegtype_slider_container{
+    height: 340px;
+	overflow-y: scroll;
+    overflow-x: hidden;
 }
 
 .imageOverlayLink {
