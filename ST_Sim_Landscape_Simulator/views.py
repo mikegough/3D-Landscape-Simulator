@@ -191,9 +191,8 @@ class RasterTextureStats(RasterTextureBase):
 
         veg_codes = zonal_veg_sc_pcts.keys()
         if stsim_manager.has_lookup_fields[self.library]:
-            input_codes = [int(code) for code in veg_codes]
             lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
-            veg_names = lookup_function(input_codes, stsim_manager.lookup_fields[self.library][0])
+            veg_names = lookup_function(veg_codes, stsim_manager.lookup_fields[self.library][0])
         else:
             veg_names = {name: name for name in veg_codes}
 
@@ -244,7 +243,7 @@ class LookupView(STSimBaseView):
     def get(self, request, *args, **kwargs):
         if stsim_manager.has_lookup_fields[self.library] \
                 and self.lookup_field in stsim_manager.lookup_fields[self.library]:
-            input_codes = [int(code) for code in request.GET.getlist('input_codes[]')]
+            input_codes = request.GET.getlist('input_codes[]')
             lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
             data = lookup_function(input_codes, self.lookup_field)
         else:

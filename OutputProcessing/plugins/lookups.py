@@ -26,8 +26,9 @@ def landfire_lookup(bps_codes, fieldname):
         lookup = csv.DictReader(f)
         for table_row in lookup:
             read_bps_code = table_row['BPS_MODEL']
+            read_bps_code = '0' + read_bps_code if len(read_bps_code) < 7 else read_bps_code
             try:
-                if int(read_bps_code) in bps_codes:
+                if int(read_bps_code) in [int(code) for code in bps_codes]:
                     value = table_row[fieldname]
                     result[read_bps_code] = value
             except:
