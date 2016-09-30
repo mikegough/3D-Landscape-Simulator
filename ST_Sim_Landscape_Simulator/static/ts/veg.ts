@@ -31,8 +31,10 @@ export interface VegetationGroups {
 }
 
 interface SpatialVegetationParams {
+	libraryName: string
 	zonalVegtypes: {[vegtype: string] : {[stateclass: string] : number}}
 	veg_names: {[veg_name: string] : string}
+	vegAssetGroups: STSIM.VizMapping
 	vegtypes: STSIM.DefinitionMapping
 	config: STSIM.VisualizationConfig
 	strataTexture: THREE.Texture
@@ -55,7 +57,6 @@ interface Vegtype3D {
 	map: boolean[]
 	numValid: number
 	heightStats: STSIM.ElevationStatistics
-	//geo: THREE.Geometry
 	geo: THREE.InstancedBufferGeometry
 	tex: THREE.Texture
 	width: number
@@ -98,27 +99,16 @@ export function createSpatialVegetation(params: SpatialVegetationParams) : Veget
 	let raw_image_data = ctx.getImageData(0,0,w,h).data
 	let strata_data = decodeStrataImage(raw_image_data)
 	raw_image_data = null
-	
-	const veg_geo = params.geometries['geometry']	// REMOVE, only for testing
-	veg_geo.scale(10,10,10)
-	const veg_tex = params.textures['material']
-
 	const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h)
 
-	if (params.config.lookup_field) {
-		console.log('Has lookup', params.config.lookup_field)
-		// lookup the viz_model lookup field
-	}
-
 	for (var name in params.zonalVegtypes) {	
-		// TODO - replace with the actual asset name
-		//const assetName = globals.getVegetationAssetsName(name)
-		//const veg_geo = params.geometries[assetName]
-		//const veg_tex = params.textures[assetName + '_material']
 
+		const assetGroup = params.vegAssetGroups[name]
+		const veg_geo = params.geometries[assetGroup.asset_name]
+		const veg_tex = params.textures[assetGroup.asset_name]	
 		const vegtypePositions = computeVegtypePositions(params.vegtypes[name], strata_positions, strata_data, w, h)
-		const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h)
-
+		const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h, assetGroup.symmetric, assetGroup.scale)
+	
 		realismGroup.add(createRealismVegtype({
 			name: name,
 			heightmap: params.heightmap,
@@ -154,7 +144,7 @@ export function createSpatialVegetation(params: SpatialVegetationParams) : Veget
 	}
 	
 	strata_data = ctx = canvas = null
-
+	
 	console.log('Vegetation generated!')
 	return {realism: realismGroup, data: dataGroup}
 }
@@ -235,24 +225,21 @@ function createRealismVegtype(params: Vegtype3D) {
 }
 
 function createVegtypeGeometry(geo: THREE.Geometry, positions: VegtypeLocations,
-	width: number, height: number) : THREE.InstancedBufferGeometry {
+	width: number, height: number, symmetric: boolean, scale: number) : THREE.InstancedBufferGeometry {
 	const halfPatch = new THREE.Geometry()
 	halfPatch.merge(geo)
 	
-	/*
-	if (globals.useSymmetry(name)) {
-		params.geo.rotateY(Math.PI)
-		halfPatch.merge(params.geo)
-	}*/
+	
+	if (symmetric) {
+		geo.rotateY(Math.PI)
+		halfPatch.merge(geo)
+	}
 
 
 	const inst_geo = new THREE.InstancedBufferGeometry()
 	inst_geo.fromGeometry(halfPatch)
 	halfPatch.dispose()
-	/*
-	const s = globals.getVegetationScale(name)
-	inst_geo.scale(s,s,s)
-	*/
+	inst_geo.scale(scale,scale,scale)
 
 	// always remove the color buffer since we are using textures
 	if ( inst_geo.attributes['color'] ) {

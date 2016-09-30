@@ -356,20 +356,13 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         let raw_image_data = ctx.getImageData(0, 0, w, h).data;
         let strata_data = decodeStrataImage(raw_image_data);
         raw_image_data = null;
-        const veg_geo = params.geometries['geometry']; // REMOVE, only for testing
-        veg_geo.scale(10, 10, 10);
-        const veg_tex = params.textures['material'];
         const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h);
-        if (params.config.lookup_field) {
-            console.log('Has lookup', params.config.lookup_field);
-        }
         for (var name in params.zonalVegtypes) {
-            // TODO - replace with the actual asset name
-            //const assetName = globals.getVegetationAssetsName(name)
-            //const veg_geo = params.geometries[assetName]
-            //const veg_tex = params.textures[assetName + '_material']
+            const assetGroup = params.vegAssetGroups[name];
+            const veg_geo = params.geometries[assetGroup.asset_name];
+            const veg_tex = params.textures[assetGroup.asset_name];
             const vegtypePositions = computeVegtypePositions(params.vegtypes[name], strata_positions, strata_data, w, h);
-            const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h);
+            const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h, assetGroup.symmetric, assetGroup.scale);
             realismGroup.add(createRealismVegtype({
                 name: name,
                 heightmap: params.heightmap,
@@ -463,21 +456,17 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         mesh.frustumCulled = false;
         return mesh;
     }
-    function createVegtypeGeometry(geo, positions, width, height) {
+    function createVegtypeGeometry(geo, positions, width, height, symmetric, scale) {
         const halfPatch = new THREE.Geometry();
         halfPatch.merge(geo);
-        /*
-        if (globals.useSymmetry(name)) {
-            params.geo.rotateY(Math.PI)
-            halfPatch.merge(params.geo)
-        }*/
+        if (symmetric) {
+            geo.rotateY(Math.PI);
+            halfPatch.merge(geo);
+        }
         const inst_geo = new THREE.InstancedBufferGeometry();
         inst_geo.fromGeometry(halfPatch);
         halfPatch.dispose();
-        /*
-        const s = globals.getVegetationScale(name)
-        inst_geo.scale(s,s,s)
-        */
+        inst_geo.scale(scale, scale, scale);
         // always remove the color buffer since we are using textures
         if (inst_geo.attributes['color']) {
             inst_geo.removeAttribute('color');
@@ -568,7 +557,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         // setup the THREE scene
         const container = document.getElementById(container_id);
         const scene = new THREE.Scene();
-        const renderer = new THREE.WebGLRenderer();
+        const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
         const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, .1, 100000.0);
         // Camera controls
@@ -660,33 +649,24 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 let textures = [];
                 let geometries = [];
                 let assetName;
+                let assetPath;
                 textures.push({ name: 'elevation', url: baseSourceURL + '/elev/' });
                 textures.push({ name: 'veg_tex', url: baseSourceURL + '/veg/' });
                 textures.push({ name: 'sc_tex', url: baseSourceURL + '/sc/' });
                 for (var idx in assetNamesList) {
                     assetName = assetNamesList[idx].asset_name;
+                    assetPath = [currentLibraryName, assetName].join('/');
                     geometries.push({
-                        name: assetName + '_geometry',
-                        url: 'static/json/geometry/' + assetName + '.json'
+                        name: assetName,
+                        url: 'static/json/geometry/' + assetPath + '.json'
                     });
                     textures.push({
-                        name: assetName + '_material',
-                        url: 'static/img/' + assetName + '.png'
+                        name: assetName,
+                        url: 'static/img/' + assetPath + '.png'
                     });
                 }
-                // TODO - use these instead of a stock geometry/material
                 studyAreaAssets.textures = textures;
                 studyAreaAssets.geometries = geometries;
-                // TODO - use the above and remove the below
-                studyAreaAssets.textures = [
-                    { name: 'elevation', url: baseSourceURL + '/elev/' },
-                    { name: 'veg_tex', url: baseSourceURL + '/veg/' },
-                    { name: 'sc_tex', url: baseSourceURL + '/sc/' },
-                    { name: 'material', url: 'static/img/sagebrush/sagebrush_alt.png' }
-                ];
-                studyAreaAssets.geometries = [
-                    { name: 'geometry', url: 'static/json/geometry/sagebrush_simple4.json' }
-                ];
                 studyAreaLoader.load(studyAreaAssets, createScene, reportProgress, reportError);
             }
         }
@@ -728,45 +708,126 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 disp: disp
             });
             dataGroup.add(dataTerrain);
-            // create the vegetation
-            const vegGroups = veg_1.createSpatialVegetation({
-                zonalVegtypes: currentConditions.veg_sc_pct,
-                veg_names: currentConditions.veg_names,
-                vegtypes: currentDefinitions.vegtype_definitions,
-                config: currentDefinitions.veg_model_config,
-                strataTexture: loadedAssets.textures['veg_tex'],
-                stateclassTexture: loadedAssets.textures['sc_tex'],
-                heightmap: heightmapTexture,
-                geometries: loadedAssets.geometries,
-                textures: loadedAssets.textures,
-                realismVertexShader: vegetationAssets.text['real_veg_vert'],
-                realismFragmentShader: vegetationAssets.text['real_veg_frag'],
-                dataVertexShader: vegetationAssets.text['data_veg_vert'],
-                dataFragmentShader: vegetationAssets.text['data_veg_frag'],
-                heightStats: currentConditions.elev,
-                disp: disp
-            });
-            realismGroup.add(vegGroups.realism);
-            dataGroup.add(vegGroups.data);
-            scene.add(realismGroup);
-            scene.add(dataGroup);
-            // show the animation controls for the outputs
-            $('#animation_container').show();
-            // activate the checkbox
-            $('#viz_type').on('change', function () {
-                if (dataGroup.visible) {
-                    dataGroup.visible = false;
-                    realismGroup.visible = true;
+            if (currentDefinitions.veg_model_config.lookup_field) {
+                // TODO - make this lookup information part of the initial conditions dictionary
+                $.getJSON(currentLibraryName + '/lookup/' + currentDefinitions.veg_model_config.lookup_field + '/', { 'input_codes[]': Object.keys(currentConditions.veg_sc_pct) }).done(function (response) {
+                    const lookupNames = response['data'];
+                    let assetGroup;
+                    let valid_name;
+                    let breakout;
+                    let vegAssetGroups = {};
+                    for (var name in currentConditions.veg_sc_pct) {
+                        for (var i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
+                            assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i];
+                            breakout = false;
+                            for (var j = 0; j < assetGroup.valid_names.length; j++) {
+                                valid_name = assetGroup.valid_names[j];
+                                if (lookupNames[name] == valid_name) {
+                                    vegAssetGroups[name] = assetGroup;
+                                }
+                            }
+                        }
+                    }
+                    // create the vegetation
+                    const vegGroups = veg_1.createSpatialVegetation({
+                        libraryName: currentLibraryName,
+                        zonalVegtypes: currentConditions.veg_sc_pct,
+                        veg_names: currentConditions.veg_names,
+                        vegAssetGroups: vegAssetGroups,
+                        vegtypes: currentDefinitions.vegtype_definitions,
+                        config: currentDefinitions.veg_model_config,
+                        strataTexture: loadedAssets.textures['veg_tex'],
+                        stateclassTexture: loadedAssets.textures['sc_tex'],
+                        heightmap: heightmapTexture,
+                        geometries: loadedAssets.geometries,
+                        textures: loadedAssets.textures,
+                        realismVertexShader: vegetationAssets.text['real_veg_vert'],
+                        realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+                        dataVertexShader: vegetationAssets.text['data_veg_vert'],
+                        dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+                        heightStats: currentConditions.elev,
+                        disp: disp
+                    });
+                    realismGroup.add(vegGroups.realism);
+                    dataGroup.add(vegGroups.data);
+                    scene.add(realismGroup);
+                    scene.add(dataGroup);
+                    // show the animation controls for the outputs
+                    $('#animation_container').show();
+                    // activate the checkbox
+                    $('#viz_type').on('change', function () {
+                        if (dataGroup.visible) {
+                            dataGroup.visible = false;
+                            realismGroup.visible = true;
+                        }
+                        else {
+                            dataGroup.visible = true;
+                            realismGroup.visible = false;
+                        }
+                        render();
+                    });
+                    // render the scene once everything is finished being processed
+                    console.log('Vegetation Rendered!');
+                    render();
+                });
+            }
+            else {
+                let vegAssetGroups = {};
+                let assetGroup;
+                let i, j;
+                for (var name in currentConditions.veg_sc_pct) {
+                    for (i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
+                        assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i];
+                        for (j = 0; j < assetGroup.valid_names.length; j++) {
+                            if (name == assetGroup.valid_names[j]) {
+                                vegAssetGroups[name] = assetGroup;
+                                break;
+                            }
+                        }
+                    }
                 }
-                else {
-                    dataGroup.visible = true;
-                    realismGroup.visible = false;
-                }
+                // create the vegetation
+                const vegGroups = veg_1.createSpatialVegetation({
+                    libraryName: currentLibraryName,
+                    zonalVegtypes: currentConditions.veg_sc_pct,
+                    veg_names: currentConditions.veg_names,
+                    vegAssetGroups: vegAssetGroups,
+                    vegtypes: currentDefinitions.vegtype_definitions,
+                    config: currentDefinitions.veg_model_config,
+                    strataTexture: loadedAssets.textures['veg_tex'],
+                    stateclassTexture: loadedAssets.textures['sc_tex'],
+                    heightmap: heightmapTexture,
+                    geometries: loadedAssets.geometries,
+                    textures: loadedAssets.textures,
+                    realismVertexShader: vegetationAssets.text['real_veg_vert'],
+                    realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+                    dataVertexShader: vegetationAssets.text['data_veg_vert'],
+                    dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+                    heightStats: currentConditions.elev,
+                    disp: disp
+                });
+                realismGroup.add(vegGroups.realism);
+                dataGroup.add(vegGroups.data);
+                scene.add(realismGroup);
+                scene.add(dataGroup);
+                // show the animation controls for the outputs
+                $('#animation_container').show();
+                // activate the checkbox
+                $('#viz_type').on('change', function () {
+                    if (dataGroup.visible) {
+                        dataGroup.visible = false;
+                        realismGroup.visible = true;
+                    }
+                    else {
+                        dataGroup.visible = true;
+                        realismGroup.visible = false;
+                    }
+                    render();
+                });
+                // render the scene once everything is finished being processed
+                console.log('Vegetation Rendered!');
                 render();
-            });
-            // render the scene once everything is finished being processed
-            console.log('Vegetation Rendered!');
-            render();
+            }
         }
         function collectSpatialOutputs(runControl) {
             if (!runControl.spatial)

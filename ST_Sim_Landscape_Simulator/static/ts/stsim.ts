@@ -2,12 +2,12 @@
 
 
 export interface RunControl {
-	library: string,
-	min_step : number,
-	max_step : number,
-	step_size : number,
-	iterations : number,
-	spatial: boolean,
+	library: string
+	min_step : number
+	max_step : number
+	step_size : number
+	iterations : number
+	spatial: boolean
 	result_scenario_id: number
 }
 
@@ -16,13 +16,19 @@ export interface DefinitionMapping {
 }
 
 export interface VizAsset{
-	asset_name : string,
+	asset_name : string
 	valid_names: string[]
+	scale: number
+	symmetric: boolean
 }
 
 export interface VisualizationConfig {
 	visualization_asset_names : VizAsset[]
 	lookup_field?: string	// not all libraries require a lookup field
+}
+
+export interface VizMapping {
+	[veg_name: string] : VizAsset
 }
 
 export interface LibraryDefinitions {
@@ -46,9 +52,9 @@ export interface LibraryInitConditions {
 	total_cells : number
 	veg_names: {[veg_name: string] : string}
 	elev: {
-		dem_height: number,
-		dem_max: number,
-		dem_min: number,
+		dem_height: number
+		dem_max: number
+		dem_min: number
 		dem_width: number
 	}
 }
