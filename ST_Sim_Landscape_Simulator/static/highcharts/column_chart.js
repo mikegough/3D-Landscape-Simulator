@@ -60,7 +60,7 @@ function create_column_charts(results_data_json, run) {
     //Creates a dictionary of all the final timestep values by veg_type/state class.
     column_chart_dict = {}
 
-    for (var iteration = 0; iteration <= settings["iterations"]; iteration++) {
+    for (var iteration = 1; iteration <= settings["iterations"]; iteration++) {
         // Each iteration
         $.each(results_data_json[iteration][last_timestep], function (veg_type, state_class_dict) {
             if (typeof column_chart_dict[veg_type] == "undefined") {

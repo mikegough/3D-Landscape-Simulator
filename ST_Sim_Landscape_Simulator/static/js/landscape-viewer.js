@@ -837,7 +837,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             const srcSpatialTexturePath = runControl.library + '/outputs/' + sid;
             let model_outputs = new Array();
             for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
-                for (var it = 0; it <= runControl.iterations; it += 1) {
+                for (var it = 1; it <= runControl.iterations; it += 1) {
                     model_outputs.push({ name: String(it) + '_' + String(step), url: srcSpatialTexturePath + '/sc/' + it + '/' + step + '/' });
                     if (step == runControl.min_step)
                         break; // Only need to get the initial timestep 1 time for all iterations			
@@ -848,7 +848,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 textures: model_outputs,
             }, function (loadedAssets) {
                 console.log('Animation assets loaded!');
-                //console.log(loadedAssets.textures)
                 masterAssets[String(sid)] = loadedAssets;
                 const dataGroup = scene.getObjectByName('data');
                 const realismGroup = scene.getObjectByName('realism');
@@ -858,21 +857,20 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 // create an animation slider and update the stateclass texture to the last one in the timeseries, poc
                 $('#viz_type').prop('checked', true);
                 const animationSlider = $('#animation_slider');
-                const currentIteration = 0; // TODO - show other iterations
+                const currentIteration = 1; // TODO - show other iterations
                 animationSlider.attr('max', runControl.max_step);
                 animationSlider.attr('step', runControl.step_size);
                 animationSlider.on('input', function () {
                     const timestep = animationSlider.val();
                     let timeTexture;
                     if (timestep == 0 || timestep == '0') {
-                        timeTexture = masterAssets[String(sid)].textures['0_0'];
+                        timeTexture = masterAssets[String(sid)].textures['1_0'];
                     }
                     else {
                         timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)];
                     }
                     // update the dataGroup terrain and vegtypes
                     const dataGroup = scene.getObjectByName('data');
-                    console.log(dataGroup);
                     let vegetation = dataGroup.getObjectByName('vegetation');
                     let childMaterial;
                     for (var i = 0; i < vegetation.children.length; i++) {
@@ -883,12 +881,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     }
                     render();
                 });
-            }, function (progress) {
-                console.log("Loading model assets... " + progress * 100 + "%");
-            }, function (error) {
-                console.log(error);
-                return;
-            });
+            }, reportProgress, reportError);
         }
         function computeHeights(hmTexture) {
             const image = hmTexture.image;

@@ -348,7 +348,7 @@ export default function run(container_id: string) {
 
 		let model_outputs : AssetDescription[] = new Array()
 		for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
-			for (var it = 0; it <= runControl.iterations; it += 1) {
+			for (var it = 1; it <= runControl.iterations; it += 1) {
 				
 				model_outputs.push({name: String(it) + '_' + String(step), url: srcSpatialTexturePath + '/sc/' + it + '/' + step + '/'})
 				if (step == runControl.min_step) break;	// Only need to get the initial timestep 1 time for all iterations			
@@ -360,7 +360,6 @@ export default function run(container_id: string) {
 			},
 			function(loadedAssets: Assets) {
 				console.log('Animation assets loaded!')
-				//console.log(loadedAssets.textures)
 				
 				masterAssets[String(sid)] = loadedAssets
 
@@ -373,7 +372,7 @@ export default function run(container_id: string) {
 				// create an animation slider and update the stateclass texture to the last one in the timeseries, poc
 				$('#viz_type').prop('checked', true)
 				const animationSlider = $('#animation_slider')
-				const currentIteration = 0								// TODO - show other iterations
+				const currentIteration = 1								// TODO - show other iterations
 				animationSlider.attr('max', runControl.max_step)
 				animationSlider.attr('step', runControl.step_size)
 				animationSlider.on('input', function() {
@@ -382,7 +381,7 @@ export default function run(container_id: string) {
 
 					
 					if (timestep == 0 || timestep == '0') {
-						timeTexture = masterAssets[String(sid)].textures['0_0']
+						timeTexture = masterAssets[String(sid)].textures['1_0']
 					}
 					else {
 						timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
@@ -390,7 +389,6 @@ export default function run(container_id: string) {
 
 					// update the dataGroup terrain and vegtypes
 					const dataGroup = scene.getObjectByName('data') as THREE.Group
-					console.log(dataGroup);
 					let vegetation = dataGroup.getObjectByName('vegetation')
 					let childMaterial: THREE.RawShaderMaterial
 					for (var i = 0; i < vegetation.children.length; i++) {
@@ -405,13 +403,8 @@ export default function run(container_id: string) {
 				})
 				
 			},
-			function(progress: number) {
-				console.log("Loading model assets... " + progress * 100 + "%")
-			},
-			function(error: string) {
-				console.log(error)
-				return
-			}
+			reportProgress,
+			reportError
 		)
 		
 	}
