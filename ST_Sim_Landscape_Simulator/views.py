@@ -4,31 +4,16 @@ import time
 from django.views.generic import TemplateView, View
 from django.conf import settings
 from json import encoder
-from django.http import HttpResponse, JsonResponse
-from stsimpy import STSimConsole
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound
 from PIL import Image
-from OutputProcessing import texture_utils
+from OutputProcessing import texture_utils, raster_utils
+from OutputProcessing.plugins import lookups, conversions
+from Heightmaps.plugins import heights
+from Sagebrush.stsim_utils import stsim_manager
+from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-
-# Declare the stsim console we want to work with
-stsim = STSimConsole(lib_path=settings.ST_SIM_WORKING_LIB,
-                     orig_lib_path=settings.ST_SIM_ORIG_LIB,
-                     exe=settings.ST_SIM_EXE)
-
-default_run_control_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'run_control', 'run_ctrl.csv')
-
-# Defaults for this library. Run once and hold in memory.
-default_sid = stsim.list_scenarios()[0]
-default_sc_path = os.path.join(settings.ST_SIM_WORKING_DIR, 'state_classes', 'state_classes.csv')
-default_transitions_path = os.path.join(settings.ST_SIM_WORKING_DIR,
-                                        'probabilistic_transitions', 'original', 'prob_trans.csv')
-all_veg_state_classes = stsim.export_veg_state_classes(default_sid,
-                                                       state_class_path=default_sc_path)
-all_transition_types = stsim.export_probabilistic_transitions_types(default_sid,
-                                                                    transitions_path=default_transitions_path)
-all_scenario_names = stsim.list_scenario_names(orig=True)
 
 
 class HomepageView(TemplateView):
@@ -36,231 +21,410 @@ class HomepageView(TemplateView):
     template_name = 'index.html'
 
     def get_context_data(self, **kwargs):
-        context = super(HomepageView, self).get_context_data(**kwargs)
-
-        # veg state classes
-        context['veg_type_state_classes_json'] = json.dumps(all_veg_state_classes)
-
-        # our probabilistic transition types for this application
-        probabilistic_transition_types = ["Replacement Fire",
-                                          "Annual Grass Invasion",
-                                          "Insect/Disease",
-                                          "Native Grazing",
-                                          "Excessive-Herbivory"]
-
-        if not all(value in all_transition_types for value in probabilistic_transition_types):
-            raise KeyError("Invalid transition type specified for this library. Supplied values: " +
-                           str([value for value in probabilistic_transition_types]))
-
-        probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
-        context['probabilistic_transitions_json'] = json.dumps(probabilistic_transition_dict)
-
-        # scenario ids
-        spatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' in scenario['name']]
-        nonspatial_sids = [scenario for scenario in all_scenario_names if 'Spatial' not in scenario['name']]
-
-        context['scenarios_json'] = json.dumps({
-            'spatial': spatial_sids,
-            'nonspatial': nonspatial_sids
-        })
-
+        context = super().get_context_data(**kwargs)
+        context['available_libraries'] = stsim_manager.library_names
         return context
 
 
-class STSimSpatialStats(View):
-
-    DATA_TYPES = ['veg', 'stateclass']
+class RasterSelectionView(View):
+    """
+    Clips out the raster extent from the overall dataset.
+    Clipping is necessary as we want to run the model on the spatial extent we selected out.
+    If we didn't need to do this, we would only need simple tile servers...
+    """
 
     def __init__(self):
-        self.project_id = None
-        self.data_type = None
+        self.library = None
+        self.stsim = None
+        self.left = None
+        self.bottom = None
+        self.right = None
+        self.top = None
+        self.output_path = None
         super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.project_id = kwargs.get('project_id')
-        self.data_type = kwargs.get('data_type')
-
-        if self.data_type not in self.DATA_TYPES:
-            raise ValueError('Invalid data type')
-
-        return super(STSimSpatialStats, self).dispatch(request, *args, **kwargs)
+        self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
+        self.stsim = stsim_manager.consoles[self.library]
+        self.left = float(kwargs.get('left'))
+        self.bottom = float(kwargs.get('bottom'))
+        self.right = float(kwargs.get('right'))
+        self.top = float(kwargs.get('top'))
+        self.output_path = stsim_manager.output_paths[self.library]
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 
-        data = dict()
-        if self.data_type == 'veg':
+        raster_uuid = str(uuid4())
+        elev_path = os.path.join(self.output_path, raster_uuid + '-elev.tif')
+        sc_path = os.path.join(self.output_path, raster_uuid + '-sc.tif')
+        veg_path = os.path.join(self.output_path, raster_uuid + '-veg.tif')
 
-            data = stsim.export_vegtype_definitions(
-                pid=self.project_id,
-                working_path=default_sc_path,
-                orig=True)
+        if stsim_manager.has_predefined_extent[self.library]:
+            return JsonResponse({'uuid': 'predefined-extent'})
 
-        elif self.data_type == 'stateclass':
+        raster_utils.clip_from_wgs(stsim_manager.elev_paths[self.library],
+                                   elev_path,
+                                   (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(stsim_manager.sc_paths[self.library],
+                                   sc_path,
+                                   (self.left, self.bottom, self.right, self.top))
+        raster_utils.clip_from_wgs(stsim_manager.veg_paths[self.library],
+                                   veg_path,
+                                   (self.left, self.bottom, self.right, self.top))
 
-            data = stsim.export_stateclass_definitions(
-                pid=self.project_id,
-                working_path=default_sc_path,
-                orig=True)
+        if stsim_manager.has_lookup_fields[self.library]:
+            sc_conversion_func = getattr(conversions, stsim_manager.conversion_functions[self.library])
+            sc_conversion_path = os.path.join(self.output_path, raster_uuid + '-' +
+                                              stsim_manager.conversion_extensions[self.library] + '.tif')
+            sc_conversion_func(veg_path, sc_path, sc_conversion_path)
 
-        return JsonResponse({
-            'data': {name: data[name]['ID'] for name in data.keys()}
-            })
+        return JsonResponse({'uuid': raster_uuid})
 
 
-class STSimSpatialOutputs(View):
-
-    DATA_TYPES = ['veg', 'stateclass']
+class RasterTextureBase(View):
 
     def __init__(self):
-
-        self.scenario_id = None
-        self.timestep = None
-        self.data_type = None
-        super(STSimSpatialOutputs, self).__init__()
+        self.library = None
+        self.raster_uuid = None
+        self.output_path = None
+        super().__init__()
 
     def dispatch(self, request, *args, **kwargs):
-        self.scenario_id = kwargs.get('scenario_id')
-        self.data_type = kwargs.get('data_type')
-        self.timestep = kwargs.get('timestep')
+        self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
+        self.raster_uuid = kwargs.get('uuid')
+        self.output_path = stsim_manager.output_paths[self.library]
+        return super().dispatch(request, *args, **kwargs)
 
-        if self.data_type not in self.DATA_TYPES:
-            raise ValueError(self.data_type + ' is not a valid data type. Types are "veg" or "stateclass".')
 
-        return super(STSimSpatialOutputs, self).dispatch(request, *args, **kwargs)
+class RasterTextureView(RasterTextureBase):
+    """
+    Serves up a selected raster based on the previously selected raster_uuid
+    """
+
+    raster_types = ['sc', 'veg', 'elev']
+
+    def __init__(self):
+        self.type = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.type = kwargs.get('type')
+        if self.type not in self.raster_types:
+            raise ValueError(self.type + ' is not a valid data type. Types are ' + str(self.raster_types) + '.')
+        return super().dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
 
-        # TODO - construct a path to the actual directory serving the output tifs from STSim
-        image_directory = os.path.join(settings.ST_SIM_WORKING_DIR, 'initial_conditions', 'spatial')
-        if self.data_type == 'veg':
-            image_path = os.path.join(image_directory, 'veg.png')          # TODO - replace with the selected area of interest
-        elif self.timestep == 0 or self.timestep == '0':
-            image_path = os.path.join(image_directory, 'stateclass_0.png')   # TODO - ^^
-        else:
-            image_path = os.path.join(stsim.lib + '.output', 'Scenario-'+str(self.scenario_id),
-                                      'Spatial', 'stateclass_{timestep}.png'.format(timestep=self.timestep))
-
         response = HttpResponse(content_type="image/png")
-        image = Image.open(image_path)
-        image.save(response, 'PNG')
+
+        ext = self.type if self.type != 'sc' else ('sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library])
+        if self.raster_uuid == 'predefined-extent':
+            path = getattr(stsim_manager, self.type + '_paths')[self.library]
+        else:
+            path = os.path.join(self.output_path, self.raster_uuid + '-' + ext + '.tif')
+
+        if self.type == 'elev':
+            if stsim_manager.has_predefined_extent[self.library]:
+                elev_func = getattr(heights, stsim_manager.heightmap_functions[self.library])
+                elev_path = stsim_manager.elev_paths[self.library]
+                texture = elev_func(elev_path)
+            else:
+                texture = texture_utils.elevation_texture(path)
+        elif self.type == 'sc':
+            sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[self.library])
+            texture = texture_utils.stateclass_texture(path, sc_colormap)
+        elif self.type == 'veg':
+            texture = texture_utils.vegtype_texture(path)
+        else:
+            return HttpResponseNotFound()
+
+        texture.save(response, 'PNG')
         return response
 
 
-class STSimSpatialRunnerView(View):
+class RasterTextureStats(RasterTextureBase):
+    """
+    Zonal elevation, vegetation and statelcass statistics from a raster.
+    """
+
+    def get(self, request, *args, **kwargs):
+
+        if self.raster_uuid == 'predefined-extent' and stsim_manager.has_predefined_extent[self.library]:
+            elev_path = stsim_manager.elev_paths[self.library]
+            sc_path = stsim_manager.sc_paths[self.library]
+            veg_path = stsim_manager.veg_paths[self.library]
+        elif self.raster_uuid != 'predefined-extent' and stsim_manager.has_predefined_extent[self.library] \
+                or self.raster_uuid == 'predefined-extent' and not stsim_manager.has_predefined_extent[self.library]:
+            return HttpResponseNotFound()
+        else:   # raster_uuid is a uuid and the library is boundless
+            sc_ext = 'sc' if not stsim_manager.has_lookup_fields[self.library] else stsim_manager.conversion_extensions[self.library]
+            sc_path = os.path.join(self.output_path, self.raster_uuid + '-' + sc_ext + '.tif')
+            elev_path = os.path.join(self.output_path, self.raster_uuid + '-elev.tif')
+            veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
+
+        # elevation information
+        elev_stats = raster_utils.elevation_stats(elev_path)
+
+        # determine vegetation initial coverage by state class
+        veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
+        vegtype_defs = stsim_manager.vegtype_definitions[self.library]
+        stateclass_defs = stsim_manager.stateclass_definitions[self.library]
+        veg_sc_pcts, total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
+
+        zonal_veg_sc_pcts = dict()
+        for vegtype in veg_state_defs.keys():
+            veg_id = int(vegtype_defs[vegtype]['ID'])
+            if veg_id in veg_sc_pcts.keys():
+                zonal_veg = dict()
+                for sc_type in veg_state_defs[vegtype]:
+                    sc_id = int(stateclass_defs[sc_type]['ID'])
+                    if sc_id in veg_sc_pcts[veg_id].keys():
+                        zonal_veg[sc_type] = veg_sc_pcts[veg_id][sc_id]
+                    else:
+                        zonal_veg[sc_type] = 0
+                zonal_veg_sc_pcts[vegtype] = zonal_veg
+
+        veg_codes = zonal_veg_sc_pcts.keys()
+        if stsim_manager.has_lookup_fields[self.library]:
+            lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
+            veg_names = lookup_function(veg_codes, stsim_manager.lookup_fields[self.library][0])
+        else:
+            veg_names = {name: name for name in veg_codes}
+
+        return JsonResponse({'elev': elev_stats,
+                             'veg_sc_pct': zonal_veg_sc_pcts,
+                             'veg_names': veg_names,
+                             'total_cells': total})
+
+
+class STSimBaseView(View):
 
     def __init__(self):
-
-        self.scenario_id = None
+        self.library = None
+        self.stsim = None
         self.project_id = None
+        self.scenario_id = None
+        self.output_path = None
         super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.library = kwargs.get('library')
+        if self.library not in stsim_manager.library_names:
+            return HttpResponseNotFound()
+        self.stsim = stsim_manager.consoles[self.library]
+        self.project_id = stsim_manager.pids[self.library]
+        self.output_path = stsim_manager.output_paths[self.library]
+        if 'scenario_id' in kwargs:
+            self.scenario_id = kwargs.get('scenario_id')
+        else:
+            self.scenario_id = stsim_manager.sids[self.library]
+        return super().dispatch(request, *args, **kwargs)
+
+
+class LookupView(STSimBaseView):
+    """
+    Lookup for libraries that require additional lookup capabilities.
+    Useful for determining which 3D asset or ID to associate with a given vegetation type.
+    """
+
+    def __init__(self):
+        self.lookup_field = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.lookup_field = kwargs.get('lookup_field')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        if stsim_manager.has_lookup_fields[self.library] \
+                and self.lookup_field in stsim_manager.lookup_fields[self.library]:
+            input_codes = request.GET.getlist('input_codes[]')
+            lookup_function = getattr(lookups, stsim_manager.lookup_functions[self.library])
+            data = lookup_function(input_codes, self.lookup_field)
+        else:
+            data = self.library + ' has no lookup field ' + self.lookup_field
+        return JsonResponse({'data': data})
+
+
+class LibraryInfoView(STSimBaseView):
+
+    def get(self, request, *args, **kwargs):
+
+        response = dict()
+
+        # veg state classes
+        response['veg_type_state_classes_json'] = stsim_manager.all_veg_state_classes[self.library]
+
+        # predefined spatial extent?
+        response['has_predefined_extent'] = stsim_manager.has_predefined_extent[self.library]
+
+        # has lookup functionality?
+        response['has_lookup'] = stsim_manager.has_lookup_fields[self.library]
+        response['lookup_fields'] = stsim_manager.lookup_fields[self.library]
+
+        # pass the library info the the frontend viz
+        sc_defs = stsim_manager.stateclass_definitions[self.library]
+        veg_defs = stsim_manager.vegtype_definitions[self.library]
+        response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
+        response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
+
+        # our probabilistic transition types for this application
+        probabilistic_transition_types = stsim_manager.probabilistic_transition_types[self.library]
+        probabilistic_transition_dict = {value: 0 for value in probabilistic_transition_types}
+        response['probabilistic_transitions_json'] = probabilistic_transition_dict
+
+        # transition groups, used for specifying transition targets in the UI
+        response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
+
+        # pass the model config to tell the viz which assets to load
+        response['veg_model_config'] = stsim_manager.veg_model_configs[self.library]
+
+        return JsonResponse(response)
+
+
+class RunModelView(STSimBaseView):
+
+    def __init__(self):
+        self.raster_uuid = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.raster_uuid = kwargs.get('uuid')
+        return super().dispatch(request, *args, **kwargs)
 
     def post(self, request, *args, **kwargs):
 
-        # TODO - setup an interface to set this via. Include this as ajax'd data into the view.
-        run_config = {
-            'min_step': 0,
-            'max_step': 20,
-            'step_size': 1,
-        }
+        timesteps = int(request.POST['timesteps'])
+        step = 1        # TODO - provide min/max timesteps in interface (under advanced tab)?
+        min_step = 0
+        max_step = timesteps
+        iterations = int(request.POST['iterations'])
+        is_spatial = json.loads(request.POST['spatial'])
+        stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
+        probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
+
+        # working file path
+        init_conditions_file = os.path.join(settings.STSIM_WORKING_DIR,
+                                            "initial_conditions",
+                                            "user_defined_temp" + str(time.time()) + ".csv")
 
         # set the run control for the spatial model
-        stsim.update_run_control(
-            sid=self.scenario_id, working_path=default_run_control_path,
-            spatial=True, iterations=0, start_timestep=0, end_timestep=20
+        self.stsim.update_run_control(
+            sid=self.scenario_id, working_path=init_conditions_file,
+            spatial=is_spatial, iterations=iterations, start_timestep=min_step, end_timestep=max_step
         )
+
+        output_settings = {
+            'SummaryOutputSC': True,
+            'SummaryOutputSCTimesteps': step,
+            'SummaryOutputTR': True,
+            'SummaryOutputTRTimesteps': step
+        }
+
+        if is_spatial:
+
+            output_settings['RasterOutputSC'] = True
+            output_settings['RasterOutputSCTimesteps'] = step
+
+            if not stsim_manager.has_predefined_extent[self.library]:
+
+                veg_path = os.path.join(self.output_path, self.raster_uuid + '-veg.tif')
+                sc_path = os.path.join(self.output_path, self.raster_uuid + '-sc.tif')
+
+                # check if a conversion to the stateclasses needs to happen before running stsim
+                if stsim_manager.has_lookup_fields[self.library]:
+                    sc_path = os.path.join(self.output_path, self.raster_uuid + '-' +
+                                           stsim_manager.conversion_extensions[self.library] + '.tif')
+                # import vegtype, stateclass raster into stsim
+                self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
+                                                         strata_path=veg_path, sc_path=sc_path)
+        else:
+            self.stsim.import_nonspatial_distribution(self.scenario_id,
+                                                      stateclass_relative_distribution,
+                                                      init_conditions_file)
 
         # update the output options for the step size
-        stsim.set_output_options(self.scenario_id, default_run_control_path,
-                                         SummaryOutputSC=True, SummaryOutputSCTimesteps=1,
-                                         SummaryOutputTR=True, SummaryOutputTRTimesteps=1,
-                                         RasterOutputSC=True, RasterOutputSCTimesteps=1)
+        self.stsim.set_output_options(self.scenario_id, init_conditions_file, **output_settings)
 
-        # run spatial stsim model at self.scenario_id and return the result scenario id
-        result_scenario_id = stsim.run_model(sid=self.scenario_id)
-        run_config['result_scenario_id'] = result_scenario_id
+        # probabilistic transition probabilities
+        probabilities = self.stsim.export_probabilistic_transitions_map(self.scenario_id, init_conditions_file, orig=True)
 
-        # process each output raster in the output directory
-        stateclass_definitions = stsim.export_stateclass_definitions(
-            pid=self.project_id,
-            working_path=default_sc_path,
-            orig=True
-        )
+        # if the values are modified by the user, adjust them and pass them to ST-Sim working library
+        if probabilistic_transitions_modifiers is not None and len(probabilistic_transitions_modifiers.keys()) > 0:
+            for veg_type in probabilities.keys():
+                for state_class in probabilities[veg_type]:
+                    transition_type = state_class['type']
+                    if transition_type in probabilistic_transitions_modifiers.keys():
+                        value = probabilistic_transitions_modifiers[transition_type]
+                        state_class['probability'] += value
 
-        texture_utils.process_stateclass_directory(
-            dir_path=os.path.join(stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
-            sc_defs=stateclass_definitions
-        )
+        self.stsim.import_probabilistic_transitions(self.scenario_id,
+                                                    probabilities,
+                                                    init_conditions_file)
+
+        # run stsim model at self.scenario_id and return the result scenario id
+        result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
+
+        if is_spatial:
+            # process each output raster in the output directory
+            stateclass_definitions = stsim_manager.stateclass_definitions[self.library]
+            texture_utils.process_stateclass_directory(
+                dir_path=os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
+                sc_defs=stateclass_definitions
+            )
+
+        # collect the summary statistics and return to the user
+        report_file = os.path.join(settings.STSIM_WORKING_DIR, "model_results",
+                                   "stateclass-summary-" + str(result_scenario_id) + ".csv")
+
+        if os.path.exists(report_file):
+            os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        return JsonResponse({'data': run_config})
-
-    def dispatch(self, request, *args, **kwargs):
-        self.scenario_id = kwargs.get('scenario_id')
-        self.project_id = kwargs.get('project_id')
-        return super(STSimSpatialRunnerView, self).dispatch(request, *args, **kwargs)
+        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file))
+        return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
 
-class STSimRunnerView(View):
+class RasterOutputsView(STSimBaseView):
+
+    raster_types = ['veg', 'sc']
 
     def __init__(self):
-
-        self.sid = None
+        self.type = None
+        self.timestep = None
+        self.iteration = None
         super().__init__()
 
-    def post(self, request, *args, **kwargs):
-        values_dict = json.loads(request.POST['veg_slider_values_state_class'])
-        if 'probabilistic_transitions_slider_values' in request.POST:
-            transitions_dict = json.loads(request.POST['probabilistic_transitions_slider_values'])
-        else:
-            transitions_dict = None
-        return HttpResponse(json.dumps(run_st_sim(self.sid, values_dict, transitions_dict)))
-
     def dispatch(self, request, *args, **kwargs):
-        self.sid = kwargs.get('scenario_id')
-        return super(STSimRunnerView, self).dispatch(request, *args, **kwargs)
+        self.type = kwargs.get('type')
+        if self.type not in self.raster_types:
+            raise ValueError(self.type + ' is not a valid data type. Types are ' + str(self.raster_types) + '.')
+        self.timestep = int(kwargs.get('timestep'))
+        self.iteration = int(kwargs.get('iteration'))
+        return super().dispatch(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
 
-def run_st_sim(st_scenario, veg_slider_values_state_class_dict, probabilistic_transitions_slider_values_dict=None):
+        if self.type == 'veg':
+            image = self.serve_vegetation_output()
+        else:
+            image = self.serve_stateclass_output()
 
-    # working file path
-    st_model_init_conditions_file = os.path.join(settings.ST_SIM_WORKING_DIR,
-                                                 "initial_conditions",
-                                                 "user_defined_temp" + str(time.time()) + ".csv")
+        response = HttpResponse(content_type="image/png")
+        image.save(response, 'PNG')
+        return response
 
-    # initial PVT
-    stsim.import_nonspatial_distribution(sid=st_scenario,
-                                         values_dict=veg_slider_values_state_class_dict,
-                                         working_path=st_model_init_conditions_file)
+    def serve_stateclass_output(self):
+        image_directory = os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(self.scenario_id), 'Spatial')
+        return Image.open(os.path.join(image_directory,
+                                       'stateclass_{iteration}_{timestep}.png'.format(iteration=self.iteration,
+                                                                                      timestep=self.timestep)))
 
-    # probabilistic transition probabilities
-    default_probabilities = stsim.export_probabilistic_transitions_map(
-        sid=default_sid,
-        transitions_path=st_model_init_conditions_file,
-        orig=True)
-
-    if probabilistic_transitions_slider_values_dict is not None and len(probabilistic_transitions_slider_values_dict.keys()) > 0:
-        user_probabilities = default_probabilities
-        # adjust the values of the default probabilites
-        for veg_type in user_probabilities.keys():
-            for state_class in user_probabilities[veg_type]:
-                transition_type = state_class['type']
-                if transition_type in probabilistic_transitions_slider_values_dict.keys():
-                    value = probabilistic_transitions_slider_values_dict[transition_type]
-                    state_class['probability'] += value
-
-        stsim.import_probabilistic_transitions(sid=st_scenario,
-                                               values_dict=user_probabilities,
-                                               working_path=st_model_init_conditions_file)
-    else:
-        # use default probabilities
-        stsim.import_probabilistic_transitions(sid=st_scenario,
-                                               values_dict=default_probabilities,
-                                               working_path=st_model_init_conditions_file)
-
-    # run model and collect results
-    st_model_output_sid = stsim.run_model(st_scenario)
-    st_model_results_dir = os.path.join(settings.ST_SIM_WORKING_DIR, "model_results")
-    st_model_output_file = os.path.join(st_model_results_dir, "stateclass-summary-" + st_model_output_sid + ".csv")
-    results_json = json.dumps(stsim.export_stateclass_summary(sid=st_model_output_sid,
-                                                              report_path=st_model_output_file))
-    return {'results_json': results_json}
+    def serve_vegetation_output(self):
+        # TODO - serve veg/strata output raster
+        return Image.new('L', (64, 64))

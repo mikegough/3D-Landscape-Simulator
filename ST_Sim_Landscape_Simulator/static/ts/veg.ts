@@ -1,8 +1,10 @@
 // veg.ts
 import * as globals from './globals'
+import * as STSIM from './stsim'
+import {GeometryAssets, TextureAssets} from './assetloader'
 
-/***** lighting uniforms for vegetation - calculate only once for the whole app *****/
-// TODO - add a sun tone to the vegetation? or green specular/emissive?
+const RESOLUTION = 30	// 30 meter resolution
+
 const AMBIENT = new THREE.Color(globals.WHITE)
 const DIFFUSE = new THREE.Color(globals.WHITE)
 const SPEC = new THREE.Color(globals.WHITE)
@@ -16,159 +18,294 @@ AMBIENT.multiplyScalar(KA * INTENSITY)
 DIFFUSE.multiplyScalar(KD * INTENSITY)
 SPEC.multiplyScalar(KS * INTENSITY)
 
-/* Interface */
-export interface Cluster {
-	xpos: number
-	ypos: number
+/*
+	We should create two types of vegetation
+	1) uses the standard 'realism' shaders that the non-spatial version uses, and
+	2) one that uses the data-based shaders, to highlight the state class textures that are
+	actually being shown, which dictate the change over time.
+*/
+
+export interface VegetationGroups {
+	realism: THREE.Group
+	data: THREE.Group
 }
 
-export interface VegetationOptions {
+interface SpatialVegetationParams {
+	libraryName: string
+	zonalVegtypes: {[vegtype: string] : {[stateclass: string] : number}}
+	veg_names: {[veg_name: string] : string}
+	vegAssetGroups: STSIM.VizMapping
+	vegtypes: STSIM.DefinitionMapping
+	config: STSIM.VisualizationConfig
+	strataTexture: THREE.Texture
+	stateclassTexture: THREE.Texture
+	heightmap: THREE.Texture
+	geometries: GeometryAssets
+	textures: TextureAssets
+	realismVertexShader: string
+	realismFragmentShader: string
+	dataVertexShader: string
+	dataFragmentShader: string
+	heightStats: STSIM.ElevationStatistics
+	disp: number,	// possibly unnecessary?
+}
 
+interface Vegtype3D {
 	name: string
-	heightmap: THREE.Texture	// heightmap texture
-	tex: THREE.Texture			// object texture
-	geo: THREE.Geometry			// object geometry
-	color: THREE.Color			// object color to blend with
-	clusters: Cluster[]			// locations of sagebrush clusters in the terrain
-	vertShader: string			// vertex shader
-	fragShader: string			// fragment shader
-	disp: number				// vertical scaler
-	
-	// Data regarding the shape of this vegcover
-	heightData: any
-	vegData: any
+	heightmap: THREE.Texture
+	sc_tex: THREE.Texture
+	map: boolean[]
+	numValid: number
+	heightStats: STSIM.ElevationStatistics
+	geo: THREE.InstancedBufferGeometry
+	tex: THREE.Texture
+	width: number
+	height: number
+	vertexShader: string
+	fragmentShader: string
+	disp: number
 }
 
-export function createVegetation(params: VegetationOptions) {
 
-	const halfPatch = new THREE.Geometry()
-	halfPatch.merge(params.geo)
+function decodeStrataImage(raw_data :Uint8ClampedArray) : Uint32Array {
+	let decoded_data = new Uint32Array(raw_data.length / 4)
+	let idx: number
+	for (var i = 0; i < decoded_data.length; i++) {
+		idx = i * 4
+		decoded_data[i] = raw_data[idx] | (raw_data[idx+1] << 8) | (raw_data[idx+2] << 16) 
+	}
+	return decoded_data
+}
+
+// returns a THREE.Group of vegetation
+export function createSpatialVegetation(params: SpatialVegetationParams) : VegetationGroups {
+	console.log('Generating realistic vegetation...')
+
+	let realismGroup = new THREE.Group()
+	let dataGroup = new THREE.Group()
+	dataGroup.name = realismGroup.name = 'vegetation'
+
+	const strata_map = params.strataTexture
+	const image = strata_map.image
+	let w = image.naturalWidth
+	let h = image.naturalHeight
+	let canvas = document.createElement('canvas')
+	canvas.width = w
+	canvas.height = h
+	let ctx = canvas.getContext('2d')
+	ctx.drawImage(image, 0, 0, w, h)
 	
-	if (globals.useSymmetry(params.name)) {
-		params.geo.rotateY(Math.PI)
-		halfPatch.merge(params.geo)
-	}
+	// get the image data and convert to IDs
+	let raw_image_data = ctx.getImageData(0,0,w,h).data
+	let strata_data = decodeStrataImage(raw_image_data)
+	raw_image_data = null
+	const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h)
 
-	const geo = new THREE.InstancedBufferGeometry()
-	geo.fromGeometry(halfPatch)
-	halfPatch.dispose()
+	for (var name in params.zonalVegtypes) {	
 
-	const scale = globals.getVegetationScale(params.name)
-	geo.scale(scale,scale,scale)
-
-	// always remove the color buffer since we are using textures
-	if ( geo.attributes['color'] ) {
-
-		geo.removeAttribute('color')
+		const assetGroup = params.vegAssetGroups[name]
+		const veg_geo = params.geometries[assetGroup.asset_name]
+		const veg_tex = params.textures[assetGroup.asset_name]	
+		const vegtypePositions = computeVegtypePositions(params.vegtypes[name], strata_positions, strata_data, w, h)
+		const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h, assetGroup.symmetric, assetGroup.scale)
 	
+		realismGroup.add(createRealismVegtype({
+			name: name,
+			heightmap: params.heightmap,
+			map: vegtypePositions.map, 
+			numValid: vegtypePositions.numValid,
+			heightStats: params.heightStats,
+			//geo: veg_geo,
+			geo: geometry,
+			tex: veg_tex,
+			sc_tex: params.stateclassTexture,
+			width: w,
+			height: h,
+			vertexShader: params.realismVertexShader,
+			fragmentShader: params.realismFragmentShader,
+			disp: params.disp
+		}))
+		dataGroup.add(createDataVegtype({
+			name: name,
+			heightmap: params.heightmap,
+			map: vegtypePositions.map,
+			numValid: vegtypePositions.numValid,
+			heightStats: params.heightStats,
+			//geo: veg_geo,
+			geo: geometry,
+			tex: veg_tex,
+			sc_tex: params.stateclassTexture,
+			width: w,
+			height: h,
+			vertexShader: params.dataVertexShader,
+			fragmentShader: params.dataFragmentShader,
+			disp: params.disp
+		}))
 	}
-
-	const clusters = params.clusters
-	const heightmap = params.heightmap
-	const widthExtent = params.heightData.dem_width
-	const heightExtent = params.heightData.dem_height
-	const maxHeight = params.heightData.dem_max
-	let numVegInstances: number
-
-	if (globals.USE_RANDOM) {
-		numVegInstances = globals.MAX_INSTANCES
-	}
-	else {
-		numVegInstances = Math.floor(globals.MAX_INSTANCES * clusters.length/globals.MAX_CLUSTERS_PER_VEG)
-	}
-
-	geo.maxInstancedCount = 0	// must initialize with 0, otherwise THREE throws an error
-
-	const offsets = new THREE.InstancedBufferAttribute(new Float32Array(numVegInstances * 2), 2)
-	const hCoords = new THREE.InstancedBufferAttribute(new Float32Array(numVegInstances * 2), 2)
-	const rotations = new THREE.InstancedBufferAttribute(new Float32Array(numVegInstances * 1), 1)
-
-	generateOffsets()
 	
-	const vegColor = [params.color.r/255.0, params.color.g/255.0, params.color.b/255.0]
-	const lightPosition = globals.getVegetationLightPosition(params.name)
-	const diffuseScale = getDiffuseScale(params.name)
+	strata_data = ctx = canvas = null
+	
+	console.log('Vegetation generated!')
+	return {realism: realismGroup, data: dataGroup}
+}
 
-	geo.addAttribute('offset', offsets)
-	geo.addAttribute('hCoord', hCoords)
-	geo.addAttribute('rotation', rotations)
+
+function computeStrataPositions(vegtypes: any, data: Uint32Array, w: number, h: number) {
+	let strata_map: boolean[] = new Array()		// declare boolean array
+	let strata_data = data.slice()
+
+	// convert to boolean and return the map
+	for (var i = 0; i < strata_data.length; i++) {
+		strata_map.push(strata_data[i] != 0 && i % Math.floor((Math.random()*75)) == 0? true: false)
+	}
+	return strata_map
+}
+
+interface VegtypeLocations {
+	map: boolean[],
+	numValid: number
+}
+
+function computeVegtypePositions(id: number, position_map: boolean[], type_data: Uint32Array, w:number, h:number) : VegtypeLocations {
+	let vegtype_map: boolean[] = new Array()		// declare boolean array
+	let idx : number
+	let valid: boolean
+	let numValid = 0
+	for (let y = 0; y < h; ++y) {
+		for (let x = 0; x < w; x++) {
+
+			// idx in the image
+			idx = (x + y * w)
+			
+			// update vegtype map
+			valid = type_data[idx] == id && position_map[idx]
+
+			// how many are valid? This informs the number of instances to do
+			if (valid) numValid++
+
+			vegtype_map.push(valid)
+		}
+	}
+
+	return {map: vegtype_map, numValid: numValid}
+}
+
+
+function createRealismVegtype(params: Vegtype3D) {
+
+	const lightPosition = globals.getVegetationLightPosition(name)
+	const diffuseScale = getDiffuseScale(name)
 
 	const mat = new THREE.RawShaderMaterial({
 		uniforms: {
-			// heights
-			heightmap: {type: "t", value: heightmap},
-			maxHeight: {type: "f", value: maxHeight},
+			heightmap: {type: "t", value: params.heightmap},
 			disp: {type: "f", value: params.disp},
-			// coloring texture
 			tex: {type: "t", value: params.tex},
-			vegColor: {type: "3f", value: vegColor},	// implicit vec3 in shaders
-			// elevation drawing bands - TODO, remove when going to spatial
-			vegMaxHeight: {type: "f", value: params.vegData.maxHeight},
-			vegMinHeight: {type: "f", value: params.vegData.minHeight},
+			sc_tex: {type: "t", value: params.sc_tex},
 			// lighting
 			lightPosition: {type: "3f", value: lightPosition},
-			ambientProduct: {type: "c", value: getAmbientProduct(params.name)},
+			ambientProduct: {type: "c", value: getAmbientProduct(name)},
 			diffuseProduct: {type: "c", value: DIFFUSE},
 			diffuseScale: {type: "f", value: diffuseScale},
 			specularProduct: {type: "c", value: SPEC},
 			shininess: {type: "f", value: SHINY}
 		},
-		vertexShader: params.vertShader,
-		fragmentShader: params.fragShader,
+		vertexShader: params.vertexShader,
+		fragmentShader: params.fragmentShader,
 		side: THREE.DoubleSide
 	})
 
-	const mesh = new THREE.Mesh(geo, mat)
-	mesh.frustumCulled = false	// Prevents the veg from disappearing randomly
-	mesh.name = params.name		// Make the mesh selectable directly from the scene
-	mesh.userData['numClusters'] = clusters.length
-
-	function generateOffsets(cells?: any) {
-	
-		let x: number, y:number, tx:number, ty:number, r: number
-		let width = widthExtent, height = heightExtent, numClusters = clusters.length
-		let cluster: Cluster
-		for (let i = 0; i < offsets.count; i++) {
-
-			// determine position in the spatial extent
-			if (globals.USE_RANDOM) {
-				x = Math.random() * width - width / 2		// random placement
-				y = Math.random() * height - height /2
-			}
-			else {
-				cluster = clusters[i % clusters.length]
-				x = cluster.xpos + Math.random() * globals.MAX_CLUSTER_RADIUS
-				y = cluster.ypos + Math.random() * globals.MAX_CLUSTER_RADIUS
-
-				// adjust if outside bounds
-				if (x < -width/2) x = -width/2
-				if (x > width/2) x = width/2
-				if (y < -height/2) y = -height/2
-				if (y > height/2) y = height/2
-			}
-
-			// position in the heightmap
-			tx = x / width + 0.5
-			ty = y / height + 0.5
-			
-			// update attribute buffers
-			offsets.setXY(i, x ,y)
-			hCoords.setXY(i, tx, 1-ty)	// 1-ty since texture is flipped on Y axis
-			rotations.setX(i, 2 * Math.random())	// set a random rotation factor
-		}
-
-	}
+	const mesh = new THREE.Mesh(params.geo, mat)
+	mesh.name = name
+	//mesh.renderOrder = globals.getRenderOrder(name)
+	mesh.frustumCulled = false
 
 	return mesh
+
+}
+
+function createVegtypeGeometry(geo: THREE.Geometry, positions: VegtypeLocations,
+	width: number, height: number, symmetric: boolean, scale: number) : THREE.InstancedBufferGeometry {
+	const halfPatch = new THREE.Geometry()
+	halfPatch.merge(geo)
+	
+	
+	if (symmetric) {
+		geo.rotateY(Math.PI)
+		halfPatch.merge(geo)
+	}
+
+
+	const inst_geo = new THREE.InstancedBufferGeometry()
+	inst_geo.fromGeometry(halfPatch)
+	halfPatch.dispose()
+	inst_geo.scale(scale,scale,scale)
+
+	// always remove the color buffer since we are using textures
+	if ( inst_geo.attributes['color'] ) {
+		inst_geo.removeAttribute('color')
+	}		
+
+	inst_geo.maxInstancedCount = positions.numValid
+
+	const offsets = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2)
+	const hCoords = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2)
+	const rotations = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid), 1)
+
+	inst_geo.addAttribute('offset', offsets)
+	inst_geo.addAttribute('hCoord', hCoords)
+	inst_geo.addAttribute('rotation', rotations)
+
+	// generate offsets
+	let i = 0
+	let x: number, y:number, idx:number, posx: number, posy: number, tx:number, ty: number
+	for (y = 0; y < height; y += 1) {
+		for (x = 0; x < width; x += 1) {
+
+			idx = (x + y * width)
+
+			if (positions.map[idx]) {
+				posx = (x - width/2)
+				posy = (y - height/2)
+				
+				tx = x / width
+				ty = y / height
+
+				offsets.setXY(i, posx, posy)
+				hCoords.setXY(i, tx, 1 - ty)
+				rotations.setX(i, Math.random() * 2.0)
+				i++;
+			}
+		}
+	}
+
+	return inst_geo
 }
 
 
-/****** Vegetation helper functions ******/ 
-//function useSymmetry(vegname: string) : boolean {
-//	return  !(vegname.includes('Sagebrush')
-//			  || vegname.includes('Mahogany') 
-//			  || vegname.includes('Juniper'))
-//}
+function createDataVegtype(params: Vegtype3D) {
+
+	const mat = new THREE.RawShaderMaterial({
+		uniforms: {
+			heightmap: {type: "t", value: params.heightmap},
+			disp: {type: "f", value: 2.0 / 30.0},
+			tex: {type:"t", value: params.tex},
+			sc_tex: {type:"t", value: params.sc_tex},
+		},
+		vertexShader: params.vertexShader,
+		fragmentShader: params.fragmentShader,
+		side: THREE.DoubleSide
+	})
+
+	const mesh = new THREE.Mesh(params.geo, mat)
+	mesh.name = name
+	//mesh.renderOrder = globals.getRenderOrder(name)
+	mesh.frustumCulled = false
+
+	return mesh
+
+}
+
 
 function getDiffuseScale(vegname: string) : number {
 	if (vegname.includes("Sagebrush")) {
@@ -186,21 +323,3 @@ function getAmbientProduct(vegname: string) : THREE.Color {
 	return AMBIENT
 
 }
-
-//function getVegetationScale(vegname: string) : number {
-//	if (vegname.includes("Sagebrush")) {
-//		return 10.0
-//	} else if (vegname.includes("Juniper")) {
-//		return 1.
-//	} else if (vegname.includes("Mahogany")) {
-//		return 15.0
-//	}
-//	return 1.0 
-//}
-
-//function getVegetationLightPosition(vegname: string) : number[] {
-//	if (vegname.includes("Sagebrush")) {
-//		return [0.0, -5.0, 5.0]
-//	}
-//	return [0.0, 5.0, 0.0]
-//}

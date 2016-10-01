@@ -13,19 +13,9 @@ export const TERRAIN_DISP = 5.0 / RESOLUTION // the amount of displacement we im
 export const MAX_CLUSTER_RADIUS = 30.0	// max radius to grow around a cluster
 
 // global colors
-
 export const WHITE = 'rgb(255,255,255)'
 
-export interface VegParams {		// THIS INTERFACE IS SUBJECT TO CHANGE
-	"Basin Big Sagebrush Upland"?: 				number, 
-	"Curleaf Mountain Mahogany"?: 				number, 
-	"Low Sagebrush"?: 			  				number, 
-	"Montane Sagebrush Upland"?:				number, 
-	"Montane Sagebrush Upland With Trees"?: 	number,
-	"Western Juniper Woodland & Savannah"?: 	number,
-	"Wyoming and Basin Big Sagebrush Upland"?: 	number
-}
-
+/*
 export function getVegetationAssetsName(vegname: string) : string {
 
 	if (vegname.includes("Sagebrush")) {
@@ -40,12 +30,14 @@ export function getVegetationAssetsName(vegname: string) : string {
 	return 'grass' 
 }
 
+
 export function useSymmetry(vegname: string) : boolean {
 	return  !(vegname.includes('Sagebrush')
 			  || vegname.includes('Mahogany') 
 			  || vegname.includes('Juniper'))
 }
 
+// TODO - make this part of the configuration
 export function getVegetationScale(vegname: string) : number {
 	if (vegname.includes("Sagebrush")) {
 		return 10.0
@@ -57,6 +49,7 @@ export function getVegetationScale(vegname: string) : number {
 	return 1.0 
 }
 
+// TODO - same as above
 export function getRenderOrder(vegname: string) : number {
 	// sagebrush should always be rendered first
 	if (!vegname.includes('Sagebrush')) {
@@ -64,6 +57,7 @@ export function getRenderOrder(vegname: string) : number {
 	}
 	return 0
 }
+*/
 
 export function getVegetationLightPosition(vegname: string) : number[] {
 	if (vegname.includes("Sagebrush")) {

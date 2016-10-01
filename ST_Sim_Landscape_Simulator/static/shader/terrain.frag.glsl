@@ -1,5 +1,4 @@
 // terrain.frag
-// phong lighting courtest of Prof. Orr, Willamette, via Angel.hpp
 
 // our textures to blend
 uniform sampler2D rock;
@@ -28,7 +27,7 @@ void main() {
 	vec4 sand = (smoothstep(-0.01, 0.02, vAmount) - smoothstep(0.03, 0.04, vAmount)) * texture2D(sand, vUV * 20.0);
 	vec4 grassy = (smoothstep(-0.05, 0.14, vAmount) - smoothstep(0.15, 0.50, vAmount)) * texture2D( grass, vUV * 30.0 );
 	vec4 rocky  = (smoothstep(0.20, 0.40, vAmount) - smoothstep(0.45, 0.95, vAmount)) * texture2D( rock,  vUV * 20.0 );
-	vec4 snowy  = (smoothstep(0.60, 0.85, vAmount))                                    * texture2D( snow,  vUV * 10.0 );
+	vec4 snowy  = (smoothstep(0.70, 0.85, vAmount))                                    * texture2D( snow,  vUV * 10.0 );
 	vec4 myColor = vec4(0.0, 0.0, 0.0, 1.0) + sand + grassy + rocky + snowy;
 
 	// compute lighting

@@ -24,55 +24,135 @@
 
     <!-- Highcharts -->
     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
 
     <!-- Tabs -->
     <script src="{% static "js/vendor/tabcontent.js" %}" type="text/javascript"></script>
     <link href="{% static "css/vendor/tabcontent.css" %}" rel="stylesheet" type="text/css" />
 
+    <!-- Alertify -->
+    {% comment %}
+    <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.core.css" %}" rel="stylesheet" type="text/css" />
+    <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.default.css" %}" rel="stylesheet" type="text/css" />
+    <script src="{% static 'js/vendor/alertify/alertify.js-0.3.11/lib/alertify.min.js' %}"></script>
+    {% endcomment %}
+
+    <!--selectBoxIt (Styled Select Boxes) -->
+    <link type="text/css" rel="stylesheet" href="{% static 'js/vendor/SelectBoxIt/css/jquery.selectBoxIt.css' %}" />
+    <script src="{% static 'js/vendor/SelectBoxIt/jqueryui/1.9.2/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'js/vendor/SelectBoxIt/js/jquery.selectBoxIt.min.js' %}"></script>
+
     <!-- My CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css'%}" />
     <link href="{% static 'css/buttons.css' %}" rel="stylesheet" type="text/css" />
 
-    <script>
-        veg_type_state_classes_json = {{ veg_type_state_classes_json | safe }};
-        probabilistic_transitions_json = {{ probabilistic_transitions_json | safe }};
-        scenario_types_json = {{ scenarios_json | safe }};
-        static_url="/static/"
-    </script>
-
 </head>
 
-<body>
+<body class="claro">
     <div id="header"><img id="site_icon" src="{% static 'img/site_icon.png' %}">3D Landscape Simulator</div>
 
     <div id="contents">
 
         <div id="input">
-            <!-- TODO - remove the anchor tag below and the onclick call since this is purely just for development -->
-            <div id="step1" class="steps"><a onclick="activate_spatial_scene()">1. Click a County or Draw a Box</a></div>
+            <div id="step1" class="steps">Click a County or Draw a Box</div>
+            <div id="intro">
+                <h4>Welcome & Getting Started</h4>
+                <!--
+                The 3D Landscape Simulator is a web-based application that allows you to run State-and-Transition Simulation models (powered by ST-Sim) over the internet.
+                -->
+                The 3D Landscape Simulator is a web-based State-and-transition modelling framework powered by ST-Sim.
+                <p>
+                <!--
+                State-and-transition simulation models allow for the projection of future landscape conditions based on a set of user-defined probabilities, transition rules, and management actions.
+                -->
+                <p>
+                <!--
+                To get started with the 3D Landscape Simulator, first select an area of interest in the map. Then use the controls that appear on the left hand side of the screen to define your input conditions and the set of probabilities and management actions you'd like to simulate.
+                -->
+                To get started with the 3D Landscape Simulator, first select an area of interest in the map. Then use the controls that appear on the left hand side to define the scenario you'd like to simulate.
+                <p>
+                When you are ready, push the run button to conduct a model run.
+                Your results will appear on the right hand side of the screen in a series of charts designed to communicate the future composition of your landscape under the scenario you defined.
+            </div>
             <!--<table style="width:100%" id="initial_conditions_table"><tr></tr></table>-->
+            <div style="display:none" id="general_settings">
+                <div class="steps">1. General Settings</div>
+                <table id="general_settings_table">
+                    <tr>
+                        <td>
+                            <div id="library_div" class="general_settings_div">
+                                Library:
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                   <form class="select_form2">
+                                       <!-- On change, create the charts, passing in whichever variables the user has selectd in all 3 dropdowns -->
+                                       <div class="styled-select2" id="ss1">
+                                           <select id="settings_library"></select>
+                                       </div>
+                                   </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="run_mode_div" class="general_settings_div">
+                                Spatial Output:
+                            </div>
+                        </td>
+                        <td>
+                            <ul id="button_list2" class="buttons buttons2" data-persist="false">
+                                <li id="spatial_button"><a id="spatial_link">Enable</a></li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="timesteps_div" class="general_settings_div">
+                                Timesteps:
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_timesteps" type="text" value="20">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="iterations_div" class="general_settings_div">
+                                Iterations:
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_iterations" type="text" value="5">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
             <div style="display:none" id="input_initial_veg">
-                <div class="steps">2. Specify Initial Vegetation Cover</div>
-                <table id="vegTypeSliderTable" class="sliderTable"></table>
+                <div class="steps" id="steps_initial_vegetation_cover">2. Specify Initial Vegetation Cover</div>
+                <div id="vegtype_slider_container">
+                    <table id="vegTypeSliderTable" class="sliderTable"></table>
+                </div>
                 <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">0%</div></div>
             </div>
             <div style="display:none" id="input_probabilistic_transitions">
                 <div class="steps">3. Annual Disturbance Probabilities</div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
-                <!--
-                Replacement Fire: <input type='text' id='fire_slider_label' value="defaults" class='current_probability_slider_setting' readonly>
-                <div id ="fire_slider" class="slider_bars"></div>
-                -->
             </div>
-            <br>
-
-            <div style="display:none" id="input_management_scenario">
-                <div class="steps">4.&nbsp;Choose a Management Scenario</div>
-                <form method="post">
-                    <div id="management_scenario_radios"></div>
-                </form>
-                <input id="run_button" style="display:none" value="Total Percent Cover Must Equal 100%" class="disabled my-button my-button-ok" type="submit">
+            <div style="dislay:none">
+                <div style="display:none" id="input_management_scenario">
+                    <div class="steps" style="display:none">4.&nbsp;Choose a Management Scenario</div>
+                    <form method="post">
+                        <div style="display:none" id="management_scenario_radios"></div>
+                    </form>
+                </div>
             </div>
+            <input id="run_button" style="display:none" value="Total Percent Cover Must Equal 100%" class="disabled my-button my-button-ok" type="submit">
 
         </div>
 
@@ -89,12 +169,11 @@
                     <label class="animation_label" for="animation_slider">Animation Slider (Spatial Outputs)</label>
                     <input id="animation_slider" type="range" min="0" max="0" value="0" step="1">
                     <label class="animation_label" for="viz_type">Show Data?</label>
-                    <input id="viz_type" type="checkbox" checked>
+                    <input id="viz_type" type="checkbox">
                 </div>
         </div>
 
         <div id="output" style="display:block">
-
             <div id="results">
                 <div id="results_loading"></div>
                 <div id="running_st_sim" style="display:none">Running ST-Sim...</div>
@@ -128,6 +207,7 @@
                                 <table id="results_table_4" class="results_table"></table>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -154,5 +234,10 @@
 
     <!-- Stacked Area Chart -->
     <script src="{% static 'highcharts/stacked_area.js' %}"></script>
+
+    <!-- Column Chart -->
+    <script src="{% static 'highcharts/column_chart.js' %}"></script>
+
+
 </body>
 </html>

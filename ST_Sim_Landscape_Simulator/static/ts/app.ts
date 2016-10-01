@@ -2,54 +2,38 @@
 
 import * as globals from './globals'
 import {createTerrain, createDataTerrain} from './terrain'
-import {createVegetation, VegetationOptions, Cluster} from './veg'
-import {createSpatialVegetation, createDataVegetation} from './spatialveg'
+import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL} from './utils'
-import {Loader, Assets, AssetDescription} from './assetloader'
+import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
+import * as STSIM from './stsim'
 
-interface SpatialRunControl {
-	min_step : number,
-	max_step : number,
-	step_size : number,
-	result_scenario_id: number
-}
 
-export default function run(container_id: string, params: globals.VegParams) {
-
-	const vegParams = params
-	let initialized = false
-	let spatial = false
+export default function run(container_id: string) {
 
 	if (!detectWebGL) {
 		alert("Your browser does not support WebGL. Please use a different browser (I.e. Chrome, Firefox).")
 		return null
 	}
 
-	let masterAssets: Assets
-	let spatialAssets: Assets
-	let animationAssets: Assets
-	let terrain: THREE.Mesh
-
-	let _project_id: number
-
-	let srcSpatialPath = 'spatial/height/'
-	let statsSpatialPath = srcSpatialPath + 'stats/'
-	let srcSpatialTextureBase = 'spatial/outputs/'	// scenario/data_type/timestep
-
-
+	let initialized = false
+	let masterAssets = {} as AssetRepo
 
 	// setup the THREE scene
 	const container = document.getElementById(container_id)
 	const scene = new THREE.Scene()
-	const renderer = new THREE.WebGLRenderer()
+	const renderer = new THREE.WebGLRenderer({antialias: false})
 	container.appendChild(renderer.domElement)
-	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, .1, 1000.0)
+	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, .1, 100000.0)
 	
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
 	controls.enableKeys = false
-	camera.position.z = 40
-	camera.position.y = 100
+	camera.position.y = 350
+	camera.position.z = 600
+
+	//const camera_start_position = camera.position.copy(new THREE.Vector3())
+	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
+
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
@@ -58,296 +42,221 @@ export default function run(container_id: string, params: globals.VegParams) {
 	renderer.domElement.addEventListener('mousewheel', render, false)
 	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
+	initialize()
+
 	// Load initial assets
-	const loader = Loader()
-	loader.load({
-			text: [
-				/* realism shaders */
-				{name: 'terrain_vert', url: 'static/shader/terrain.vert.glsl'},
-				{name: 'terrain_frag', url: 'static/shader/terrain.frag.glsl'},
-				{name: 'veg_vert', url: 'static/shader/veg.vert.glsl'},
-				{name: 'veg_frag', url: 'static/shader/veg.frag.glsl'},
-				/* data shaders */
-				{name: 'data_terrain_vert', url: 'static/shader/data_terrain.vert.glsl'},
-				{name: 'data_terrain_frag', url: 'static/shader/data_terrain.frag.glsl'},
-				{name: 'data_veg_vert', url: 'static/shader/data_veg.vert.glsl'},
-				{name: 'data_veg_frag', url: 'static/shader/data_veg.frag.glsl'},
-				/* spatial veg shaders - TODO: remove these and replace with a modular system */
-				{name: 'spatial_veg_vert', url: 'static/shader/spatial_veg.vert.glsl'},
-				{name: 'spatial_veg_frag', url: 'static/shader/spatial_veg.frag.glsl'},
-			],
-			
-			textures: [
-				// terrain materials
-				{name: 'terrain_rock', url: 'static/img/terrain/rock-512.jpg'},
-				{name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg'},
-				{name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg'},
-				{name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg'},
-				{name: 'terrain_water', url: 'static/img/terrain/water-512.jpg'},
+	function initialize() {
 
-				// vegtype materials
-				{name: 'grass_material', url: 'static/img/grass/grass_base.tga'},
-				{name: 'tree_material', url: 'static/img/grass/grass_base.tga'},	// just a base green color
-				{name: 'juniper_material', url: 'static/img/juniper/pine-leaf-diff.png'},
-				// sagebrush
-				{name: 'sagebrush_material', url: 'static/img/sagebrush/sagebrush_alt.png'}
-			],
-			
-			geometries: [
-				{name: 'grass', url: 'static/json/geometry/grass.json'},
-				{name: 'tree', url: 'static/json/geometry/tree.json'},
-				{name: 'juniper', url: 'static/json/geometry/tree_simple.json'},
-				{name: 'sagebrush', url: 'static/json/geometry/sagebrush_simple4.json'}
-			]/*,
-			statistics: [
-				{name: 'vegclass_stats', url: ""}
-			]
-			*/
-		},
-		function(loadedAssets: Assets) {
-			masterAssets = loadedAssets
-			initialized = true
-		},
-		function(progress: number) {
-			console.log("Loading assets... " + progress * 100 + "%")
-		},
-		function(error: string) {
-			console.log(error)
-			return
+		let terrainInitialized = false
+		let vegetationInitialized = false
+		function tryDone() {
+			return terrainInitialized && vegetationInitialized
 		}
-	)
 
-	let spatialExtent = [-1, -1, -1, -1]	// dummy vars for starting out
-
-	function updateTerrain(extent: number[], updateVeg?: boolean) {
-
-		// confirm params are different
-		if (extent.length === 4	// extent is exactly 4 long
-			&& (terrain == undefined || extent[0] != spatialExtent[0] ||
-			extent[1] != spatialExtent[1] ||
-			extent[2] != spatialExtent[2] ||
-			extent[3] != spatialExtent[3])) {
-			spatialExtent = extent
-			if (terrain != undefined) {
-				scene.remove(terrain)
-				terrain.geometry.dispose()
-				for (var key in vegParams) {
-					scene.remove(scene.getObjectByName(key))
-				}
-			}
-			
-			let srcPath = 'heightmap/' + extent.join('/') + '/'
-			let statsPath = srcPath + 'stats/'
-			const tempLoader = Loader()
-			tempLoader.load({
-				textures: [
-					{name: 'heightmap', url: srcPath},
+		const terrainLoader = Loader()
+		terrainLoader.load({
+				text: [
+					/* realism shaders */
+					{name: 'terrain_vert', url: 'static/shader/terrain.vert.glsl'},
+					{name: 'terrain_frag', url: 'static/shader/terrain.frag.glsl'},
+					/* data shaders */
+					{name: 'data_terrain_vert', url: 'static/shader/data_terrain.vert.glsl'},
+					{name: 'data_terrain_frag', url: 'static/shader/data_terrain.frag.glsl'},
 				],
-				statistics: [
-					{name: 'heightmap_stats', url: statsPath},
+				textures: [
+					// terrain materials
+					{name: 'terrain_rock', url: 'static/img/terrain/rock-512.jpg'},
+					{name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg'},
+					{name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg'},
+					{name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg'},
+					{name: 'terrain_water', url: 'static/img/terrain/water-512.jpg'},
+		
+				],
+			},
+			function(loadedAssets: Assets) {
+				console.log('Terrain loaded')
+				masterAssets['terrain'] = loadedAssets
+				terrainInitialized = true
+				initialized = tryDone()
+			},
+			reportProgress, reportError)
+
+		const vegetationLoader = Loader()
+		vegetationLoader.load(
+			{
+				text: [
+					{name: 'real_veg_vert', url: 'static/shader/real_veg.vert.glsl'},
+					{name: 'real_veg_frag', url: 'static/shader/real_veg.frag.glsl'},
+					{name: 'data_veg_vert', url: 'static/shader/data_veg.vert.glsl'},
+					{name: 'data_veg_frag', url: 'static/shader/data_veg.frag.glsl'},
 				]
 			},
-	 		function(loadedAssets: Assets) {
-				// compute the heights from this heightmap
-				// Only do this once per terrain. We base our clusters off of this
-				const heightmapTexture = loadedAssets.textures['heightmap']
-				const heightmapStats = loadedAssets.statistics['heightmap_stats']
-				const heights = computeHeights(heightmapTexture, heightmapStats)
-
-				terrain = createTerrain({
-					rock: masterAssets.textures['terrain_rock'],
-					snow: masterAssets.textures['terrain_snow'],
-					grass: masterAssets.textures['terrain_grass'],
-					sand: masterAssets.textures['terrain_sand'],
-					water: masterAssets.textures['terrain_water'],
-					vertShader: masterAssets.text['terrain_vert'],
-					fragShader: masterAssets.text['terrain_frag'],
-					data: loadedAssets.statistics['heightmap_stats'],
-					heightmap: heightmapTexture,
-					heights: heights,
-					disp: globals.TERRAIN_DISP
-				})
-				scene.add(terrain)
-
-				let baseColor = new THREE.Color(55,80,100)	// TODO - better colors
-				let i = 0
-				const maxColors = 7
-
-				// Add our vegcovers
-				for (var key in vegParams) {
-
-					// calculate the veg colors we want to display
-					const r = Math.floor(i/maxColors * 200)
-					const g = Math.floor(i/maxColors * 130)
-					const vegColor = new THREE.Color(baseColor.r + r, baseColor.g + g, baseColor.b)
-
-					const vegAssetName = globals.getVegetationAssetsName(key)
-					const vegStats = getVegetationStats(key)
-
-					scene.add(createVegetation( 
-						{
-							heightmap: loadedAssets.textures['heightmap'],
-							name: key,
-							tex: masterAssets.textures[vegAssetName + '_material'],
-							geo: masterAssets.geometries[vegAssetName],
-							color: vegColor,
-							vertShader: masterAssets.text['veg_vert'],
-							fragShader: masterAssets.text['veg_frag'],
-							disp: globals.TERRAIN_DISP,
-							clusters: createClusters(heights, heightmapStats, vegStats),
-							heightData: loadedAssets.statistics['heightmap_stats'],
-							vegData: vegStats
-						}
-					))
-
-					++i;
-				}
-				render()
-				if (updateVeg) updateVegetation(vegParams)
-			},
-			function(progress: number) {
-				console.log("Loading heightmap assets... " + progress*100  + "%")
-			},
-			function(error: string) {
-				console.log(error)
-				return
-			})
-		}	
-	}
-
-	function updateSpatialTerrain(project_id: any, updateVeg?: boolean) {
-		_project_id = project_id
-		spatial = true
-		camera.position.y = 350
-		camera.position.z = 600
-		const scenario_id = 210	// TODO - replace with a way to get this from the library
-		const srcSpatialTexturePath = srcSpatialTextureBase + project_id + '/' + scenario_id
-		const tempLoader = Loader()
-		tempLoader.load({
-				textures: [
-					{name: 'spatial_heightmap', url: srcSpatialPath},
-					{name: 'init_sc', url: srcSpatialTexturePath + '/stateclass/0/'},
-					{name: 'init_veg', url: srcSpatialTexturePath + '/veg/0/'}
-				],
-				statistics: [
-					{name: 'spatial_stats', url: statsSpatialPath},
-					{name: 'veg_class_stats', url: 'spatial/stats/' + project_id + '/veg/'}
-				],
-			},
 			function(loadedAssets: Assets) {
-				spatialAssets = loadedAssets
-				const heightmapTexture = spatialAssets.textures['spatial_heightmap']
-				const heightmapStats = spatialAssets.statistics['spatial_stats']
-				const heights = computeHeights(heightmapTexture, heightmapStats)
-				const vegetationStats = spatialAssets.statistics['veg_class_stats']
-
-				// define the realism group
-				let realismGroup = new THREE.Group()
-				realismGroup.name = 'realism'
-
-				// create normal terrain
-				terrain = createTerrain({
-					rock: masterAssets.textures['terrain_rock'],
-					snow: masterAssets.textures['terrain_snow'],
-					grass: masterAssets.textures['terrain_grass'],
-					sand: masterAssets.textures['terrain_sand'],
-					water: masterAssets.textures['terrain_water'],
-					vertShader: masterAssets.text['terrain_vert'],
-					fragShader: masterAssets.text['terrain_frag'],
-					data: heightmapStats,
-					heightmap: heightmapTexture,
-					heights: heights,
-					disp: 2.0 / 30.0
-				})
-				realismGroup.add(terrain)
-
-				// add the vegetation
-				const realismVegetation = createSpatialVegetation({
-					strataTexture: spatialAssets.textures['init_veg'],
-					stateclassTexture: spatialAssets.textures['init_sc'],
-					heightmap: heightmapTexture,
-					vegGeometries: masterAssets.geometries,
-					vegTextures: masterAssets.textures,
-					vertShader: masterAssets.text['spatial_veg_vert'],
-					fragShader: masterAssets.text['spatial_veg_frag'],
-					data: vegetationStats,
-					heightData: heightmapStats,
-					disp: 2.0 / 30.0
-				})
-				realismGroup.add(realismVegetation)
-				scene.add(realismGroup)
-
-				// render the scene since the data group won't be rendered first.
-				render()
-
-				// define the data group
-				let dataGroup = new THREE.Group()
-				dataGroup.name = 'data'
-				dataGroup.visible = false	// initially set to false
-				const dataTerrain = createDataTerrain({
-					heightmap: heightmapTexture,
-					heights: heights,
-					stateclassTexture: spatialAssets.textures['init_sc'],
-					data: heightmapStats,
-					vertShader: masterAssets.text['data_terrain_vert'],
-					fragShader: masterAssets.text['data_terrain_frag'],
-					disp: 2.0/ 30.0
-				})
-				dataGroup.add(dataTerrain)
-				const dataVegetation = createDataVegetation({
-					strataTexture: spatialAssets.textures['init_veg'],
-					stateclassTexture: spatialAssets.textures['init_sc'],
-					heightmap: heightmapTexture,
-					vegGeometries: masterAssets.geometries,
-					vegTextures: masterAssets.textures,
-					vertShader: masterAssets.text['data_veg_vert'],
-					fragShader: masterAssets.text['data_veg_frag'],
-					data: vegetationStats,
-					heightData: heightmapStats,
-					disp: 2.0 / 30.0
-				})
-				dataGroup.add(dataVegetation)
-				scene.add(dataGroup)
-
-
+				console.log('Vegetation shaders loaded')
+				masterAssets['vegetation'] = loadedAssets
+				vegetationInitialized = true
+				initialized = tryDone()
 			},
-			function(progress: number) {
-				console.log("Loading spatial assets... " + progress * 100 + "%")
-			},
-			function(error: string) {
-				console.log(error)
-				return
-			}
-		)
+			reportProgress, reportError)
 	}
 
-	function updateSpatialVegetation(runControl: SpatialRunControl) {
-		console.log('Updating vegetation covers')
-
-		// updating the vegetation means getting the new stateclass textures to animate over
-		const sid = runControl.result_scenario_id
-		const srcSpatialTexturePath = srcSpatialTextureBase + _project_id + '/' + sid 
-
-		let model_outputs : AssetDescription[] = new Array()
-		for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
-			model_outputs.push({name: String(step), url: srcSpatialTexturePath + '/stateclass/' + step + '/'})
+	let currentDefinitions : STSIM.LibraryDefinitions
+	let currentLibraryName = ""
+	function setLibraryDefinitions(name:string, definitions: STSIM.LibraryDefinitions) {
+		if (name != currentLibraryName) {
+			currentLibraryName = name
+			currentDefinitions = definitions
 		}
-		const tempLoader = Loader()
-		tempLoader.load({
-				textures: model_outputs,
-			},
-			function(loadedAssets: Assets) {
-				console.log('Animation assets loaded!')
-				console.log(loadedAssets.textures)
-				animationAssets = loadedAssets
+	}
 
+	let currentUUID : string
+	let currentConditions : STSIM.LibraryInitConditions
+	function setStudyArea(uuid : string, initialConditions: STSIM.LibraryInitConditions) {
+		if (uuid != currentUUID) {
+			currentUUID = uuid
+			currentConditions = initialConditions
+			camera.position.set(camera_start.x, camera_start.y, camera_start.z)
+
+			// remove current terrain and vegetation cover
+			if (scene.getObjectByName('terrain') != undefined) {
+				scene.remove(scene.getObjectByName('data'))
+				scene.remove(scene.getObjectByName('realism'))
+				render()
+			}
+
+			const baseSourceURL = [currentLibraryName, 'select', currentUUID].join('/')
+			const studyAreaLoader = Loader()
+			let studyAreaAssets = {} as AssetList
+
+			// Construct urls for vegetation geometry, textures based on asset names
+			const assetNamesList = currentDefinitions.veg_model_config.visualization_asset_names
+			let textures = [] as AssetDescription[]
+			let geometries = [] as AssetDescription[]
+			let assetName : string
+			let assetPath : string
+			textures.push({name: 'elevation', url: baseSourceURL + '/elev/'})
+			textures.push({name: 'veg_tex', url: baseSourceURL + '/veg/'})
+			textures.push({name: 'sc_tex', url: baseSourceURL + '/sc/'})
+
+			for (var idx in assetNamesList) {
+				assetName = assetNamesList[idx].asset_name
+				assetPath = [currentLibraryName, assetName].join('/')
+				geometries.push({
+					name: assetName,
+					url: 'static/json/geometry/' + assetPath + '.json'					
+				})
+				textures.push({
+					name: assetName,
+					url: 'static/img/' + assetPath + '.png'
+				})
+			}
+
+			studyAreaAssets.textures = textures
+			studyAreaAssets.geometries = geometries
+			studyAreaLoader.load(studyAreaAssets, createScene, reportProgress, reportError)
+		}
+	}
+
+	function createScene(loadedAssets: Assets) {
+		masterAssets[currentLibraryName] = loadedAssets
+
+		const heightmapTexture = loadedAssets.textures['elevation']
+		const heights = computeHeights(heightmapTexture)
+		const disp = 2.0 / 30.0
+
+		const terrainAssets = masterAssets['terrain']
+		const vegetationAssets = masterAssets['vegetation']
+
+		// define the realism group
+		let realismGroup = new THREE.Group()
+		realismGroup.name = 'realism'
+		const realismTerrain = createTerrain({
+			rock: terrainAssets.textures['terrain_rock'],
+			snow: terrainAssets.textures['terrain_snow'],
+			grass: terrainAssets.textures['terrain_grass'],
+			sand: terrainAssets.textures['terrain_sand'],
+			water: terrainAssets.textures['terrain_water'],
+			vertShader: terrainAssets.text['terrain_vert'],
+			fragShader: terrainAssets.text['terrain_frag'],
+			data: currentConditions.elev,
+			heightmap: heightmapTexture,
+			heights: heights,
+			disp: disp
+		})
+		realismGroup.add(realismTerrain)
+		
+		// define the data group
+		let dataGroup = new THREE.Group()
+		dataGroup.name = 'data'
+		dataGroup.visible = false	// initially set to false
+		const dataTerrain = createDataTerrain({
+			heightmap: heightmapTexture,
+			heights: heights,
+			stateclassTexture: loadedAssets.textures['sc_tex'],
+			data: currentConditions.elev,
+			vertShader: terrainAssets.text['data_terrain_vert'],
+			fragShader: terrainAssets.text['data_terrain_frag'],
+			disp: disp
+		})
+		dataGroup.add(dataTerrain)
+
+		if (currentDefinitions.veg_model_config.lookup_field) {
+
+			// TODO - make this lookup information part of the initial conditions dictionary
+			$.getJSON(currentLibraryName + '/lookup/' + currentDefinitions.veg_model_config.lookup_field + '/',
+			{'input_codes[]': Object.keys(currentConditions.veg_sc_pct)}).done(function(response) {
+
+				const lookupNames = response['data']
+				let assetGroup : STSIM.VizAsset
+				let valid_name : string
+				let breakout : boolean
+				let vegAssetGroups = {} as STSIM.VizMapping
+
+				for (var name in currentConditions.veg_sc_pct) {
+					for (var i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
+						assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i]
+						breakout = false
+						for (var j = 0; j < assetGroup.valid_names.length; j++) {
+							valid_name = assetGroup.valid_names[j]
+							if (lookupNames[name] == valid_name) {
+							vegAssetGroups[name] = assetGroup
+							}
+						}
+					}
+				}
+
+				// create the vegetation
+				const vegGroups = createSpatialVegetation({
+					libraryName: currentLibraryName,
+					zonalVegtypes: currentConditions.veg_sc_pct,
+					veg_names: currentConditions.veg_names,
+					vegAssetGroups : vegAssetGroups,
+					vegtypes: currentDefinitions.vegtype_definitions,
+					config: currentDefinitions.veg_model_config,
+					strataTexture: loadedAssets.textures['veg_tex'],
+					stateclassTexture: loadedAssets.textures['sc_tex'],
+					heightmap: heightmapTexture,
+					geometries: loadedAssets.geometries,
+					textures: loadedAssets.textures,
+					realismVertexShader: vegetationAssets.text['real_veg_vert'],
+					realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+					dataVertexShader: vegetationAssets.text['data_veg_vert'],
+					dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+					heightStats: currentConditions.elev,
+					disp: disp
+				}) as VegetationGroups
+				realismGroup.add(vegGroups.realism)		
+				dataGroup.add(vegGroups.data)
+		
+				scene.add(realismGroup)
+				scene.add(dataGroup)
+		
+		
 				// show the animation controls for the outputs
     			$('#animation_container').show();
-
+		
 				// activate the checkbox
 				$('#viz_type').on('change', function() {
-					const dataGroup = scene.getObjectByName('data')
-					const realismGroup = scene.getObjectByName('realism')
 					if (dataGroup.visible) {
 						dataGroup.visible = false
 						realismGroup.visible = true
@@ -357,6 +266,102 @@ export default function run(container_id: string, params: globals.VegParams) {
 					}
 					render()
 				})
+						
+				// render the scene once everything is finished being processed
+				console.log('Vegetation Rendered!')
+				render()
+			})
+
+		} else {
+
+			let vegAssetGroups = {} as STSIM.VizMapping
+			let assetGroup : STSIM.VizAsset
+			let i : number, j : number
+			for (var name in currentConditions.veg_sc_pct) {
+				for (i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i ++) {
+					assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i] as STSIM.VizAsset
+					for (j = 0; j < assetGroup.valid_names.length; j++) {
+						if (name == assetGroup.valid_names[j]) {
+							vegAssetGroups[name] = assetGroup
+							break;
+						}
+					}
+				}
+			}
+
+
+			// create the vegetation
+			const vegGroups = createSpatialVegetation({
+				libraryName: currentLibraryName,
+				zonalVegtypes: currentConditions.veg_sc_pct,
+				veg_names: currentConditions.veg_names,
+				vegAssetGroups : vegAssetGroups,
+				vegtypes: currentDefinitions.vegtype_definitions,
+				config: currentDefinitions.veg_model_config,
+				strataTexture: loadedAssets.textures['veg_tex'],
+				stateclassTexture: loadedAssets.textures['sc_tex'],
+				heightmap: heightmapTexture,
+				geometries: loadedAssets.geometries,
+				textures: loadedAssets.textures,
+				realismVertexShader: vegetationAssets.text['real_veg_vert'],
+				realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+				dataVertexShader: vegetationAssets.text['data_veg_vert'],
+				dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+				heightStats: currentConditions.elev,
+				disp: disp
+			}) as VegetationGroups
+			realismGroup.add(vegGroups.realism)		
+			dataGroup.add(vegGroups.data)
+	
+			scene.add(realismGroup)
+			scene.add(dataGroup)
+	
+	
+			// show the animation controls for the outputs
+    		$('#animation_container').show();
+	
+			// activate the checkbox
+			$('#viz_type').on('change', function() {
+				if (dataGroup.visible) {
+					dataGroup.visible = false
+					realismGroup.visible = true
+				} else {
+					dataGroup.visible = true
+					realismGroup.visible = false
+				}
+				render()
+			})
+					
+			// render the scene once everything is finished being processed
+			console.log('Vegetation Rendered!')
+			render()
+		}	
+	}
+
+	function collectSpatialOutputs(runControl: STSIM.RunControl) {
+
+		if (!runControl.spatial) return
+		console.log('Updating vegetation covers')
+		
+		const sid = runControl.result_scenario_id
+		const srcSpatialTexturePath = runControl.library + '/outputs/' + sid
+
+		let model_outputs : AssetDescription[] = new Array()
+		for (var step = runControl.min_step; step <= runControl.max_step; step += runControl.step_size) {
+			for (var it = 1; it <= runControl.iterations; it += 1) {
+				
+				model_outputs.push({name: String(it) + '_' + String(step), url: srcSpatialTexturePath + '/sc/' + it + '/' + step + '/'})
+				if (step == runControl.min_step) break;	// Only need to get the initial timestep 1 time for all iterations			
+			}
+		}
+		const outputsLoader = Loader()
+		outputsLoader.load({
+				textures: model_outputs,
+			},
+			function(loadedAssets: Assets) {
+				console.log('Animation assets loaded!')
+				
+				masterAssets[String(sid)] = loadedAssets
 
 				const dataGroup = scene.getObjectByName('data') as THREE.Group
 				const realismGroup = scene.getObjectByName('realism') as THREE.Group
@@ -365,54 +370,46 @@ export default function run(container_id: string, params: globals.VegParams) {
 				render()
 
 				// create an animation slider and update the stateclass texture to the last one in the timeseries, poc
+				$('#viz_type').prop('checked', true)
 				const animationSlider = $('#animation_slider')
+				const currentIteration = 1								// TODO - show other iterations
 				animationSlider.attr('max', runControl.max_step)
 				animationSlider.attr('step', runControl.step_size)
 				animationSlider.on('input', function() {
-					const value = animationSlider.val()
+					const timestep = animationSlider.val()
 					let timeTexture: THREE.Texture
 
-					if (value == 0 || value == '0') {
-						timeTexture = spatialAssets.textures['init_sc']
+					
+					if (timestep == 0 || timestep == '0') {
+						timeTexture = masterAssets[String(sid)].textures['1_0']
 					}
 					else {
-						timeTexture = animationAssets.textures[String(value)]
+						timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
 					}
 
 					// update the dataGroup terrain and vegtypes
-					let child: THREE.Object3D
 					const dataGroup = scene.getObjectByName('data') as THREE.Group
-					for (var i = 0; i < dataGroup.children.length; i++) {
-						child = dataGroup.children[i]
-						if (child.name == 'terrain') {
-							child.material.uniforms.tex.value = timeTexture
-							child.material.needsUpdate = true
-						}
-						else {
-							// iterate through the child group
-							for (var j = 0; j < child.children.length; j++) {
-								child.children[j].material.uniforms.sc_tex.value = timeTexture
-								child.children[j].material.needsUpdate = true
-							}
-						}
-	
+					let vegetation = dataGroup.getObjectByName('vegetation')
+					let childMaterial: THREE.RawShaderMaterial
+					for (var i = 0; i < vegetation.children.length; i++) {
+						const child = vegetation.children[i] as THREE.Mesh
+						childMaterial = child.material as THREE.RawShaderMaterial
+						childMaterial.uniforms.sc_tex.value = timeTexture
+						childMaterial.needsUpdate = true
 					}
 
 					render()
+					
 				})
-
+				
 			},
-			function(progress: number) {
-				console.log("Loading model assets... " + progress * 100 + "%")
-			},
-			function(error: string) {
-				console.log(error)
-				return
-			}
+			reportProgress,
+			reportError
 		)
+		
 	}
 
-	function computeHeights(hmTexture: THREE.Texture, stats: any) {
+	function computeHeights(hmTexture: THREE.Texture ) { //, stats: STSIM.ElevationStatistics) {
 		const image = hmTexture.image
 		let w = image.naturalWidth
 		let h = image.naturalHeight
@@ -426,87 +423,13 @@ export default function run(container_id: string, params: globals.VegParams) {
 		let idx: number
 		for (let y = 0; y < h; ++y) {
 			for (let x = 0; x < w; ++x) {
-				// idx pixel we want to get. Image has rgba, but we only need the r channel
 				idx = (x + y * w) * 4
-
-				// scale & store this altitude
-				heights[x + y * w] = data[idx] / 255.0 * stats.dem_max
+				heights[x + y * w] = (data[idx] | (data[idx+1] << 8) | (data[idx+2] << 16)) + data[idx+3] - 255  
 			}
 		}
 		// Free the resources and return
 		data = ctx = canvas = null
 		return heights
-	}
-
-	function createClusters(heights: Float32Array, hmstats: any, vegstats: any) : Cluster[] {
-
-		const numClusters = Math.floor(Math.random() * globals.MAX_CLUSTERS_PER_VEG)
-
-		const finalClusters = new Array()
-
-		const w = hmstats.dem_width
-		const h = hmstats.dem_height
-		const maxHeight = vegstats.maxHeight
-		const minHeight = vegstats.minHeight
-		let ix: number, iy: number, height: number
-		for (let i = 0; i < numClusters; ++i) {
-			ix = Math.floor(Math.random() * w)
-			iy = Math.floor(Math.random() * h)
-			height = heights[ix + iy * w]
-			if (height < maxHeight && height > minHeight) { 
-				
-				const newCluster = {
-					xpos: ix - w/2,
-					ypos: iy - h/2,
-				} as Cluster
-
-				finalClusters.push(newCluster)
-			}
-		}
-
-		return finalClusters
-	}
-
-	function getVegetationStats(vegname: string) : any {
-
-		if (vegname.includes("Sagebrush")) {
-			return {
-				minHeight: 900.0,
-				maxHeight: 3100.0
-			}
-		}
-		else if (vegname.includes("Juniper")) {
-			return {
-				minHeight: 0.0,
-				maxHeight: 3100.0
-			}
-		}
-
-		return {
-			minHeight: 0.0,
-			maxHeight: 5000.0
-		}
-
-	}
-
-	function updateVegetation(newParams: globals.VegParams) {
-
-		for (var key in newParams) {
-			if (vegParams.hasOwnProperty(key)) {
-				vegParams[key] = newParams[key]		// update the object to what we want it to be
-				const vegCover = scene.getObjectByName(key) as THREE.Mesh
-				const vegGeo = vegCover.geometry as THREE.InstancedBufferGeometry
-				if (globals.USE_RANDOM) {
-					vegGeo.maxInstancedCount = Math.floor(vegParams[key] / 100 * globals.MAX_INSTANCES)	// make this a static function
-				}
-				else {
-					const vegClusters = vegCover.userData['numClusters']
-					vegGeo.maxInstancedCount = Math.floor(globals.MAX_INSTANCES * (vegParams[key] / 100) * (vegClusters / globals.MAX_CLUSTERS_PER_VEG))
-				}
-			}
-		}
-
-		render()
 	}
 
 	function render() {
@@ -526,30 +449,35 @@ export default function run(container_id: string, params: globals.VegParams) {
 	}
 
 	function resize() {
-		renderer.setSize(container.offsetWidth, container.offsetHeight)
-		camera.aspect = container.offsetWidth / container.offsetHeight
+		const newContainer = document.getElementById(container_id)
+		renderer.setSize(newContainer.offsetWidth, newContainer.offsetHeight)
+		camera.aspect = newContainer.offsetWidth / newContainer.offsetHeight
 		camera.updateProjectionMatrix()
+		render()
 	}
 
 	function isInitialized() {
 		return initialized
 	}
 
-	function isSpatial() {
-		return spatial
-	}
-
 	return {
-		updateTerrain: updateTerrain,	// non-spatial runs
-		updateVegetation: updateVegetation,
-		updateSpatialTerrain: updateSpatialTerrain,	// spatial runs
-		updateSpatialVegetation: updateSpatialVegetation,
 		isInitialized: isInitialized,
-		isSpatial: isSpatial,
 		resize: resize,
-		// debug 
 		scene: scene,
-		camera: camera
+		camera: camera,
+		setLibraryDefinitions: setLibraryDefinitions,
+		setStudyArea: setStudyArea,
+		libraryDefinitions: masterAssets[currentLibraryName],
+		collectSpatialOutputs: collectSpatialOutputs,
 	}
+}
+
+function reportProgress(progress: number) {
+	console.log("Loading assets... " + progress * 100 + "%")
+}
+
+function reportError(error: string) {
+	console.log(error)
+	return
 }
 
