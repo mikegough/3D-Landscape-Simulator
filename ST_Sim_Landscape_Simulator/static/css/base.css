@@ -126,6 +126,19 @@ canvas {
 	margin-bottom: 10px;
 }
 
+.lefthand_scroll{
+	direction: rtl;
+	overflow-x: hidden !important;
+	height: 330px;
+	z-index: 999999;
+	width: 700px;
+}
+
+#vegtype_slider_container {
+	direction: ltr;
+	z-index: 999999;
+}
+
 #steps_initial_vegetation_cover{
 	margin-bottom:4px;
 }
@@ -449,7 +462,7 @@ div#pop-up {
 }
 
 .slider_bars {
-	width: 123px;
+	width: 113px;
 	margin: 4px 3px 2px 8px;
 }
 
@@ -875,19 +888,14 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	white-space: nowrap;
 }
 
-#vegtype_slider_container{
-    height: 340px;
-	overflow-y: scroll;
-    overflow-x: hidden;
-}
-
 .imageOverlayLink {
 	border-radius: 3px;
 	background-color: #D7D7D7;
-	width: 310px;
+	width: 298px;
 	display: inline-block;
 	padding: 2px 0px 2px 3px;
 }
+
 .transition_type{
 	border-radius: 3px;
 	padding: 2px 0px 2px 3px;
@@ -926,3 +934,4 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
     margin: 0 0 5px;
     color: #777;
 }
+
