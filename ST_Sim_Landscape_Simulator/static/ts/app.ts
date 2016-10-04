@@ -23,7 +23,7 @@ export default function run(container_id: string) {
 	const scene = new THREE.Scene()
 	const renderer = new THREE.WebGLRenderer({antialias: false})
 	container.appendChild(renderer.domElement)
-	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, .1, 100000.0)
+	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 3000.0)
 	
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
@@ -65,7 +65,7 @@ export default function run(container_id: string) {
 				],
 				textures: [
 					// terrain materials
-					{name: 'terrain_rock', url: 'static/img/terrain/rock-512.jpg'},
+					{name: 'terrain_dirt', url: 'static/img/terrain/dirt-512.jpg'},
 					{name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg'},
 					{name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg'},
 					{name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg'},
@@ -171,7 +171,7 @@ export default function run(container_id: string) {
 		let realismGroup = new THREE.Group()
 		realismGroup.name = 'realism'
 		const realismTerrain = createTerrain({
-			rock: terrainAssets.textures['terrain_rock'],
+			dirt: terrainAssets.textures['terrain_dirt'],
 			snow: terrainAssets.textures['terrain_snow'],
 			grass: terrainAssets.textures['terrain_grass'],
 			sand: terrainAssets.textures['terrain_sand'],
@@ -245,12 +245,12 @@ export default function run(container_id: string) {
 					heightStats: currentConditions.elev,
 					disp: disp
 				}) as VegetationGroups
-				realismGroup.add(vegGroups.realism)		
-				dataGroup.add(vegGroups.data)
-		
+				//realismGroup.add(vegGroups.data)
+				//dataGroup.add(vegGroups.data)
 				scene.add(realismGroup)
 				scene.add(dataGroup)
 		
+				scene.add(vegGroups.data)
 		
 				// show the animation controls for the outputs
     			$('#animation_container').show();
@@ -310,9 +310,9 @@ export default function run(container_id: string) {
 				heightStats: currentConditions.elev,
 				disp: disp
 			}) as VegetationGroups
-			realismGroup.add(vegGroups.realism)		
-			dataGroup.add(vegGroups.data)
-	
+			//realismGroup.add(vegGroups.data)		
+			//dataGroup.add(vegGroups.data)
+			scene.add(vegGroups.data)
 			scene.add(realismGroup)
 			scene.add(dataGroup)
 	

@@ -27,7 +27,7 @@ interface TerrainParams {
 	disp: number
 
 	// textures
-	rock: THREE.Texture
+	dirt: THREE.Texture
 	snow: THREE.Texture
 	grass: THREE.Texture
 	sand: THREE.Texture
@@ -50,7 +50,7 @@ export function createTerrain(params: TerrainParams) {
 
 	// make sure the textures repeat wrap
 	params.heightmap.wrapS = params.heightmap.wrapT = THREE.RepeatWrapping
-	params.rock.wrapS = params.rock.wrapT = THREE.RepeatWrapping
+	params.dirt.wrapS = params.dirt.wrapT = THREE.RepeatWrapping
 	params.grass.wrapS = params.grass.wrapT = THREE.RepeatWrapping
 	params.snow.wrapS = params.snow.wrapT = THREE.RepeatWrapping
 	params.sand.wrapS = params.sand.wrapT = THREE.RepeatWrapping
@@ -71,7 +71,7 @@ export function createTerrain(params: TerrainParams) {
 		uniforms: {
 			// textures for color blending
 			heightmap: {type: "t", value: params.heightmap},
-			rock: {type: "t", value: params.rock},
+			dirt: {type: "t", value: params.dirt},
 			snow: {type: "t", value: params.snow},
 			grass: {type: "t", value: params.grass},
 			sand: {type: "t", value: params.sand},

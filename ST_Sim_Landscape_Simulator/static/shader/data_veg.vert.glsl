@@ -15,7 +15,6 @@ attribute vec2 hCoord;
 attribute vec2 uv;
 attribute float rotation;
 
-varying vec2 vUV;
 varying vec2 scUV; 
 
 float decodeElevation(vec4 texture) {
@@ -30,7 +29,6 @@ vec2 rotate (float x, float y, float r) {
 }
 
 void main() {
-    vUV = uv;
     scUV = hCoord;
     float vAmount = decodeElevation(texture2D(heightmap, hCoord));
     vec3 newPosition = position;

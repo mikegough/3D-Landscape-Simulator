@@ -115,7 +115,6 @@ export function createSpatialVegetation(params: SpatialVegetationParams) : Veget
 			map: vegtypePositions.map, 
 			numValid: vegtypePositions.numValid,
 			heightStats: params.heightStats,
-			//geo: veg_geo,
 			geo: geometry,
 			tex: veg_tex,
 			sc_tex: params.stateclassTexture,
@@ -131,7 +130,6 @@ export function createSpatialVegetation(params: SpatialVegetationParams) : Veget
 			map: vegtypePositions.map,
 			numValid: vegtypePositions.numValid,
 			heightStats: params.heightStats,
-			//geo: veg_geo,
 			geo: geometry,
 			tex: veg_tex,
 			sc_tex: params.stateclassTexture,
@@ -194,7 +192,7 @@ function computeVegtypePositions(id: number, position_map: boolean[], type_data:
 function createRealismVegtype(params: Vegtype3D) {
 
 	const lightPosition = globals.getVegetationLightPosition(name)
-	const diffuseScale = getDiffuseScale(name)
+	const diffuseScale = DIFFUSE
 
 	const mat = new THREE.RawShaderMaterial({
 		uniforms: {
@@ -204,7 +202,7 @@ function createRealismVegtype(params: Vegtype3D) {
 			sc_tex: {type: "t", value: params.sc_tex},
 			// lighting
 			lightPosition: {type: "3f", value: lightPosition},
-			ambientProduct: {type: "c", value: getAmbientProduct(name)},
+			ambientProduct: {type: "c", value: AMBIENT},
 			diffuseProduct: {type: "c", value: DIFFUSE},
 			diffuseScale: {type: "f", value: diffuseScale},
 			specularProduct: {type: "c", value: SPEC},
@@ -217,29 +215,19 @@ function createRealismVegtype(params: Vegtype3D) {
 
 	const mesh = new THREE.Mesh(params.geo, mat)
 	mesh.name = name
-	//mesh.renderOrder = globals.getRenderOrder(name)
 	mesh.frustumCulled = false
-
 	return mesh
-
 }
 
 function createVegtypeGeometry(geo: THREE.Geometry, positions: VegtypeLocations,
 	width: number, height: number, symmetric: boolean, scale: number) : THREE.InstancedBufferGeometry {
-	const halfPatch = new THREE.Geometry()
-	halfPatch.merge(geo)
-	
-	
-	if (symmetric) {
-		geo.rotateY(Math.PI)
-		halfPatch.merge(geo)
-	}
 
+	const baseGeo = new THREE.BoxGeometry(1,1,1)
+	baseGeo.translate(0, 0.5, 0)
 
 	const inst_geo = new THREE.InstancedBufferGeometry()
-	inst_geo.fromGeometry(halfPatch)
-	halfPatch.dispose()
-	inst_geo.scale(scale,scale,scale)
+	inst_geo.fromGeometry(baseGeo)
+	baseGeo.dispose()
 
 	// always remove the color buffer since we are using textures
 	if ( inst_geo.attributes['color'] ) {
@@ -288,8 +276,7 @@ function createDataVegtype(params: Vegtype3D) {
 	const mat = new THREE.RawShaderMaterial({
 		uniforms: {
 			heightmap: {type: "t", value: params.heightmap},
-			disp: {type: "f", value: 2.0 / 30.0},
-			tex: {type:"t", value: params.tex},
+			disp: {type: "f", value: params.disp},
 			sc_tex: {type:"t", value: params.sc_tex},
 		},
 		vertexShader: params.vertexShader,
@@ -299,27 +286,7 @@ function createDataVegtype(params: Vegtype3D) {
 
 	const mesh = new THREE.Mesh(params.geo, mat)
 	mesh.name = name
-	//mesh.renderOrder = globals.getRenderOrder(name)
 	mesh.frustumCulled = false
-
 	return mesh
-
-}
-
-
-function getDiffuseScale(vegname: string) : number {
-	if (vegname.includes("Sagebrush")) {
-		return 0.7
-	}
-
-	return 0.0
-}
-
-function getAmbientProduct(vegname: string) : THREE.Color {
-	if (vegname.includes("Sagebrush")) {
-		return AMBIENT.multiplyScalar(0.2)
-	}
-
-	return AMBIENT
 
 }

@@ -12,49 +12,6 @@ define("globals", ["require", "exports"], function (require, exports) {
     exports.MAX_CLUSTER_RADIUS = 30.0; // max radius to grow around a cluster
     // global colors
     exports.WHITE = 'rgb(255,255,255)';
-    /*
-    export function getVegetationAssetsName(vegname: string) : string {
-    
-        if (vegname.includes("Sagebrush")) {
-            return 'sagebrush'
-        } else if (vegname.includes("Juniper")) {
-            return 'juniper'
-        }
-        else if (vegname.includes("Mahogany")) {
-            return 'tree'
-        }
-    
-        return 'grass'
-    }
-    
-    
-    export function useSymmetry(vegname: string) : boolean {
-        return  !(vegname.includes('Sagebrush')
-                  || vegname.includes('Mahogany')
-                  || vegname.includes('Juniper'))
-    }
-    
-    // TODO - make this part of the configuration
-    export function getVegetationScale(vegname: string) : number {
-        if (vegname.includes("Sagebrush")) {
-            return 10.0
-        } else if (vegname.includes("Juniper")) {
-            return 1.
-        } else if (vegname.includes("Mahogany")) {
-            return 15.0
-        }
-        return 1.0
-    }
-    
-    // TODO - same as above
-    export function getRenderOrder(vegname: string) : number {
-        // sagebrush should always be rendered first
-        if (!vegname.includes('Sagebrush')) {
-            return 1
-        }
-        return 0
-    }
-    */
     function getVegetationLightPosition(vegname) {
         if (vegname.includes("Sagebrush")) {
             return [0.0, -5.0, 5.0];
@@ -86,7 +43,7 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
         const height = params.data.dem_height;
         // make sure the textures repeat wrap
         params.heightmap.wrapS = params.heightmap.wrapT = THREE.RepeatWrapping;
-        params.rock.wrapS = params.rock.wrapT = THREE.RepeatWrapping;
+        params.dirt.wrapS = params.dirt.wrapT = THREE.RepeatWrapping;
         params.grass.wrapS = params.grass.wrapT = THREE.RepeatWrapping;
         params.snow.wrapS = params.snow.wrapT = THREE.RepeatWrapping;
         params.sand.wrapS = params.sand.wrapT = THREE.RepeatWrapping;
@@ -102,7 +59,7 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             uniforms: {
                 // textures for color blending
                 heightmap: { type: "t", value: params.heightmap },
-                rock: { type: "t", value: params.rock },
+                dirt: { type: "t", value: params.dirt },
                 snow: { type: "t", value: params.snow },
                 grass: { type: "t", value: params.grass },
                 sand: { type: "t", value: params.sand },
@@ -369,7 +326,6 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
                 map: vegtypePositions.map,
                 numValid: vegtypePositions.numValid,
                 heightStats: params.heightStats,
-                //geo: veg_geo,
                 geo: geometry,
                 tex: veg_tex,
                 sc_tex: params.stateclassTexture,
@@ -385,7 +341,6 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
                 map: vegtypePositions.map,
                 numValid: vegtypePositions.numValid,
                 heightStats: params.heightStats,
-                //geo: veg_geo,
                 geo: geometry,
                 tex: veg_tex,
                 sc_tex: params.stateclassTexture,
@@ -431,7 +386,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
     }
     function createRealismVegtype(params) {
         const lightPosition = globals.getVegetationLightPosition(name);
-        const diffuseScale = getDiffuseScale(name);
+        const diffuseScale = DIFFUSE;
         const mat = new THREE.RawShaderMaterial({
             uniforms: {
                 heightmap: { type: "t", value: params.heightmap },
@@ -440,7 +395,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
                 sc_tex: { type: "t", value: params.sc_tex },
                 // lighting
                 lightPosition: { type: "3f", value: lightPosition },
-                ambientProduct: { type: "c", value: getAmbientProduct(name) },
+                ambientProduct: { type: "c", value: AMBIENT },
                 diffuseProduct: { type: "c", value: DIFFUSE },
                 diffuseScale: { type: "f", value: diffuseScale },
                 specularProduct: { type: "c", value: SPEC },
@@ -452,21 +407,15 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         });
         const mesh = new THREE.Mesh(params.geo, mat);
         mesh.name = name;
-        //mesh.renderOrder = globals.getRenderOrder(name)
         mesh.frustumCulled = false;
         return mesh;
     }
     function createVegtypeGeometry(geo, positions, width, height, symmetric, scale) {
-        const halfPatch = new THREE.Geometry();
-        halfPatch.merge(geo);
-        if (symmetric) {
-            geo.rotateY(Math.PI);
-            halfPatch.merge(geo);
-        }
+        const baseGeo = new THREE.BoxGeometry(1, 1, 1);
+        baseGeo.translate(0, 0.5, 0);
         const inst_geo = new THREE.InstancedBufferGeometry();
-        inst_geo.fromGeometry(halfPatch);
-        halfPatch.dispose();
-        inst_geo.scale(scale, scale, scale);
+        inst_geo.fromGeometry(baseGeo);
+        baseGeo.dispose();
         // always remove the color buffer since we are using textures
         if (inst_geo.attributes['color']) {
             inst_geo.removeAttribute('color');
@@ -502,8 +451,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         const mat = new THREE.RawShaderMaterial({
             uniforms: {
                 heightmap: { type: "t", value: params.heightmap },
-                disp: { type: "f", value: 2.0 / 30.0 },
-                tex: { type: "t", value: params.tex },
+                disp: { type: "f", value: params.disp },
                 sc_tex: { type: "t", value: params.sc_tex },
             },
             vertexShader: params.vertexShader,
@@ -512,21 +460,8 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         });
         const mesh = new THREE.Mesh(params.geo, mat);
         mesh.name = name;
-        //mesh.renderOrder = globals.getRenderOrder(name)
         mesh.frustumCulled = false;
         return mesh;
-    }
-    function getDiffuseScale(vegname) {
-        if (vegname.includes("Sagebrush")) {
-            return 0.7;
-        }
-        return 0.0;
-    }
-    function getAmbientProduct(vegname) {
-        if (vegname.includes("Sagebrush")) {
-            return AMBIENT.multiplyScalar(0.2);
-        }
-        return AMBIENT;
     }
 });
 // utils.ts
@@ -559,7 +494,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
-        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, .1, 100000.0);
+        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 3000.0);
         // Camera controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableKeys = false;
@@ -593,7 +528,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 ],
                 textures: [
                     // terrain materials
-                    { name: 'terrain_rock', url: 'static/img/terrain/rock-512.jpg' },
+                    { name: 'terrain_dirt', url: 'static/img/terrain/dirt-512.jpg' },
                     { name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg' },
                     { name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg' },
                     { name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg' },
@@ -681,7 +616,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             let realismGroup = new THREE.Group();
             realismGroup.name = 'realism';
             const realismTerrain = terrain_1.createTerrain({
-                rock: terrainAssets.textures['terrain_rock'],
+                dirt: terrainAssets.textures['terrain_dirt'],
                 snow: terrainAssets.textures['terrain_snow'],
                 grass: terrainAssets.textures['terrain_grass'],
                 sand: terrainAssets.textures['terrain_sand'],
@@ -748,10 +683,11 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                         heightStats: currentConditions.elev,
                         disp: disp
                     });
-                    realismGroup.add(vegGroups.realism);
-                    dataGroup.add(vegGroups.data);
+                    //realismGroup.add(vegGroups.data)
+                    //dataGroup.add(vegGroups.data)
                     scene.add(realismGroup);
                     scene.add(dataGroup);
+                    scene.add(vegGroups.data);
                     // show the animation controls for the outputs
                     $('#animation_container').show();
                     // activate the checkbox
@@ -806,8 +742,9 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     heightStats: currentConditions.elev,
                     disp: disp
                 });
-                realismGroup.add(vegGroups.realism);
-                dataGroup.add(vegGroups.data);
+                //realismGroup.add(vegGroups.data)		
+                //dataGroup.add(vegGroups.data)
+                scene.add(vegGroups.data);
                 scene.add(realismGroup);
                 scene.add(dataGroup);
                 // show the animation controls for the outputs

@@ -1,7 +1,7 @@
 // terrain.frag
 
 // our textures to blend
-uniform sampler2D rock;
+uniform sampler2D dirt;
 uniform sampler2D snow;
 uniform sampler2D grass;
 uniform sampler2D sand;
@@ -25,10 +25,10 @@ varying vec3 fL;
 void main() {
 
 	vec4 sand = (smoothstep(-0.01, 0.02, vAmount) - smoothstep(0.03, 0.04, vAmount)) * texture2D(sand, vUV * 20.0);
-	vec4 grassy = (smoothstep(-0.05, 0.14, vAmount) - smoothstep(0.15, 0.50, vAmount)) * texture2D( grass, vUV * 30.0 );
-	vec4 rocky  = (smoothstep(0.20, 0.40, vAmount) - smoothstep(0.45, 0.95, vAmount)) * texture2D( rock,  vUV * 20.0 );
+	vec4 grassy = (smoothstep(-0.05, 0.14, vAmount) - smoothstep(0.15, 0.50, vAmount)) * texture2D( grass, vUV * 100.0 );
+	vec4 dirty  = (smoothstep(0.20, 0.40, vAmount) - smoothstep(0.45, 0.95, vAmount)) * texture2D( dirt,  vUV * 80.0 );
 	vec4 snowy  = (smoothstep(0.70, 0.85, vAmount))                                    * texture2D( snow,  vUV * 10.0 );
-	vec4 myColor = vec4(0.0, 0.0, 0.0, 1.0) + sand + grassy + rocky + snowy;
+	vec4 myColor = vec4(0.0, 0.0, 0.0, 1.0) + sand + grassy + dirty + snowy;
 
 	// compute lighting
 	vec3 N = normalize(fN);

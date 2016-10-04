@@ -19,7 +19,7 @@ varying vec3 fL;
 
 
 void main() {
-    vec4 hcolor = vec4(vec3(smoothstep(0.0, 1.0, vAmount)),1.0);
+    vec4 hcolor = vec4(vec3(smoothstep(-.5, 1.0, vAmount)),1.0);
 
 	// compute lighting
 	vec3 N = normalize(fN);
