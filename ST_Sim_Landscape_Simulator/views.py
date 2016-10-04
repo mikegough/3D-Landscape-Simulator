@@ -282,7 +282,12 @@ class LibraryInfoView(STSimBaseView):
         response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
 
         # pass the model config to tell the viz which assets to load
-        response['veg_model_config'] = stsim_manager.veg_model_configs[self.library]
+        veg_model_config = stsim_manager.veg_model_configs[self.library]
+        if 'lookup_field' in veg_model_config and len(veg_model_config['lookup_field']) > 0:
+            lookup_func = getattr(lookups, stsim_manager.lookup_functions[self.library])
+            asset_names = lookup_func(veg_defs.keys(), veg_model_config['lookup_field'])
+            veg_model_config['asset_map'] = asset_names
+        response['veg_model_config'] = veg_model_config
 
         return JsonResponse(response)
 

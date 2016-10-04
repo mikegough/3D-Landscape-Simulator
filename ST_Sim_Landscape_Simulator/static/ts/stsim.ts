@@ -25,6 +25,7 @@ export interface VizAsset{
 export interface VisualizationConfig {
 	visualization_asset_names : VizAsset[]
 	lookup_field?: string	// not all libraries require a lookup field
+	asset_map?: {[veg_name: string]: string}
 }
 
 export interface VizMapping {

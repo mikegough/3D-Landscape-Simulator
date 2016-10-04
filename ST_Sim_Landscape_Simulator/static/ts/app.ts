@@ -121,6 +121,7 @@ export default function run(container_id: string) {
 			if (scene.getObjectByName('terrain') != undefined) {
 				scene.remove(scene.getObjectByName('data'))
 				scene.remove(scene.getObjectByName('realism'))
+				scene.remove(scene.getObjectByName('vegetation'))
 				render()
 			}
 
@@ -199,143 +200,81 @@ export default function run(container_id: string) {
 			disp: disp
 		})
 		dataGroup.add(dataTerrain)
-
-		if (currentDefinitions.veg_model_config.lookup_field) {
-
-			// TODO - make this lookup information part of the initial conditions dictionary
-			$.getJSON(currentLibraryName + '/lookup/' + currentDefinitions.veg_model_config.lookup_field + '/',
-			{'input_codes[]': Object.keys(currentConditions.veg_sc_pct)}).done(function(response) {
-
-				const lookupNames = response['data']
-				let assetGroup : STSIM.VizAsset
-				let valid_name : string
-				let breakout : boolean
-				let vegAssetGroups = {} as STSIM.VizMapping
-
-				for (var name in currentConditions.veg_sc_pct) {
-					for (var i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
-						assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i]
-						breakout = false
-						for (var j = 0; j < assetGroup.valid_names.length; j++) {
-							valid_name = assetGroup.valid_names[j]
-							if (lookupNames[name] == valid_name) {
-							vegAssetGroups[name] = assetGroup
-							}
-						}
-					}
-				}
-
-				// create the vegetation
-				const vegGroups = createSpatialVegetation({
-					libraryName: currentLibraryName,
-					zonalVegtypes: currentConditions.veg_sc_pct,
-					veg_names: currentConditions.veg_names,
-					vegAssetGroups : vegAssetGroups,
-					vegtypes: currentDefinitions.vegtype_definitions,
-					config: currentDefinitions.veg_model_config,
-					strataTexture: loadedAssets.textures['veg_tex'],
-					stateclassTexture: loadedAssets.textures['sc_tex'],
-					heightmap: heightmapTexture,
-					geometries: loadedAssets.geometries,
-					textures: loadedAssets.textures,
-					realismVertexShader: vegetationAssets.text['real_veg_vert'],
-					realismFragmentShader: vegetationAssets.text['real_veg_frag'],
-					dataVertexShader: vegetationAssets.text['data_veg_vert'],
-					dataFragmentShader: vegetationAssets.text['data_veg_frag'],
-					heightStats: currentConditions.elev,
-					disp: disp
-				}) as VegetationGroups
-				//realismGroup.add(vegGroups.data)
-				//dataGroup.add(vegGroups.data)
-				scene.add(realismGroup)
-				scene.add(dataGroup)
 		
-				scene.add(vegGroups.data)
-		
-				// show the animation controls for the outputs
-    			$('#animation_container').show();
-		
-				// activate the checkbox
-				$('#viz_type').on('change', function() {
-					if (dataGroup.visible) {
-						dataGroup.visible = false
-						realismGroup.visible = true
-					} else {
-						dataGroup.visible = true
-						realismGroup.visible = false
-					}
-					render()
-				})
-						
-				// render the scene once everything is finished being processed
-				console.log('Vegetation Rendered!')
-				render()
-			})
-
-		} else {
-
-			let vegAssetGroups = {} as STSIM.VizMapping
-			let assetGroup : STSIM.VizAsset
-			let i : number, j : number
-			for (var name in currentConditions.veg_sc_pct) {
-				for (i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i ++) {
-					assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i] as STSIM.VizAsset
+		let vegAssetGroups = {} as STSIM.VizMapping
+		let assetGroup : STSIM.VizAsset
+		let i : number, j : number, breakout : boolean, name : string
+			for (name in currentConditions.veg_sc_pct) {
+				for (i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
+					assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i]
+					breakout = false
 					for (j = 0; j < assetGroup.valid_names.length; j++) {
-						if (name == assetGroup.valid_names[j]) {
-							vegAssetGroups[name] = assetGroup
-							break;
+						// is there a lookup in our definitions
+						if (currentDefinitions.veg_model_config.lookup_field) {
+							const lookupNames = currentDefinitions.veg_model_config.asset_map
+							if (lookupNames[name] == assetGroup.valid_names[j]) {
+								vegAssetGroups[name] = assetGroup
+								breakout = true
+								break;
+							}
+						// use the library names as is
+						} else {
+							if (name == assetGroup.valid_names[j]) {
+								vegAssetGroups[name] = assetGroup
+								breakout = true
+								break;
+							}	
 						}
 					}
+					if (breakout) break;
 				}
 			}
 
-
 			// create the vegetation
-			const vegGroups = createSpatialVegetation({
-				libraryName: currentLibraryName,
-				zonalVegtypes: currentConditions.veg_sc_pct,
-				veg_names: currentConditions.veg_names,
-				vegAssetGroups : vegAssetGroups,
-				vegtypes: currentDefinitions.vegtype_definitions,
-				config: currentDefinitions.veg_model_config,
-				strataTexture: loadedAssets.textures['veg_tex'],
-				stateclassTexture: loadedAssets.textures['sc_tex'],
-				heightmap: heightmapTexture,
-				geometries: loadedAssets.geometries,
-				textures: loadedAssets.textures,
-				realismVertexShader: vegetationAssets.text['real_veg_vert'],
-				realismFragmentShader: vegetationAssets.text['real_veg_frag'],
-				dataVertexShader: vegetationAssets.text['data_veg_vert'],
-				dataFragmentShader: vegetationAssets.text['data_veg_frag'],
-				heightStats: currentConditions.elev,
-				disp: disp
-			}) as VegetationGroups
-			//realismGroup.add(vegGroups.data)		
-			//dataGroup.add(vegGroups.data)
-			scene.add(vegGroups.data)
-			scene.add(realismGroup)
-			scene.add(dataGroup)
+		const vegGroups = createSpatialVegetation({
+			libraryName: currentLibraryName,
+			zonalVegtypes: currentConditions.veg_sc_pct,
+			veg_names: currentConditions.veg_names,
+			vegAssetGroups : vegAssetGroups,
+			vegtypes: currentDefinitions.vegtype_definitions,
+			config: currentDefinitions.veg_model_config,
+			strataTexture: loadedAssets.textures['veg_tex'],
+			stateclassTexture: loadedAssets.textures['sc_tex'],
+			heightmap: heightmapTexture,
+			geometries: loadedAssets.geometries,
+			textures: loadedAssets.textures,
+			realismVertexShader: vegetationAssets.text['real_veg_vert'],
+			realismFragmentShader: vegetationAssets.text['real_veg_frag'],
+			dataVertexShader: vegetationAssets.text['data_veg_vert'],
+			dataFragmentShader: vegetationAssets.text['data_veg_frag'],
+			heightStats: currentConditions.elev,
+			disp: disp
+		}) as VegetationGroups
+		//realismGroup.add(vegGroups.data)		
+		//dataGroup.add(vegGroups.data)
+		scene.add(vegGroups.data)
+		scene.add(realismGroup)
+		scene.add(dataGroup)
 	
 	
-			// show the animation controls for the outputs
-    		$('#animation_container').show();
+		// show the animation controls for the outputs
+    	$('#animation_container').show();
 	
-			// activate the checkbox
-			$('#viz_type').on('change', function() {
-				if (dataGroup.visible) {
-					dataGroup.visible = false
-					realismGroup.visible = true
-				} else {
-					dataGroup.visible = true
-					realismGroup.visible = false
-				}
-				render()
-			})
-					
-			// render the scene once everything is finished being processed
-			console.log('Vegetation Rendered!')
+		// activate the checkbox
+		$('#viz_type').on('change', function() {
+			if (dataGroup.visible) {
+				dataGroup.visible = false
+				realismGroup.visible = true
+			} else {
+				dataGroup.visible = true
+				realismGroup.visible = false
+			}
 			render()
-		}	
+		})
+				
+		// render the scene once everything is finished being processed
+		console.log('Vegetation Rendered!')
+		render()
 	}
 
 	function collectSpatialOutputs(runControl: STSIM.RunControl) {
@@ -388,8 +327,11 @@ export default function run(container_id: string) {
 					}
 
 					// update the dataGroup terrain and vegtypes
-					const dataGroup = scene.getObjectByName('data') as THREE.Group
-					let vegetation = dataGroup.getObjectByName('vegetation')
+					//const dataGroup = scene.getObjectByName('data') as THREE.Group
+
+					// TODO - do this change for each level of detail in the LOD
+
+					let vegetation = scene.getObjectByName('vegetation')
 					let childMaterial: THREE.RawShaderMaterial
 					for (var i = 0; i < vegetation.children.length; i++) {
 						const child = vegetation.children[i] as THREE.Mesh
