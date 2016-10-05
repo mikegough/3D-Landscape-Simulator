@@ -2,6 +2,8 @@ import os
 import rasterio
 import numpy as np
 import numpy_indexed as npi
+from stsimpy import order
+from collections import OrderedDict
 from PIL import Image
 
 
@@ -88,6 +90,27 @@ def create_colormap(sc_defs):
         idx = sc_defs[stateclass]['ID']
         colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
     return colormap
+
+
+def rgb_to_hex(rgb):
+    return '#%02x%02x%02x' % rgb
+
+
+def create_rgb_colormap(sc_defs):
+
+    raw_colormap = create_colormap(sc_defs)
+    rgb_colormap = dict()
+    for stateclass in sc_defs.keys():
+        id = sc_defs[stateclass]['ID']
+        for color in raw_colormap:
+            if color['ID'] == id:
+                r = int(color['r'])
+                g = int(color['g'])
+                b = int(color['b'])
+                hex_color = rgb_to_hex((r, g, b))
+                rgb_colormap[stateclass] = hex_color
+                break
+    return OrderedDict(sorted(rgb_colormap.items(), key=order()))
 
 
 def stateclass_texture(sc_tif, colormap):

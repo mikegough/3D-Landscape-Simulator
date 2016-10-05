@@ -1,38 +1,4 @@
-// Colors used in the chart.
-colors=[
-    "#9CC7F0",
-    "#717175",
-    "#ABF19D",
-    "#F8B984",
-    "#9FA3EE",
-    "#F4849F",
-    "#EADD7E",
-    "#5FABAA",
-    "#F68383",
-    "#ACEDE8",
-    "#CBC77A",
-    "#9AB17A",
-    "#BB845B",
-    "#8080C0",
-    "#C0BF9C",
-    "#408080",
-    "#994F4F",
-];
-
-// Makes state class colors consistent across all charts.
-i=0;
-state_class_color_map={};
-function initializeStateClassColorMap() {
-    $.each(veg_type_state_classes_json, function (veg_type, state_classes) {
-
-        $.each(state_classes, function (index, state_class) {
-            if (typeof state_class_color_map[state_class] == "undefined") {
-                state_class_color_map[state_class] = colors[i]
-            }
-            i++
-        });
-    });
-}
+// stacked_area.js
 
 function create_area_chart(veg_type, chart_div_id) {
 

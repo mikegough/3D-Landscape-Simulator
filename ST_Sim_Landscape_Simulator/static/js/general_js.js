@@ -458,7 +458,7 @@ var veg_type_state_classes_json, management_actions_list, probabilistic_transiti
 var probabilistic_transitions_slider_values = {};
 var veg_slider_values_state_class={};
 var veg_has_lookup = false;
-var veg_initial_conditions;
+var veg_initial_conditions, state_class_color_map;
 
 function actualVegName(vegtype) {
     if (veg_has_lookup) {
@@ -472,6 +472,7 @@ function setLibrary(libraryName, definitions) {
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
     management_actions_list = definitions['management_actions_list'];
     probabilistic_transitions_json = definitions['probabilistic_transitions_json'];
+    state_class_color_map = definitions['state_class_color_map'];
     veg_has_lookup = definitions['has_lookup']
     landscape_viewer.setLibraryDefinitions(libraryName, definitions);
     library_initialized = true;
@@ -657,7 +658,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         });
     }
 
-    initializeStateClassColorMap();
+    //initializeStateClassColorMap();
     $(".current_probability_slider_setting").val("Default Probabilities");
     $(".current_slider_setting").val('0%');    // TODO - remove, since we're going to populate the setting values
 }

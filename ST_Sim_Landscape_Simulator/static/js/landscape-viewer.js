@@ -460,7 +460,7 @@ define("veg", ["require", "exports", "globals"], function (require, exports, glo
         });
         const mesh = new THREE.Mesh(params.geo, mat);
         mesh.name = name;
-        //mesh.frustumCulled = false
+        mesh.frustumCulled = false;
         return mesh;
     }
 });

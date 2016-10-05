@@ -286,7 +286,6 @@ function createDataVegtype(params: Vegtype3D) {
 
 	const mesh = new THREE.Mesh(params.geo, mat)
 	mesh.name = name
-	//mesh.frustumCulled = false
+	mesh.frustumCulled = false
 	return mesh
-
 }

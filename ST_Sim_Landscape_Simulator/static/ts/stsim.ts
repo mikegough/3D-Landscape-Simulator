@@ -39,6 +39,7 @@ export interface LibraryDefinitions {
 	lookup_fields : string[]
 	has_predefined_extent : boolean
 	veg_model_config : VisualizationConfig
+	state_class_color_map: {[sc_name: string]: string}
 }
 
 export interface ElevationStatistics {
