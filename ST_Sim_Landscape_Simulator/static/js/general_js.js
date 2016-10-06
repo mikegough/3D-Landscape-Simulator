@@ -383,7 +383,7 @@ function update_results_table(run) {
             $(this).children('img').attr('src', '/static/img/down_arrow.png')
             $(this).children('.show_disturbance_probabilities_link_text').html('Show')
         }
-        $(this).closest('tr').nextUntil('tr.scenario_tr').slideToggle(0);
+        $(this).closest('tr').nextUntil('tr.chart_type_tr').slideToggle(0);
     });
 }
 
