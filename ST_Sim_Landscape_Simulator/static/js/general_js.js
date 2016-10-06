@@ -67,8 +67,6 @@ $(document).ready(function() {
             veg_slider_values[veg_type]=this_veg_slider_value
         }
 
-        $( "#veg" + veg_type_id + "_label" ).val( veg_state_class_value_totals.toFixed(0) + "%");
-
         //Add the current slider value from the total percent
         //total_input_percent=total_input_percent + veg_slider_values[veg_type]
         //total_input_percent = total_input_percent + $("#veg" + veg_type_id + "_slider").slider("option", "value");
@@ -89,23 +87,10 @@ $(document).ready(function() {
 
         }
 
-        // TODO - remove? This only throws errors and doesn't seem to do anything.
-        //if (total_input_cover != 100) {
-        //    $("#run_button").addClass('disabled');
-        //    $('input:submit').attr("disabled", true);
-        //}
-
     });
 
 });
 
-
-// Disable Run Model button on model run.
-$(document).ajaxStart(function(){
-    $("#run_button").addClass('disabled');
-    $('input:submit').attr("disabled", true);
-    $(".slider_bars").slider( "option", "disabled", true );
-});
 
 $(document).ajaxComplete(function() {
     $(".slider_bars").slider( "option", "disabled", false);
@@ -163,6 +148,9 @@ function run_st_sim(feature_id) {
     settings["spatial"]= $("#spatial_button").hasClass('selected')
 
     $(document).ajaxStart(function(){
+        $(".slider_bars").slider( "option", "disabled", true );
+        $('input:submit').attr("disabled", true);
+        $("#run_button").addClass('disabled');
         $("#run_button").val('Please Wait...');
         $("#run_button").addClass('please_wait');
         $("#running_st_sim").show()
@@ -249,18 +237,6 @@ function run_st_sim(feature_id) {
 
 //function update_results_table(timestep,run) { // see TODO below
 function update_results_table(run) {
-
-     // sum state class values for display in scene and table header
-    /*  // TODO - Is this used anywhere?
-    results_data_json_totals={}
-    $.each(results_data_json[iteration][timestep], function(key,value){
-        var total=0
-        $.each(value, function(state_class,pct_cover) {
-            total = total+parseFloat(pct_cover)
-        });
-        results_data_json_totals[key] = total * 100
-    });
-    */
 
     // Create the Results Table
     $("#results_table_" + run).html("<tr class='location_tr'><td class='location_th' colspan='1'>Location </td><td colspan='2'>" + feature_id + "</td></tr>");
@@ -359,7 +335,6 @@ function update_results_table(run) {
         var veg_type = value
 
         // Write veg type and % headers
-       //$("#results_table").append("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value + " " + (results_data_json_totals[value]).toFixed(1) + "%" +
         $("#results_table").html("<tr class='veg_type_percent_tr'><td class='veg_type_th' colspan='3'>" + value +
                 "<span class='show_state_classes_results_link'> <img class='dropdown_arrows' src='/static/img/down_arrow.png'></span>" +
             "</td></tr>");
@@ -415,7 +390,6 @@ function update_results_table(run) {
 /*************************************** Initial Vegetation Cover Inputs **********************************************/
 
 var enable_environment_settings=false;
-var total_input_percent=0;
 var veg_slider_values={}
 
 var landscape_viewer = require('app').default('scene');
@@ -456,9 +430,7 @@ function updateExtent(libraryName, extent) {
 
 var veg_type_state_classes_json, management_actions_list, probabilistic_transitions_json;
 var probabilistic_transitions_slider_values = {};
-var veg_slider_values_state_class={};
 var veg_has_lookup = false;
-var veg_initial_conditions;
 
 function actualVegName(vegtype) {
     if (veg_has_lookup) {
@@ -499,7 +471,7 @@ var probability_labels = {};
 
 function setInitialConditionsSidebar(initial_conditions) {
 
-    total_input_percent = 0;
+    total_input_percent = 100;
     veg_initial_conditions = initial_conditions;
     var veg_iteration = 1;
     //console.log(initial_conditions.veg_names);
@@ -515,8 +487,7 @@ function setInitialConditionsSidebar(initial_conditions) {
             return true;    // skips this entry
         }
 
-
-        veg_slider_values[veg_type] = 0
+        //veg_slider_values[veg_type] = 0
 
         // Count the number of state classes
         var state_class_count = state_class_list.length
@@ -551,13 +522,16 @@ function setInitialConditionsSidebar(initial_conditions) {
             "</td></tr>"
         );
 
+        // Set the initial slider values equal to initial conditions defined in the library (REQUIRED).
+        veg_slider_values_state_class = veg_initial_conditions["veg_sc_pct"]
+
         // Create a slider bar
         create_slider(veg_iteration, veg_type, state_class_count)
 
         // Make a row for each state class.
         state_class_count = 1;
         $.each(state_class_list, function (index, state_class) {
-            $("#" + veg_table_id).append("<tr><td>" + state_class + " </td><td><input class='veg_state_class_entry' id='" + "veg_" + veg_iteration + "_" + state_class_count + "' type='text' size='2' value='0'>%</td></tr>")
+            $("#" + veg_table_id).append("<tr><td>" + state_class + " </td><td><input class='veg_state_class_entry' id='" + "veg_" + veg_iteration + "_" + state_class_count + "' type='text' size='2' value=" + veg_initial_conditions['veg_sc_pct'][veg_type][state_class] +">%</td></tr>")
             state_class_count++
         });
 
@@ -576,14 +550,27 @@ function setInitialConditionsSidebar(initial_conditions) {
 
     function create_slider(iterator, veg_type, state_class_count) {
 
+        console.log(typeof(veg_type))
         $(function () {
+
+            var initial_slider_value = 0;
+
+            // Loop through all the state class pct cover values and sum them up to set the initial veg slider bar value.
+            $.each(veg_initial_conditions['veg_sc_pct'][veg_type], function(key,value){
+                initial_slider_value+=value
+
+            });
+
+            veg_slider_values[veg_type]=Math.ceil(initial_slider_value)
+
             slider_values[iterator] = 0
             veg_proportion[iterator] = 0
-            //counter_variable = "veg" + iterator + "_slider" // TODO - remove?
+
+            console.log(initial_slider_value)
 
             $("#veg" + iterator + "_slider").slider({
                 range: "min",
-                value: slider_values[iterator],
+                value: initial_slider_value,
                 min: 0,
                 max: 100,
                 step: 1,
@@ -612,7 +599,11 @@ function setInitialConditionsSidebar(initial_conditions) {
 
                     })
 
-                }
+                },
+                create: function(event, ui){
+
+                    $("#veg" + iterator + "_label").val($(this).slider('value') + "%");
+                },
             });
 
         });
@@ -659,7 +650,6 @@ function setInitialConditionsSidebar(initial_conditions) {
 
     initializeStateClassColorMap();
     $(".current_probability_slider_setting").val("Default Probabilities");
-    $(".current_slider_setting").val('0%');    // TODO - remove, since we're going to populate the setting values
 }
 
 function total_percent_action(value){
@@ -719,4 +709,3 @@ $(document).on('change', '#settings_library', function() {
         }
     })
 })
-
