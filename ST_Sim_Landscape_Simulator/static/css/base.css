@@ -471,9 +471,9 @@ div#pop-up {
 	width: 308px;
 }
 
-.sub_slider_text_inputs{
-    position:absolute;
-    left:350px;
+.sub_slider_text_inputs {
+	position: absolute;
+	left: 325px;
 }
 
 .management_action_inputs{
@@ -524,11 +524,11 @@ div.callout {
 	z-index: 9999;
 	box-shadow: 0 1px 0 rgba(255, 255, 255, 0.2) inset, 5px 5px 20px RGBA(42, 42, 42, 0.91);
 	top: -25px;
+	left:-20px;
 	color: orange !important;
 }
 
 .manage_callout.right::before {
-	left: -20px;
 	top: 3px;
 	border-right: 10px solid #444;
 }
