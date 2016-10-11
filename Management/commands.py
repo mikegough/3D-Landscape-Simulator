@@ -141,7 +141,7 @@ def build_reporting_units(lib, layer, output_dir):
                         'nodata': 0
                     })
 
-                    # output vegetation rasters
+                    # output elevation texture
                     output_path = os.path.join(unit_dir, 'elev', '-'.join([str(i), str(j), 'elev.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
                         dst.write(src.read(1, window=window).astype('int32'), 1)
@@ -163,7 +163,6 @@ def parse_reporting_units(path):
         for row in raw:
             if len(row) == 0:
                 continue
-            #print(row)
             unit, id, extent = row.split('|')
             extent = [float(coord) for coord in extent[1:-1].split(',')]
             extents.append({'id': id, 'extent': extent})
