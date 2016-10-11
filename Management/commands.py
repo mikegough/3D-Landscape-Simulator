@@ -10,9 +10,10 @@ from OutputProcessing.plugins import conversions
 TILE_SIZE = 512
 
 
-def build_reporting_units(lib, layer, output_dir):
+def build_reporting_units(name, lib, layer, output_dir):
     """
     Clips each extent for a given reporting unit and builds the
+    :param name: Name of the reporting_unit in the STSIM_CONFIG
     :param lib: Name of the library in the STSIM_CONFIG
     :param layer: Path to the layer
     :param output_dir: Path to place the built structure
@@ -22,13 +23,14 @@ def build_reporting_units(lib, layer, output_dir):
     sc_path = stsim_manager.sc_paths[lib]
     elev_path = stsim_manager.elev_paths[lib]
     reporting_units = parse_reporting_units(layer)
+    output_dir = os.path.join(output_dir, lib, name)
 
     for unit in reporting_units:
 
         unit_dir = os.path.join(output_dir, unit['id'])
         if not os.path.exists(unit_dir):
             os.makedirs(os.path.join(unit_dir, 'veg'))
-            os.makedirs(os.path.join(unit_dir, 'sclass'))
+            os.makedirs(os.path.join(unit_dir, 'sc'))
             os.makedirs(os.path.join(unit_dir, 'elev'))
             os.makedirs(os.path.join(unit_dir, 'temp'))
         else:
@@ -97,11 +99,11 @@ def build_reporting_units(lib, layer, output_dir):
                     })
 
                     # output vegetation rasters
-                    output_path = os.path.join(unit_dir, 'sclass', '-'.join([str(i), str(j), 'sc.tif']))
+                    output_path = os.path.join(unit_dir, 'sc', '-'.join([str(i), str(j), 'sc.tif']))
 
                     if len(stsim_manager.conversion_functions[lib]) > 0:
-                        temp_veg_path = output_path.replace('sclass', 'veg').replace('sc', 'veg')
-                        temp_sc_path = output_path.replace('sclass', 'temp').replace('sc', 'temp')
+                        temp_veg_path = output_path.replace('sc', 'veg')
+                        temp_sc_path = output_path.replace('sc', 'temp')
                         with rasterio.open(temp_sc_path, 'w', **out_kwargs) as dst:
                             dst.write(src.read(1, window=window).astype('int32'), 1)
                         sc_conversion_func = getattr(conversions, stsim_manager.conversion_functions[lib])
