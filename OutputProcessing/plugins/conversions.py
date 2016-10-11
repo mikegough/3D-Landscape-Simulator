@@ -79,9 +79,10 @@ def landfire_stateclass_index_raster(bps_path, sc_path, output_path):
                     for pixel in range(mapped_data.size):
                         bps_code = bps_ravel[pixel]
                         sc_code = sc_ravel[pixel]
-                        if sc_code in [1, 2, 3, 4, 5] and bps_code != 0:
+                        if sc_code in [1, 2, 3, 4, 5] and bps_code != 0 and bps_code in sc_code_map.keys():
                             state_class_type = sc_code_map[bps_code][sc_code]
-                            state_class_value = sclass_index[state_class_type]
-                            mapped_data[pixel] = state_class_value
+                            if len(state_class_type) > 0:
+                                state_class_value = sclass_index[state_class_type]
+                                mapped_data[pixel] = state_class_value
                     output_data = np.reshape(mapped_data, shape)
                     dst.write(output_data, indexes=1, window=window)
