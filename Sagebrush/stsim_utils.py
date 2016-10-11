@@ -60,6 +60,11 @@ class STSimManager:
         self.has_predefined_extent = {lib_name: config[lib_name]['has_predefined_extent'] for lib_name in self.library_names}
         self.heightmap_functions = {lib_name: config[lib_name]['heightmap_function'] for lib_name in self.library_names}
 
+        # tile configuration
+        self.has_tiles = {lib_name: config[lib_name]['has_tiles'] for lib_name in self.library_names}
+        self.tile_directory = {lib_name: config[lib_name]['tile_directory'] for lib_name in self.library_names}
+        self.reporting_units = {lib_name: config[lib_name]['reporting_units'] for lib_name in self.library_names}
+
         # validation b/w configuration and library information
         self.all_veg_state_classes = {
             lib_name: self.consoles[lib_name].export_veg_state_classes(

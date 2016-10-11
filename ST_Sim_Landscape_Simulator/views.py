@@ -202,6 +202,61 @@ class RasterTextureStats(RasterTextureBase):
                              'total_cells': total})
 
 
+class RasterTileBase(View):
+
+    def __init__(self):
+        self.library = None
+        self.reporting_unit = None
+        self.unit_id = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.library = kwargs.get('library')
+        self.reporting_unit = kwargs.get('reporting_unit')
+        if self.library not in stsim_manager.library_names \
+                or not stsim_manager.has_tiles[self.library]\
+                or self.reporting_unit not in stsim_manager.reporting_units[self.library]:
+            return HttpResponseNotFound()
+        self.unit_id = kwargs.get('unit_id')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class RasterTileView(RasterTileBase):
+
+    data_types = ['elev', 'veg', 'sc']
+
+    def __init__(self):
+        self.type = None
+        self.tile_name = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.type = kwargs.get('type')
+        if self.type not in self.data_types:
+            return HttpResponseNotFound()
+        x = kwargs.get('x')
+        y = kwargs.get('y')
+        self.tile_name = "-".join([x,y,self.type+'.png'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+
+        texture_path = os.path.join(
+            stsim_manager.tile_directory[self.library], self.library,
+            self.reporting_unit, self.unit_id, self.type, self.tile_name)
+        image = Image.open(texture_path)
+        response = HttpResponse(content_type="image/png")
+        image.save(response, 'PNG')
+        return response
+
+
+class RasterTileStats(RasterTileBase):
+
+    def get(self):
+        return HttpResponseNotFound()
+
+
+""" STSimBaseView and children handle interaction with ST-Sim from the client. """
 class STSimBaseView(View):
 
     def __init__(self):
