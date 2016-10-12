@@ -5,7 +5,7 @@ function create_area_chart(veg_type, chart_div_id) {
     $(function () {
        $('#' + chart_div_id).highcharts({
             chart: {
-                type: 'area',
+                type: 'areaspline',
                 width:308,
                 height:230,
                 marginBottom: 50,
@@ -77,15 +77,15 @@ function create_area_chart(veg_type, chart_div_id) {
                 }
             },
             plotOptions: {
-                area: {
+                areaspline: {
                     pointStart:1,
                     stacking: 'normal',
                     lineColor: '#666666',
-                    lineWidth: 1,
+                    lineWidth: 0,
                     marker: {
-                        radius:1,
+                        radius:0,
                         enabled:false,
-                        lineWidth: 1,
+                        lineWidth: 0,
                         lineColor: '#666666',
                         states: {
                             hover: {
@@ -94,7 +94,11 @@ function create_area_chart(veg_type, chart_div_id) {
                         }
 
                     },
-
+                    series: {
+                        marker: {
+                            enabled: false
+                        },
+                    }
                 },
             },
         });

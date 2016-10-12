@@ -7,7 +7,7 @@ body {
 }
 
 #intro{
-	margin: 5px 15px 5px 5px;
+	margin: 15px 15px 5px 5px;
 	text-align: justify;
 }
 
@@ -45,7 +45,7 @@ canvas {
 
 #button_container {
 	position: relative;
-    height: 79vh;
+    height: 85vh;
     width:calc(100% - 695px);
     left:0px;
 	top: -38px;
@@ -55,7 +55,7 @@ canvas {
 
 #map {
     position: relative;
-    height: 93%;
+    height: 100%;
     width: 100%;
     top: -10px;
     float: left;
@@ -129,7 +129,7 @@ canvas {
 .lefthand_scroll{
 	direction: rtl;
 	overflow-x: hidden !important;
-	height: 330px;
+	height: 25.5vh;
 	z-index: 999999;
 	width: 700px;
 }
@@ -159,7 +159,7 @@ canvas {
 
 #results {
 	margin-right: 10px;
-	height: 855px;
+	height: 85vh;
 	overflow-y: scroll;
     overflow-x: hidden;
     background-color:white;
@@ -676,6 +676,11 @@ li.selected a:hover {
 
 }
 
+#general_settings_instructions{
+	margin:0 10px 10px 10px;
+	text-align:justify;
+}
+
 #general_settings_table {
 	background-color: #E9E9E9;
 	border-radius: 5px;
@@ -958,4 +963,19 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	min-width: 20px;
 	margin: 1px 6px 1px 0px;
 	border-radius: 2px;
+}
+
+#click_div {
+	width:100%;
+	text-align:center;
+}
+
+#click_icon {
+	width:150px;
+	text-align:center;
+}
+
+#select_icon {
+	width:165px;
+	text-align:center;
 }

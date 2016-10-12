@@ -683,10 +683,11 @@ function activate_map() {
     $("#scene_button").removeClass("selected")
     $("#map").show()
     $("#scene").hide()
-    $("#step1").show()
     $("#selected_features").hide()
     window.removeEventListener('resize', landscape_viewer.resize, false);
     $("#scene_legend").hide()
+    $("#general_settings_instructions").html("Select an area of interest by clicking on a reporting unit (e.g., a watershed), or by using the rectangle tool to define your own area of interest.")
+    $("div.leaflet-control-layers:nth-child(1)").css("top","55px")
 }
 
 function activate_scene(){
@@ -699,6 +700,7 @@ function activate_scene(){
     window.addEventListener('resize', landscape_viewer.resize, false);
     landscape_viewer.resize();
     $("#scene_legend").show()
+    $("#general_settings_instructions").html("Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.")
 }
 
 $("#spatial_link").click(function(){
