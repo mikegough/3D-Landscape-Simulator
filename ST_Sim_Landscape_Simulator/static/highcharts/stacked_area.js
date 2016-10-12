@@ -112,17 +112,23 @@ function create_area_charts(results_data_json, run, iteration) {
         }
 
         //Restructure Dictionary
-        chart_dict = {}
+        chart_dict = {};
         $.each(results_data_json[iteration], function (timestep, results_dict) {
             $.each(results_dict, function (veg_type, value) {
                 if (typeof chart_dict[veg_type] == "undefined") {
                     chart_dict[veg_type] = {}
                 }
-                $.each(results_dict[veg_type], function (key, value) {
-                    if (typeof chart_dict[veg_type][key] == "undefined") {
-                        chart_dict[veg_type][key] = []
+                $.each(veg_type_state_classes_json[veg_type], function (index, state_class) {
+                    if (typeof chart_dict[veg_type][state_class] == "undefined") {
+                        chart_dict[veg_type][state_class] = []
                     }
-                    chart_dict[veg_type][key].push((parseFloat(value) * 100))
+                    if (state_class in results_dict[veg_type]) {
+                        value=results_dict[veg_type][state_class];
+                        chart_dict[veg_type][state_class].push((parseFloat(value) * 100))
+                    }
+                    else {
+                        chart_dict[veg_type][state_class].push(0);
+                    }
                 })
             })
         });
