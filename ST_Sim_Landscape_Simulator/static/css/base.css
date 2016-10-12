@@ -938,3 +938,24 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
     color: #777;
 }
 
+#scene_legend {
+	float: right;
+	position: absolute;
+	top: 80px;
+	right: 12px;
+	z-index: 99999;
+	background-color: #E9E9E9;
+	border-radius: 4px;
+	font-size: .8em;
+	display: none;
+	line-height: 16px;
+	padding: 8px;
+}
+
+#scene_legend_color {
+	display: inline-block;
+	min-height: 8px;
+	min-width: 20px;
+	margin: 1px 6px 1px 0px;
+	border-radius: 2px;
+}
