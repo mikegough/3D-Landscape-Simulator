@@ -393,7 +393,15 @@ function update_results_table(run) {
 var enable_environment_settings=false;
 var veg_slider_values={}
 
-var landscape_viewer = require('app').default('scene');
+function hideSceneLoadingDiv() {
+    $('#scene_loading_div').hide();
+}
+
+function showSceneLoadingDiv() {
+    $('#scene_loading_div').show();
+}
+
+var landscape_viewer = require('app').default('scene', showSceneLoadingDiv, hideSceneLoadingDiv);
 
 var library_initialized = false;
 
@@ -418,9 +426,9 @@ function updateStudyArea(extent) {
 
 var current_uuid;
 function updateExtent(libraryName, extent) {
+    landscape_viewer.showLoadingScreen();
     $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
         var raster_uuid = uuid_res['uuid'];
-        //var raster_uuid = "0a141d9c-db11-42ef-b64f-ca7580288f6b"
         current_uuid = raster_uuid;
         $.getJSON(libraryName + '/select/' + raster_uuid + '/stats/').done(function (initConditions) {
             setInitialConditionsSidebar(initConditions);
@@ -723,10 +731,4 @@ $(document).on('change', '#settings_library', function() {
     })
 })
 
-function hideSceneLoadingDiv() {
-    $('#scene_loading_div').hide();
-}
 
-function showSceneLoadingDiv() {
-    $('#scene_loading_div').show();
-}

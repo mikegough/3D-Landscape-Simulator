@@ -482,7 +482,7 @@ define("utils", ["require", "exports"], function (require, exports) {
 // app.ts
 define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], function (require, exports, terrain_1, veg_1, utils_1, assetloader_1) {
     "use strict";
-    function run(container_id) {
+    function run(container_id, showloadingScreen, hideLoadingScreen) {
         if (!utils_1.detectWebGL) {
             alert("Your browser does not support WebGL. Please use a different browser (I.e. Chrome, Firefox).");
             return null;
@@ -714,8 +714,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             });
             // render the scene once everything is finished being processed
             console.log('Vegetation Rendered!');
-            hideSceneLoadingDiv();
             render();
+            hideLoadingScreen();
         }
         function collectSpatialOutputs(runControl) {
             if (!runControl.spatial)
@@ -825,6 +825,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             setStudyArea: setStudyArea,
             libraryDefinitions: masterAssets[currentLibraryName],
             collectSpatialOutputs: collectSpatialOutputs,
+            showLoadingScreen: showloadingScreen
         };
     }
     Object.defineProperty(exports, "__esModule", { value: true });

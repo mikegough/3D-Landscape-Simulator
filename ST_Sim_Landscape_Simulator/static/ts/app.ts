@@ -8,7 +8,7 @@ import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloa
 import * as STSIM from './stsim'
 
 
-export default function run(container_id: string) {
+export default function run(container_id: string, showloadingScreen: Function, hideLoadingScreen: Function) {
 
 	if (!detectWebGL) {
 		alert("Your browser does not support WebGL. Please use a different browser (I.e. Chrome, Firefox).")
@@ -275,6 +275,7 @@ export default function run(container_id: string) {
 		// render the scene once everything is finished being processed
 		console.log('Vegetation Rendered!')
 		render()
+		hideLoadingScreen()
 	}
 
 	function collectSpatialOutputs(runControl: STSIM.RunControl) {
@@ -411,6 +412,7 @@ export default function run(container_id: string) {
 		setStudyArea: setStudyArea,
 		libraryDefinitions: masterAssets[currentLibraryName],
 		collectSpatialOutputs: collectSpatialOutputs,
+		showLoadingScreen: showloadingScreen
 	}
 }
 
