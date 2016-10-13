@@ -53,15 +53,22 @@ L.control.zoom({
 
 // BEGIN LAYERS AND LAYER FUNCTIONS
 
+var default_style = {
+    "color": "#3D8DFF",
+    "weight": 2,
+    "opacity": 0.65,
+    "fillOpacity":.15
+};
+
 var watersheds = L.geoJson(sagebrush_watersheds, {
     clickable:true,
-    //style:{},
+    style:default_style,
     onEachFeature: onEachFeature
 }).addTo(map);
 
 var counties = L.geoJson(sagebrush_counties, {
     clickable:true,
-    //style:{},
+    style:default_style,
     onEachFeature: onEachFeature
 });
 
@@ -118,7 +125,7 @@ function resetHighlight(e) {
 var libraries;
 function selectFeature(e) {
 
-    $('#disable_map').show()
+    showSceneLoadingDiv()
 
     if (typeof drawn_layer != "undefined" && map.hasLayer(drawn_layer)){
         map.removeLayer(drawn_layer)

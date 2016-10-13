@@ -723,6 +723,10 @@ $(document).on('change', '#settings_library', function() {
     })
 })
 
-function hideLoadingDiv() {
-    $('#disable_map').hide();
+function hideSceneLoadingDiv() {
+    $('#scene_loading_div').hide();
+}
+
+function showSceneLoadingDiv() {
+    $('#scene_loading_div').show();
 }

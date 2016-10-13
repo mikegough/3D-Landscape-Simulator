@@ -53,13 +53,15 @@ canvas {
 	border-radius: 5px;
 }
 
-#disable_map_img{
-	height:120px;
+#scene_loading_img {
+	height: 120px;
+	top: 300px;
+	position: relative;
 }
 
-#disable_map {
+#scene_loading_div {
 	position: absolute;
-	height: 63vh;
+	height: 85vh;
 	width: 100%;
 	top: 38px;
 	z-index: 999999;
@@ -67,7 +69,6 @@ canvas {
 	background-color: white;
 	display: none;
 	text-align: center;
-	padding-top: 250px;
 }
 
 #map {
