@@ -5,9 +5,30 @@ from Sagebrush.stsim_utils import stsim_manager
 from OutputProcessing import texture_utils, raster_utils
 from math import ceil
 from OutputProcessing.plugins import conversions, lookups
-
+import sys
 
 TILE_SIZE = 512
+
+# Print iterations progress
+def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, barLength = 100):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        barLength   - Optional  : character length of bar (Int)
+    """
+    formatStr       = "{0:." + str(decimals) + "f}"
+    percents        = formatStr.format(100 * (iteration / float(total)))
+    filledLength    = int(round(barLength * iteration / float(total)))
+    bar             = '█' * filledLength + '-' * (barLength - filledLength)
+    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+    if iteration == total:
+        sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def build_reporting_units(name, lib, layer, output_dir):
@@ -28,6 +49,9 @@ def build_reporting_units(name, lib, layer, output_dir):
     reporting_units = parse_reporting_units(layer)
     output_dir = os.path.join(output_dir, lib, name)
 
+    progress = 0
+    total_progress = len(reporting_units) * 2
+    printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
     for unit in reporting_units:
 
         unit_dir = os.path.join(output_dir, unit['id'])
@@ -136,6 +160,9 @@ def build_reporting_units(name, lib, layer, output_dir):
             veg_names = {name: name for name in veg_codes}
         unit_initial_conditions['veg_names'] = veg_names
 
+        progress += 1
+        printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
+
         # output elevation rasters, textures (and remove rasters afterwards since we don't need them)
         raw_unit_elevation_stats = list()
         with rasterio.open(elev_path, 'r') as src:
@@ -185,6 +212,9 @@ def build_reporting_units(name, lib, layer, output_dir):
         # cleanup
         if os.path.exists(os.path.join(unit_dir, 'temp')):
             os.rmdir(os.path.join(unit_dir, 'temp'))
+
+        progress += 1
+        printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
 
 
 def parse_reporting_units(path):
