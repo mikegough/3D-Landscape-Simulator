@@ -244,6 +244,10 @@ class RasterTileView(RasterTileBase):
         texture_path = os.path.join(
             stsim_manager.tile_directory[self.library], self.library,
             self.reporting_unit, self.unit_id, self.type, self.tile_name)
+
+        if not os.path.exists(texture_path):
+            return HttpResponseNotFound()
+
         image = Image.open(texture_path)
         response = HttpResponse(content_type="image/png")
         image.save(response, 'PNG')
@@ -252,8 +256,15 @@ class RasterTileView(RasterTileBase):
 
 class RasterTileStats(RasterTileBase):
 
-    def get(self):
-        return HttpResponseNotFound()
+    def get(self, request, *args, **kwargs):
+
+        stats_path = os.path.join(
+            stsim_manager.tile_directory[self.library], self.library,
+            self.reporting_unit, self.unit_id, 'initial_conditions.json')
+        if not os.path.exists(stats_path):
+            return HttpResponseNotFound()
+
+        return JsonResponse(json.load(open(stats_path, 'r')))
 
 
 """ STSimBaseView and children handle interaction with ST-Sim from the client. """
