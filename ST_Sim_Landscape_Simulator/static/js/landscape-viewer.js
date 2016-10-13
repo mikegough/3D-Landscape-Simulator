@@ -714,6 +714,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             });
             // render the scene once everything is finished being processed
             console.log('Vegetation Rendered!');
+            hideLoadingDiv();
             render();
         }
         function collectSpatialOutputs(runControl) {

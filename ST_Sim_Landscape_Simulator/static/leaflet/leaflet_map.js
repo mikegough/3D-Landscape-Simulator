@@ -118,6 +118,8 @@ function resetHighlight(e) {
 var libraries;
 function selectFeature(e) {
 
+    $('#disable_map').show()
+
     if (typeof drawn_layer != "undefined" && map.hasLayer(drawn_layer)){
         map.removeLayer(drawn_layer)
     }

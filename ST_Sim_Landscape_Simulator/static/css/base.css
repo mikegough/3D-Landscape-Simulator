@@ -53,6 +53,23 @@ canvas {
 	border-radius: 5px;
 }
 
+#gears{
+	height:200px;
+}
+
+#disable_map {
+	position: absolute;
+	height: 63vh;
+	width: 100%;
+	top: 38px;
+	z-index: 999999;
+	opacity: .85;
+	background-color: white;
+	display: none;
+	text-align: center;
+	padding-top: 250px;
+}
+
 #map {
     position: relative;
     height: 100%;
