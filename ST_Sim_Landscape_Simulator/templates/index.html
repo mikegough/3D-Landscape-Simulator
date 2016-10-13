@@ -82,7 +82,7 @@
             <!--<table style="width:100%" id="initial_conditions_table"><tr></tr></table>-->
             <div style="display:none" id="general_settings">
                 <div id="general_settings_instructions">
-                    Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.
+                    Use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.
                 </div>
                 <!--
                 Your results will appear on the right hand side of the screen in a series of charts designed to communicate the future composition of your landscape under the scenario you defined.
@@ -175,7 +175,9 @@
                 <li id="map_button"><a onclick="activate_map()">2D</a></li>
                 <li id="scene_button"><a onclick="activate_scene()">3D</a></li>
             </ul>
-                <div id="disable_map"><img id="gears" src="{% static '/img/gears.svg' %}"></div>
+                <!--<div id="disable_map"><img id="gears" src="{% static '/img/gears.svg' %}"></div>-->
+                <!-- <div id="disable_map"><img id="disable_map_img" src="{% static '/img/squares.svg' %}"></div>-->
+                <div id="disable_map"><img id="disable_map_img" src="{% static '/img/spinner2.svg' %}"></div>
                 <div id="map"></div>
                 <div id="scene" style="display:none"></div>
                 <span id="selected_features"></span>
