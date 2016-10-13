@@ -228,6 +228,7 @@ function run_st_sim(feature_id) {
         $("#run_button").removeClass('disabled');
         $("#run_button").removeClass('please_wait');
         $('input:submit').attr("disabled", false);
+        $('#button_container').attr("disabled", false);
     });
 
 
@@ -414,7 +415,6 @@ function updateStudyArea(extent) {
     }
 
 }
-
 
 var current_uuid;
 function updateExtent(libraryName, extent) {
@@ -722,3 +722,11 @@ $(document).on('change', '#settings_library', function() {
         }
     })
 })
+
+function hideSceneLoadingDiv() {
+    $('#scene_loading_div').hide();
+}
+
+function showSceneLoadingDiv() {
+    $('#scene_loading_div').show();
+}

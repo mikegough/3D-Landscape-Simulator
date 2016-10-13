@@ -53,6 +53,24 @@ canvas {
 	border-radius: 5px;
 }
 
+#scene_loading_img {
+	height: 120px;
+	top: 300px;
+	position: relative;
+}
+
+#scene_loading_div {
+	position: absolute;
+	height: 85vh;
+	width: 100%;
+	top: 38px;
+	z-index: 999999;
+	opacity: .85;
+	background-color: white;
+	display: none;
+	text-align: center;
+}
+
 #map {
     position: relative;
     height: 100%;
@@ -190,11 +208,9 @@ canvas {
 }
 
 label {
-    cursor:help;
 }
 
 label, td{
-    font-size:.95em;
 }
 
 #initial_conditions_table {
@@ -538,7 +554,7 @@ div.callout {
 }
 
 .sub_slider_table td{
-   font-size:.95em;
+   font-size:.85em;
 	white-space:nowrap;
 }
 
@@ -870,11 +886,10 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 .manage_div {
 	font-size: .9em;
 	cursor: pointer;
-	margin-top: 1px;
 }
 
 .manage_span {
-	font-size: .9em;
+	font-size: 11px;
 	background-color: #444444;
 	color: orange;
 	padding: 3px 3px;
@@ -902,11 +917,13 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 	width: 298px;
 	display: inline-block;
 	padding: 2px 0px 2px 3px;
+	font-size:.8em;
 }
 
 .transition_type{
 	border-radius: 3px;
 	padding: 2px 0px 2px 3px;
+	font-size:.9em;
 }
 
 .initial_veg_cover_input_table {
