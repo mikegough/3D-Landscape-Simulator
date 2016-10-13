@@ -113,6 +113,7 @@ function show_input_options (){
     );
 
     $("#scene").show()
+    $("#scene_legend").show()
     $("#map").hide()
     $("#button_list").css("visibility", "visible")
     $(".leaflet-draw-section").addClass("modified_leaflet_control_position")
@@ -211,7 +212,6 @@ function run_st_sim(feature_id) {
                 'result_scenario_id': JSON.parse(response["result_scenario_id"])
             };
             landscape_viewer.collectSpatialOutputs(run_control);
-
         },
 
         // handle a non-successful response
@@ -420,6 +420,7 @@ var current_uuid;
 function updateExtent(libraryName, extent) {
     $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
         var raster_uuid = uuid_res['uuid'];
+        //var raster_uuid = "0a141d9c-db11-42ef-b64f-ca7580288f6b"
         current_uuid = raster_uuid;
         $.getJSON(libraryName + '/select/' + raster_uuid + '/stats/').done(function (initConditions) {
             setInitialConditionsSidebar(initConditions);
@@ -483,6 +484,12 @@ function setInitialConditionsSidebar(initial_conditions) {
     $("#vegTypeSliderTable").empty();
     $("#probabilisticTransitionSliderTable").empty();
 
+    // Create the legend
+    $("#scene_legend").empty();
+    $.each(state_class_color_map, function(key,value){
+        $("#scene_legend").append("<div id='scene_legend_color' style='background-color:" + value + "'> &nbsp</div>" + key + "<br>")
+    });
+
     $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
         if (!(veg_type in veg_initial_conditions.veg_sc_pct)) {
@@ -500,7 +507,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         $("#vegTypeSliderTable").append("<tr><td>" +
             "<table class='initial_veg_cover_input_table'>" +
             "<tr><td colspan='4'>" +
-            "<label for='amount_veg1'><div class='imageOverlayLink'>" + actualVegName(veg_type) + " </div></label><br>" +
+            "<label for='amount_veg1'><div class='imageOverlayLink'>" + actualVegName(veg_type) + " </div></label>" +
             "</td></tr>" +
             "<tr><td>" +
             "<div class='slider_bars' id='veg" + veg_iteration + "_slider'></div>" +
@@ -676,9 +683,11 @@ function activate_map() {
     $("#scene_button").removeClass("selected")
     $("#map").show()
     $("#scene").hide()
-    $("#step1").show()
     $("#selected_features").hide()
     window.removeEventListener('resize', landscape_viewer.resize, false);
+    $("#scene_legend").hide()
+    $("#general_settings_instructions").html("Select an area of interest by clicking on a reporting unit (e.g., a watershed), or by using the rectangle tool to define your own area of interest.")
+    $("div.leaflet-control-layers:nth-child(1)").css("top","55px")
 }
 
 function activate_scene(){
@@ -690,6 +699,8 @@ function activate_scene(){
     $("#selected_features").show()
     window.addEventListener('resize', landscape_viewer.resize, false);
     landscape_viewer.resize();
+    $("#scene_legend").show()
+    $("#general_settings_instructions").html("Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.")
 }
 
 $("#spatial_link").click(function(){
