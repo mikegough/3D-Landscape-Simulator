@@ -204,6 +204,8 @@ def build_reporting_units(name, lib, layer, output_dir):
                 raw_unit_elevation_stats.append(row_stats)
 
         unit_initial_conditions['elev'] = total_elevation_stats(raw_unit_elevation_stats)
+        unit_initial_conditions['elev']['x_tiles'] = x_tiles
+        unit_initial_conditions['elev']['y_tiles'] = y_tiles
 
         unit_json_path = os.path.join(unit_dir, 'initial_conditions.json')
         with open(unit_json_path, 'w') as ic:

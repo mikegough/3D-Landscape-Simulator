@@ -1,15 +1,6 @@
 // globals.ts
 define("globals", ["require", "exports"], function (require, exports) {
     "use strict";
-    // debugging constants
-    exports.USE_RANDOM = true;
-    //export const USE_RANDOM = false
-    // global constants configuration
-    exports.MAX_INSTANCES = 5000; // max number of vertex instances we allow per vegtype
-    exports.MAX_CLUSTERS_PER_VEG = 20; // maximum number of clusters to generate for each vegtype
-    exports.RESOLUTION = 800.0; // resolution of terrain (in meters)
-    exports.TERRAIN_DISP = 5.0 / exports.RESOLUTION; // the amount of displacement we impose to actually 'see' the terrain
-    exports.MAX_CLUSTER_RADIUS = 30.0; // max radius to grow around a cluster
     // global colors
     exports.WHITE = 'rgb(255,255,255)';
     function getVegetationLightPosition(vegname) {
@@ -606,6 +597,37 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 studyAreaLoader.load(studyAreaAssets, createScene, reportProgress, reportError);
             }
         }
+        let current_unit_id;
+        function setStudyAreaTiles(reporting_unit_name, unit_id, initialConditions) {
+            console.log('Setting up study area...');
+            if (unit_id != current_unit_id) {
+                console.log('Bing!');
+                currentConditions = initialConditions;
+                current_unit_id = unit_id;
+                const baseTilePath = currentLibraryName + '/select/' + reporting_unit_name + '/' + unit_id;
+                const studyAreaLoader = assetloader_1.Loader();
+                let studyAreaTileAssets = {};
+                const elevationStats = currentConditions.elev;
+                const x_tiles = elevationStats.x_tiles;
+                const y_tiles = elevationStats.y_tiles;
+                console.log(x_tiles);
+                console.log(y_tiles);
+                console.log(elevationStats);
+                let textures = [];
+                let i, j;
+                for (i = 0; i < x_tiles; i++) {
+                    for (j = 0; j < y_tiles; j++) {
+                        textures.push({
+                            name: String(i) + '_' + String(j),
+                            url: baseTilePath + '/veg/' + String(i) + '/' + String(j) + '/'
+                        });
+                    }
+                }
+                studyAreaTileAssets.textures = textures;
+                studyAreaLoader.load(studyAreaTileAssets, doNothing, reportProgress, reportError);
+            }
+        }
+        function doNothing() { }
         function createScene(loadedAssets) {
             masterAssets[currentLibraryName] = loadedAssets;
             const heightmapTexture = loadedAssets.textures['elevation'];
@@ -823,6 +845,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             camera: camera,
             setLibraryDefinitions: setLibraryDefinitions,
             setStudyArea: setStudyArea,
+            setStudyAreaTiles: setStudyAreaTiles,
             libraryDefinitions: masterAssets[currentLibraryName],
             collectSpatialOutputs: collectSpatialOutputs,
             showLoadingScreen: showloadingScreen

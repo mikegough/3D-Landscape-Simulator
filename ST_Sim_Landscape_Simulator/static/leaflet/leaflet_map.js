@@ -148,6 +148,8 @@ function selectFeature(e) {
     feature_id = selected_feature.feature.properties.NAME;
     libraries = selected_feature.feature.properties.LIBRARIES;
 
+    var unit_id = selected_feature.feature.properties.ID;
+
     // setup the library dropdown
     $('#ss1').empty();
     $('#ss1').append('<select id="settings_library"></select>');
@@ -159,7 +161,7 @@ function selectFeature(e) {
     }
     $("select").selectBoxIt();
 
-    updateStudyArea(extent);
+    updateStudyArea(extent, unit_id);
 
 }
 

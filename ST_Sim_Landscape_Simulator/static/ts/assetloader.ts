@@ -3,6 +3,8 @@
 // Copyright (c) 2016 by Mike Linkovich;
 // Adapted for use by Taylor Mutch, CBI
 
+// TODO - expand the asset loader to be a tile loader to handle tile assets easily.
+
 export interface TextureAssets {
 	[id: string]: THREE.Texture
 }

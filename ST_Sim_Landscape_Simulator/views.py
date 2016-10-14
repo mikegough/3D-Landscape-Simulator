@@ -328,6 +328,7 @@ class LibraryInfoView(STSimBaseView):
 
         # predefined spatial extent?
         response['has_predefined_extent'] = stsim_manager.has_predefined_extent[self.library]
+        response['has_tiles'] = stsim_manager.has_tiles[self.library]
 
         # has lookup functionality?
         response['has_lookup'] = stsim_manager.has_lookup_fields[self.library]

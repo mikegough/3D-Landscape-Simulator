@@ -405,16 +405,32 @@ var landscape_viewer = require('app').default('scene', showSceneLoadingDiv, hide
 
 var library_initialized = false;
 
-function updateStudyArea(extent) {
+function updateStudyArea(extent, unit_id) {
 
     var libraryName = $('#settings_library').val();
     if (!library_initialized) {
         // setup the sidebar for the first time
         $.getJSON(libraryName + '/info/').done(function(definitions) {
             setLibrary(libraryName, definitions);
+
             landscape_viewer.setLibraryDefinitions(libraryName, definitions);
             // select the extent the user just selected
-            if (!definitions.has_predefined_extent) {
+            if (definitions.has_tiles) {
+                var reporting_units_name = "";
+                for (var key in reporting_units) {
+                    if (active_reporting_units == reporting_units[key]) {
+                        reporting_units_name = key;
+                        break;
+                    }
+                }
+                console.log(unit_id);
+                $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/').done(function (initConditions) {
+                    setInitialConditionsSidebar(initConditions);
+
+                    landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, initConditions);
+                })
+            }
+            else if (!definitions.has_predefined_extent) {
                 updateExtent(libraryName, extent);
             }
         });
@@ -567,7 +583,7 @@ function setInitialConditionsSidebar(initial_conditions) {
 
     function create_slider(iterator, veg_type, state_class_count) {
 
-        console.log(typeof(veg_type))
+        //console.log(typeof(veg_type))
         $(function () {
 
             var initial_slider_value = 0;
@@ -583,7 +599,7 @@ function setInitialConditionsSidebar(initial_conditions) {
             slider_values[iterator] = 0
             veg_proportion[iterator] = 0
 
-            console.log(initial_slider_value)
+            //console.log(initial_slider_value)
 
             $("#veg" + iterator + "_slider").slider({
                 range: "min",

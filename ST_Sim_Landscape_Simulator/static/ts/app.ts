@@ -1,6 +1,5 @@
 // app.ts
 
-import * as globals from './globals'
 import {createTerrain, createDataTerrain} from './terrain'
 import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL} from './utils'
@@ -157,6 +156,45 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			studyAreaLoader.load(studyAreaAssets, createScene, reportProgress, reportError)
 		}
 	}
+
+	let current_unit_id : string
+	function setStudyAreaTiles(reporting_unit_name: string, unit_id : string, initialConditions: STSIM.LibraryInitConditions) {
+		console.log('Setting up study area...')
+		if (unit_id != current_unit_id) {
+			console.log('Bing!')
+			currentConditions = initialConditions
+			current_unit_id = unit_id
+			const baseTilePath = currentLibraryName + '/select/' + reporting_unit_name + '/' + unit_id
+
+			const studyAreaLoader = Loader()
+			let studyAreaTileAssets = {} as AssetList
+
+			const elevationStats = currentConditions.elev
+			const x_tiles = elevationStats.x_tiles
+			const y_tiles = elevationStats.y_tiles
+			console.log(x_tiles)
+			console.log(y_tiles)
+			console.log(elevationStats)
+
+			let textures = [] as AssetDescription[]
+			let i :number, j : number
+			for (i = 0; i < x_tiles; i++) {
+				for (j = 0; j < y_tiles; j++) {
+					textures.push({
+						name: String(i) + '_' + String(j),
+						url: baseTilePath + '/veg/' + String(i) + '/' + String(j) + '/'
+					})
+
+				}
+			}
+
+			studyAreaTileAssets.textures = textures
+			studyAreaLoader.load(studyAreaTileAssets, doNothing, reportProgress, reportError)
+
+		}
+	}
+
+	function doNothing() {}
 
 	function createScene(loadedAssets: Assets) {
 		masterAssets[currentLibraryName] = loadedAssets
@@ -410,6 +448,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		camera: camera,
 		setLibraryDefinitions: setLibraryDefinitions,
 		setStudyArea: setStudyArea,
+		setStudyAreaTiles: setStudyAreaTiles,
 		libraryDefinitions: masterAssets[currentLibraryName],
 		collectSpatialOutputs: collectSpatialOutputs,
 		showLoadingScreen: showloadingScreen

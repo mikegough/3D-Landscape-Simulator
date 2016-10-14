@@ -22,7 +22,7 @@ urlpatterns = [
                     url(r'^(?P<type>veg|sc|elev)/$', RasterTextureView.as_view()),
                     url(r'^stats/$', RasterTextureStats.as_view())
                 ])),
-            url(r'^(?P<reporting_unit>[a-z]+)/(?P<unit_id>[0-9]+)/', include([
+            url(r'^(?P<reporting_unit>[a-zA-Z]+)/(?P<unit_id>[0-9]+)/', include([
                 url(r'^(?P<type>[a-z]+)/(?P<x>[0-9]+)/(?P<y>[0-9]+)/$', RasterTileView.as_view()),
                 url(r'^stats/$', RasterTileStats.as_view())
             ]))
