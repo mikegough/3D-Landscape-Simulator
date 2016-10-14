@@ -50,6 +50,7 @@ export interface ElevationStatistics {
 	dem_width: number
 	x_tiles?: number
 	y_tiles?: number
+	tile_size?: number
 }
 
 export interface LibraryInitConditions {

@@ -19,6 +19,64 @@ const SUN = [1.0, 3.0, -1.0]	// light position for the terrain, i.e. the ball in
 								// shines from the top and slightly behind and west
 
 
+interface TerrainTile {
+	x: number
+	y: number
+	heights: Float32Array
+	disp: number
+	init_tex: THREE.Texture
+	//mat: THREE.Material
+	width: number
+	height: number
+	translate_x: number
+	translate_y: number
+	vertexShader: string
+	fragmentShader: string
+}
+
+export interface TileData {
+	x : number,
+	y : number
+}
+
+export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
+
+	var geo = new THREE.PlaneBufferGeometry(params.width, params.height, params.width-1, params.height-1)
+	//geo.rotateX(-Math.PI / 2)
+	let vertices = geo.getAttribute('position')
+
+	for (var i = 0; i < vertices.count; i++) {
+		//vertices.setY(i, params.heights[i] * params.disp)
+		vertices.setZ(i, params.heights[i] * params.disp)
+	}
+
+	geo.computeVertexNormals()
+	//geo.translate(params.translate_x, 0, params.translate_y)
+	geo.translate(params.translate_x, params.translate_y, 0)
+
+	const mat = new THREE.ShaderMaterial({
+		uniforms: {
+			active_texture: {type: 't', value: params.init_tex},
+			lightPosition: {type: "3f", value: SUN},
+			ambientProduct: {type: "c", value: AMBIENT},
+			diffuseProduct: {type: "c", value: DIFFUSE},
+			specularProduct: {type: "c", value: SPEC},
+			shininess: {type: "f", value: SHINY},
+			// height exageration
+			disp: {type: "f", value: params.disp}
+		},
+		vertexShader: params.vertexShader,
+		fragmentShader: params.fragmentShader
+	})
+
+	const tile = new THREE.Mesh(geo, mat)
+	tile.userData = {x: params.x, y: params.y} as TileData
+
+	return tile
+}
+
+
+
 interface TerrainParams {
 
 	// heightmap

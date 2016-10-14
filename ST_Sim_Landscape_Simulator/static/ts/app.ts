@@ -1,6 +1,6 @@
 // app.ts
 
-import {createTerrain, createDataTerrain} from './terrain'
+import {createTerrain, createDataTerrain, createTerrainTile} from './terrain'
 import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
@@ -36,10 +36,10 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
-	renderer.domElement.addEventListener('mousedown', animate, false)
-	renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-	renderer.domElement.addEventListener('mousewheel', render, false)
-	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+	//renderer.domElement.addEventListener('mousedown', animate, false)
+	//renderer.domElement.addEventListener('mouseup', stopAnimate, false)
+	//renderer.domElement.addEventListener('mousewheel', render, false)
+	//renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
 	initialize()
 
@@ -55,6 +55,9 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		const terrainLoader = Loader()
 		terrainLoader.load({
 				text: [
+					/* tile shaders */
+					{name: 'tile_vert', url: 'static/shader/terrain_tile.vert.glsl'},
+					{name: 'tile_frag', url: 'static/shader/terrain_tile.frag.glsl'},
 					/* realism shaders */
 					{name: 'terrain_vert', url: 'static/shader/terrain.vert.glsl'},
 					{name: 'terrain_frag', url: 'static/shader/terrain.frag.glsl'},
@@ -98,7 +101,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			},
 			reportProgress, reportError)
 	}
-
+	Worker
 	let currentDefinitions : STSIM.LibraryDefinitions
 	let currentLibraryName = ""
 	function setLibraryDefinitions(name:string, definitions: STSIM.LibraryDefinitions) {
@@ -164,37 +167,107 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			console.log('Bing!')
 			currentConditions = initialConditions
 			current_unit_id = unit_id
-			const baseTilePath = currentLibraryName + '/select/' + reporting_unit_name + '/' + unit_id
 
+			// collect assets for the tiles
+			const baseTilePath = currentLibraryName + '/select/' + reporting_unit_name + '/' + unit_id
 			const studyAreaLoader = Loader()
 			let studyAreaTileAssets = {} as AssetList
-
-			const elevationStats = currentConditions.elev
-			const x_tiles = elevationStats.x_tiles
-			const y_tiles = elevationStats.y_tiles
-			console.log(x_tiles)
-			console.log(y_tiles)
-			console.log(elevationStats)
-
 			let textures = [] as AssetDescription[]
 			let i :number, j : number
-			for (i = 0; i < x_tiles; i++) {
-				for (j = 0; j < y_tiles; j++) {
+			for (i = 0; i < currentConditions.elev.x_tiles; i++) {
+				for (j = 0; j < currentConditions.elev.y_tiles; j++) {
 					textures.push({
-						name: String(i) + '_' + String(j),
+						name: [i,j,'veg'].join('_'),
 						url: baseTilePath + '/veg/' + String(i) + '/' + String(j) + '/'
+					})
+					textures.push({
+						name: [i,j,'sc'].join('_'),
+						url: baseTilePath + '/sc/' + String(i) + '/' + String(j) + '/'
+					})
+					textures.push({
+						name: [i,j,'elev'].join('_'),
+						url: baseTilePath + '/elev/' + String(i) + '/' + String(j) + '/'
 					})
 
 				}
 			}
 
 			studyAreaTileAssets.textures = textures
-			studyAreaLoader.load(studyAreaTileAssets, doNothing, reportProgress, reportError)
+			studyAreaLoader.load(studyAreaTileAssets, createTiles, reportProgress, reportError)
 
 		}
 	}
 
-	function doNothing() {}
+	function createTiles(loadedAssets: Assets) {
+
+		masterAssets[currentLibraryName] = loadedAssets
+
+		const tile_size = currentConditions.elev.tile_size
+		const x_tiles = currentConditions.elev.x_tiles
+		const y_tiles = currentConditions.elev.y_tiles
+		const world_width = currentConditions.elev.dem_width
+		const world_height = currentConditions.elev.dem_height
+
+		const disp = 2.0 / 30.0
+
+		// right edge and bottom edge lengths
+		//const small_tile_x = 512 - ((x_tiles) * tile_size - world_width)
+		//const small_tile_y = 512 - ((y_tiles) * tile_size - world_height)
+
+		const world_x_offset = -1 * world_width / 2 + tile_size / 2
+		const world_y_offset = world_height / 2 - tile_size / 2
+		const tile_group = new THREE.Group()
+		scene.add(tile_group)
+
+		let local_x_offset = 0
+		let local_y_offset = 0
+
+		function createOneTile(x: number, y: number, x_offset: number, y_offset: number) {
+
+			const init_tex_name = [x,y,'veg'].join('_')
+			const initial_texture = loadedAssets.textures[init_tex_name]
+			const object_width = initial_texture.image.width
+			const object_height = initial_texture.image.height
+			const x_object_offset = object_width / 2 - tile_size / 2
+			const y_object_offset = object_height / 2 - tile_size / 2
+			const translate_x = world_x_offset + x_offset + x_object_offset
+			const translate_y = world_y_offset + y_offset - y_object_offset
+
+			const heights = computeHeights(loadedAssets.textures[[x,y,'elev'].join('_')])
+			tile_group.add(createTerrainTile({
+				x: x,
+				y: y,
+				width: object_width,
+				height: object_height,
+				translate_x: translate_x,
+				translate_y: translate_y,
+				init_tex: initial_texture,
+				heights: heights,
+				disp: disp,
+				vertexShader: masterAssets['terrain'].text['tile_vert'],
+				fragmentShader: masterAssets['terrain'].text['tile_frag']
+			}))
+		}
+
+		let x: number, y: number
+		for (x = 0; x < x_tiles; x++) {
+			local_y_offset = 0
+			for (y = 0; y < y_tiles; y++) {
+				//createOneTile(x, y, local_x_offset, local_y_offset, world_x_offset, world_y_offset)
+				createOneTile(x, y, local_x_offset, local_y_offset)
+                local_y_offset -= tile_size;
+			}
+			local_x_offset += tile_size;
+		}
+
+		tile_group.rotateX(-Math.PI / 2)
+
+
+
+		// always finish
+		//render()
+		hideLoadingScreen()
+	}
 
 	function createScene(loadedAssets: Assets) {
 		masterAssets[currentLibraryName] = loadedAssets
@@ -440,7 +513,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	function isInitialized() {
 		return initialized
 	}
-
+	animate()	// TODO - remove, dev only
 	return {
 		isInitialized: isInitialized,
 		resize: resize,

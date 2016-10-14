@@ -410,6 +410,7 @@ function updateStudyArea(extent, unit_id) {
     var libraryName = $('#settings_library').val();
     if (!library_initialized) {
         // setup the sidebar for the first time
+        landscape_viewer.showLoadingScreen();
         $.getJSON(libraryName + '/info/').done(function(definitions) {
             setLibrary(libraryName, definitions);
 
@@ -428,7 +429,7 @@ function updateStudyArea(extent, unit_id) {
                     setInitialConditionsSidebar(initConditions);
 
                     landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, initConditions);
-                })
+                }).always(show_input_options);
             }
             else if (!definitions.has_predefined_extent) {
                 updateExtent(libraryName, extent);
