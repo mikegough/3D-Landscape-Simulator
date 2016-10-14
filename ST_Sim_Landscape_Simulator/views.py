@@ -218,7 +218,6 @@ class RasterTileBase(View):
                 or self.reporting_unit not in stsim_manager.reporting_units[self.library]:
             return HttpResponseNotFound()
         self.unit_id = kwargs.get('unit_id')
-        self.unit_id = '11040001'   # TODO - remove, development only
         return super().dispatch(request, *args, **kwargs)
 
 
