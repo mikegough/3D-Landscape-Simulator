@@ -1,6 +1,6 @@
 // app.ts
 
-import {createTerrain, createDataTerrain, createTerrainTile} from './terrain'
+import {createTerrain, createDataTerrain, createTerrainTile, TileData} from './terrain'
 import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
@@ -22,7 +22,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	const scene = new THREE.Scene()
 	const renderer = new THREE.WebGLRenderer({antialias: false})
 	container.appendChild(renderer.domElement)
-	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 3000.0)
+	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 1000.0)
 	
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
@@ -30,16 +30,18 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	camera.position.y = 350
 	camera.position.z = 600
 
+	const disp = 2.0 / 30.0
+
 	//const camera_start_position = camera.position.copy(new THREE.Vector3())
 	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
 
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
-	//renderer.domElement.addEventListener('mousedown', animate, false)
-	//renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-	//renderer.domElement.addEventListener('mousewheel', render, false)
-	//renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+	renderer.domElement.addEventListener('mousedown', animate, false)
+	renderer.domElement.addEventListener('mouseup', stopAnimate, false)
+	renderer.domElement.addEventListener('mousewheel', render, false)
+	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
 	initialize()
 
@@ -162,9 +164,12 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 	let current_unit_id : string
 	function setStudyAreaTiles(reporting_unit_name: string, unit_id : string, initialConditions: STSIM.LibraryInitConditions) {
-		console.log('Setting up study area...')
 		if (unit_id != current_unit_id) {
-			console.log('Bing!')
+
+			if (scene.getChildByName('terrain') != undefined) {
+				scene.remove(scene.getChildByName('terrain'))
+			}
+
 			currentConditions = initialConditions
 			current_unit_id = unit_id
 
@@ -200,7 +205,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 	function createTiles(loadedAssets: Assets) {
 
-		masterAssets[currentLibraryName] = loadedAssets
+		//masterAssets[currentLibraryName] = loadedAssets
 
 		const tile_size = currentConditions.elev.tile_size
 		const x_tiles = currentConditions.elev.x_tiles
@@ -208,19 +213,11 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		const world_width = currentConditions.elev.dem_width
 		const world_height = currentConditions.elev.dem_height
 
-		const disp = 2.0 / 30.0
-
-		// right edge and bottom edge lengths
-		//const small_tile_x = 512 - ((x_tiles) * tile_size - world_width)
-		//const small_tile_y = 512 - ((y_tiles) * tile_size - world_height)
-
 		const world_x_offset = -1 * world_width / 2 + tile_size / 2
 		const world_y_offset = world_height / 2 - tile_size / 2
 		const tile_group = new THREE.Group()
+		tile_group.name = 'terrain'
 		scene.add(tile_group)
-
-		let local_x_offset = 0
-		let local_y_offset = 0
 
 		function createOneTile(x: number, y: number, x_offset: number, y_offset: number) {
 
@@ -249,11 +246,13 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			}))
 		}
 
+		let local_x_offset = 0
+		let local_y_offset = 0
+
 		let x: number, y: number
 		for (x = 0; x < x_tiles; x++) {
 			local_y_offset = 0
 			for (y = 0; y < y_tiles; y++) {
-				//createOneTile(x, y, local_x_offset, local_y_offset, world_x_offset, world_y_offset)
 				createOneTile(x, y, local_x_offset, local_y_offset)
                 local_y_offset -= tile_size;
 			}
@@ -262,10 +261,32 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 		tile_group.rotateX(-Math.PI / 2)
 
+		// show the animation controls for the outputs
+    	$('#animation_container').show();
+	
+		// activate the checkbox
+		$('#viz_type').on('change', function() {
+			let i : number
+			let child : THREE.Mesh
+			for (i = 0; i < tile_group.children.length; i++) {
+				child = tile_group.children[i] as THREE.Mesh
+				let child_data = child.userData as TileData
+				let child_mat = child.material as THREE.ShaderMaterial
+				if (child_data['active_texture_type'] == 'veg') {
+					child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'sc'].join('_')]		
+					child_data['active_texture_type'] = 'sc'
+				} else {
+					child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'veg'].join('_')]
+					child_data['active_texture_type'] = 'veg'
+				}
+				child_mat.uniforms.active_texture.needsUpdate = true
+			}
+			render()
+		})
 
 
-		// always finish
-		//render()
+		// always finish with a render
+		render()
 		hideLoadingScreen()
 	}
 
@@ -274,7 +295,6 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 		const heightmapTexture = loadedAssets.textures['elevation']
 		const heights = computeHeights(heightmapTexture)
-		const disp = 2.0 / 30.0
 
 		const terrainAssets = masterAssets['terrain']
 		const vegetationAssets = masterAssets['vegetation']
@@ -481,6 +501,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 				heights[x + y * w] = (data[idx] | (data[idx+1] << 8) | (data[idx+2] << 16)) + data[idx+3] - 255  
 			}
 		}
+
 		// Free the resources and return
 		data = ctx = canvas = null
 		return heights
@@ -513,7 +534,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	function isInitialized() {
 		return initialized
 	}
-	animate()	// TODO - remove, dev only
+
 	return {
 		isInitialized: isInitialized,
 		resize: resize,

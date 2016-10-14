@@ -18,6 +18,7 @@ SPEC.multiplyScalar(KS * INTENSITY)
 const SUN = [1.0, 3.0, -1.0]	// light position for the terrain, i.e. the ball in the sky
 								// shines from the top and slightly behind and west
 
+const SUN_Z = [1.0, -1.0, 3.0]	// alternative sun position
 
 interface TerrainTile {
 	x: number
@@ -35,29 +36,31 @@ interface TerrainTile {
 }
 
 export interface TileData {
-	x : number,
+	x : number
 	y : number
+	active_texture_type : string
 }
 
 export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 
 	var geo = new THREE.PlaneBufferGeometry(params.width, params.height, params.width-1, params.height-1)
-	//geo.rotateX(-Math.PI / 2)
+
 	let vertices = geo.getAttribute('position')
 
 	for (var i = 0; i < vertices.count; i++) {
-		//vertices.setY(i, params.heights[i] * params.disp)
 		vertices.setZ(i, params.heights[i] * params.disp)
+
 	}
 
 	geo.computeVertexNormals()
-	//geo.translate(params.translate_x, 0, params.translate_y)
 	geo.translate(params.translate_x, params.translate_y, 0)
 
 	const mat = new THREE.ShaderMaterial({
 		uniforms: {
+			// uniform for adjusting the current texture
 			active_texture: {type: 't', value: params.init_tex},
-			lightPosition: {type: "3f", value: SUN},
+			// lighting
+			lightPosition: {type: "3f", value: SUN_Z},
 			ambientProduct: {type: "c", value: AMBIENT},
 			diffuseProduct: {type: "c", value: DIFFUSE},
 			specularProduct: {type: "c", value: SPEC},
@@ -70,7 +73,9 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 	})
 
 	const tile = new THREE.Mesh(geo, mat)
-	tile.userData = {x: params.x, y: params.y} as TileData
+	tile.userData = {x: params.x, y: params.y, active_texture_type: 'veg'} as TileData
+	geo.dispose()
+	mat.dispose()
 
 	return tile
 }

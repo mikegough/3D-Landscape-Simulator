@@ -27,21 +27,22 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
     DIFFUSE.multiplyScalar(KD * INTENSITY);
     SPEC.multiplyScalar(KS * INTENSITY);
     const SUN = [1.0, 3.0, -1.0]; // light position for the terrain, i.e. the ball in the sky
+    // shines from the top and slightly behind and west
+    const SUN_Z = [1.0, -1.0, 3.0]; // alternative sun position
     function createTerrainTile(params) {
         var geo = new THREE.PlaneBufferGeometry(params.width, params.height, params.width - 1, params.height - 1);
-        //geo.rotateX(-Math.PI / 2)
         let vertices = geo.getAttribute('position');
         for (var i = 0; i < vertices.count; i++) {
-            //vertices.setY(i, params.heights[i] * params.disp)
             vertices.setZ(i, params.heights[i] * params.disp);
         }
         geo.computeVertexNormals();
-        //geo.translate(params.translate_x, 0, params.translate_y)
         geo.translate(params.translate_x, params.translate_y, 0);
         const mat = new THREE.ShaderMaterial({
             uniforms: {
+                // uniform for adjusting the current texture
                 active_texture: { type: 't', value: params.init_tex },
-                lightPosition: { type: "3f", value: SUN },
+                // lighting
+                lightPosition: { type: "3f", value: SUN_Z },
                 ambientProduct: { type: "c", value: AMBIENT },
                 diffuseProduct: { type: "c", value: DIFFUSE },
                 specularProduct: { type: "c", value: SPEC },
@@ -53,7 +54,9 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             fragmentShader: params.fragmentShader
         });
         const tile = new THREE.Mesh(geo, mat);
-        tile.userData = { x: params.x, y: params.y };
+        tile.userData = { x: params.x, y: params.y, active_texture_type: 'veg' };
+        geo.dispose();
+        mat.dispose();
         return tile;
     }
     exports.createTerrainTile = createTerrainTile;
@@ -515,20 +518,21 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
-        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 3000.0);
+        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 1000.0);
         // Camera controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableKeys = false;
         camera.position.y = 350;
         camera.position.z = 600;
+        const disp = 2.0 / 30.0;
         //const camera_start_position = camera.position.copy(new THREE.Vector3())
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         controls.maxPolarAngle = Math.PI / 2;
         // Custom event handlers since we only want to render when something happens.
-        //renderer.domElement.addEventListener('mousedown', animate, false)
-        //renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-        //renderer.domElement.addEventListener('mousewheel', render, false)
-        //renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+        renderer.domElement.addEventListener('mousedown', animate, false);
+        renderer.domElement.addEventListener('mouseup', stopAnimate, false);
+        renderer.domElement.addEventListener('mousewheel', render, false);
+        renderer.domElement.addEventListener('MozMousePixelScroll', render, false); // firefox
         initialize();
         // Load initial assets
         function initialize() {
@@ -633,9 +637,10 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         }
         let current_unit_id;
         function setStudyAreaTiles(reporting_unit_name, unit_id, initialConditions) {
-            console.log('Setting up study area...');
             if (unit_id != current_unit_id) {
-                console.log('Bing!');
+                if (scene.getChildByName('terrain') != undefined) {
+                    scene.remove(scene.getChildByName('terrain'));
+                }
                 currentConditions = initialConditions;
                 current_unit_id = unit_id;
                 // collect assets for the tiles
@@ -665,22 +670,17 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             }
         }
         function createTiles(loadedAssets) {
-            masterAssets[currentLibraryName] = loadedAssets;
+            //masterAssets[currentLibraryName] = loadedAssets
             const tile_size = currentConditions.elev.tile_size;
             const x_tiles = currentConditions.elev.x_tiles;
             const y_tiles = currentConditions.elev.y_tiles;
             const world_width = currentConditions.elev.dem_width;
             const world_height = currentConditions.elev.dem_height;
-            const disp = 2.0 / 30.0;
-            // right edge and bottom edge lengths
-            //const small_tile_x = 512 - ((x_tiles) * tile_size - world_width)
-            //const small_tile_y = 512 - ((y_tiles) * tile_size - world_height)
             const world_x_offset = -1 * world_width / 2 + tile_size / 2;
             const world_y_offset = world_height / 2 - tile_size / 2;
             const tile_group = new THREE.Group();
+            tile_group.name = 'terrain';
             scene.add(tile_group);
-            let local_x_offset = 0;
-            let local_y_offset = 0;
             function createOneTile(x, y, x_offset, y_offset) {
                 const init_tex_name = [x, y, 'veg'].join('_');
                 const initial_texture = loadedAssets.textures[init_tex_name];
@@ -705,26 +705,48 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     fragmentShader: masterAssets['terrain'].text['tile_frag']
                 }));
             }
+            let local_x_offset = 0;
+            let local_y_offset = 0;
             let x, y;
             for (x = 0; x < x_tiles; x++) {
                 local_y_offset = 0;
                 for (y = 0; y < y_tiles; y++) {
-                    //createOneTile(x, y, local_x_offset, local_y_offset, world_x_offset, world_y_offset)
                     createOneTile(x, y, local_x_offset, local_y_offset);
                     local_y_offset -= tile_size;
                 }
                 local_x_offset += tile_size;
             }
             tile_group.rotateX(-Math.PI / 2);
-            // always finish
-            //render()
+            // show the animation controls for the outputs
+            $('#animation_container').show();
+            // activate the checkbox
+            $('#viz_type').on('change', function () {
+                let i;
+                let child;
+                for (i = 0; i < tile_group.children.length; i++) {
+                    child = tile_group.children[i];
+                    let child_data = child.userData;
+                    let child_mat = child.material;
+                    if (child_data['active_texture_type'] == 'veg') {
+                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'sc'].join('_')];
+                        child_data['active_texture_type'] = 'sc';
+                    }
+                    else {
+                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'veg'].join('_')];
+                        child_data['active_texture_type'] = 'veg';
+                    }
+                    child_mat.uniforms.active_texture.needsUpdate = true;
+                }
+                render();
+            });
+            // always finish with a render
+            render();
             hideLoadingScreen();
         }
         function createScene(loadedAssets) {
             masterAssets[currentLibraryName] = loadedAssets;
             const heightmapTexture = loadedAssets.textures['elevation'];
             const heights = computeHeights(heightmapTexture);
-            const disp = 2.0 / 30.0;
             const terrainAssets = masterAssets['terrain'];
             const vegetationAssets = masterAssets['vegetation'];
             // define the realism group
@@ -930,7 +952,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         function isInitialized() {
             return initialized;
         }
-        animate(); // TODO - remove, dev only
         return {
             isInitialized: isInitialized,
             resize: resize,

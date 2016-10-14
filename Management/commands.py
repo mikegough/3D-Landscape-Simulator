@@ -5,8 +5,31 @@ from Sagebrush.stsim_utils import stsim_manager
 from OutputProcessing import texture_utils, raster_utils
 from math import ceil
 from OutputProcessing.plugins import conversions, lookups
+import sys
 
 TILE_SIZE = 512
+
+
+# Print iterations progress
+def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_length=50):
+    """
+    Call in a loop to create terminal progress bar
+    @params:
+        iteration   - Required  : current iteration (Int)
+        total       - Required  : total iterations (Int)
+        prefix      - Optional  : prefix string (Str)
+        suffix      - Optional  : suffix string (Str)
+        decimals    - Optional  : positive number of decimals in percent complete (Int)
+        barLength   - Optional  : character length of bar (Int)
+    """
+    format_str = "{0:." + str(decimals) + "f}"
+    percents = format_str.format(100 * (iteration / float(total)))
+    filled_length = int(round(bar_length * iteration / float(total)))
+    bar = '█' * filled_length + '-' * (bar_length - filled_length)
+    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
+    if iteration == total:
+        sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def build_reporting_units(name, lib, layer, output_dir=None):
@@ -34,6 +57,10 @@ def build_reporting_units(name, lib, layer, output_dir=None):
     elev_path = stsim_manager.elev_paths[lib]
     reporting_units = parse_reporting_units(layer)
     output_dir = os.path.join(output_dir, lib, name)
+
+    p = 0
+    total_progress = len(reporting_units)
+    print_progress(p, total_progress, prefix='Progress:', suffix='Complete')
 
     for unit in reporting_units:
 
@@ -196,6 +223,8 @@ def build_reporting_units(name, lib, layer, output_dir=None):
         if os.path.exists(os.path.join(unit_dir, 'temp')):
             os.rmdir(os.path.join(unit_dir, 'temp'))
 
+        p += 1
+        print_progress(p, total_progress, prefix='Progress:', suffix='Complete')
 
 
 def parse_reporting_units(path):

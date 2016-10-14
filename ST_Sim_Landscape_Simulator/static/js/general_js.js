@@ -424,12 +424,18 @@ function updateStudyArea(extent, unit_id) {
                         break;
                     }
                 }
-                console.log(unit_id);
-                $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/').done(function (initConditions) {
-                    setInitialConditionsSidebar(initConditions);
-
-                    landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, initConditions);
-                }).always(show_input_options);
+                //console.log(unit_id);
+                $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/')
+                    .done(function (init_conditions) {
+                        setInitialConditionsSidebar(init_conditions);
+                        landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, init_conditions);
+                        show_input_options();
+                }).fail(function () {
+                    library_initialized = false;
+                    hideSceneLoadingDiv();
+                    activate_map();
+                    alert(unit_id + ' is not yet available for layer ' + reporting_units_name + '.');
+                })
             }
             else if (!definitions.has_predefined_extent) {
                 updateExtent(libraryName, extent);
