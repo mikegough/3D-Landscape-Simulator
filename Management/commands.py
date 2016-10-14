@@ -5,33 +5,11 @@ from Sagebrush.stsim_utils import stsim_manager
 from OutputProcessing import texture_utils, raster_utils
 from math import ceil
 from OutputProcessing.plugins import conversions, lookups
-import sys
 
 TILE_SIZE = 512
 
-# Print iterations progress
-def printProgress (iteration, total, prefix = '', suffix = '', decimals = 1, barLength = 100):
-    """
-    Call in a loop to create terminal progress bar
-    @params:
-        iteration   - Required  : current iteration (Int)
-        total       - Required  : total iterations (Int)
-        prefix      - Optional  : prefix string (Str)
-        suffix      - Optional  : suffix string (Str)
-        decimals    - Optional  : positive number of decimals in percent complete (Int)
-        barLength   - Optional  : character length of bar (Int)
-    """
-    formatStr       = "{0:." + str(decimals) + "f}"
-    percents        = formatStr.format(100 * (iteration / float(total)))
-    filledLength    = int(round(barLength * iteration / float(total)))
-    bar             = '█' * filledLength + '-' * (barLength - filledLength)
-    sys.stdout.write('\r%s |%s| %s%s %s' % (prefix, bar, percents, '%', suffix)),
-    if iteration == total:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
 
-
-def build_reporting_units(name, lib, layer, output_dir):
+def build_reporting_units(name, lib, layer, output_dir=None):
     """
     Clips each extent for a given reporting unit and builds the textures and initial conditions
     :param name: Name of the reporting_unit in the STSIM_CONFIG
@@ -39,6 +17,14 @@ def build_reporting_units(name, lib, layer, output_dir):
     :param layer: Path to the layer
     :param output_dir: Path to place the built structure
     """
+
+    if not stsim_manager.has_tiles[lib]:
+        raise KeyError("{lib} is not configured to have tiles. Exiting...".format(lib=lib))
+
+    if output_dir is None:
+        output_dir = stsim_manager.tile_directory[lib]
+        if not os.path.exists(output_dir):
+            raise FileNotFoundError("{path} does not exist.".format(path=output_dir))
 
     if lib not in stsim_manager.library_names:
         raise KeyError('{lib} is not an available library.'.format(lib=lib))
@@ -49,9 +35,6 @@ def build_reporting_units(name, lib, layer, output_dir):
     reporting_units = parse_reporting_units(layer)
     output_dir = os.path.join(output_dir, lib, name)
 
-    progress = 0
-    total_progress = len(reporting_units) * 2
-    printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
     for unit in reporting_units:
 
         unit_dir = os.path.join(output_dir, unit['id'])
@@ -160,9 +143,6 @@ def build_reporting_units(name, lib, layer, output_dir):
             veg_names = {name: name for name in veg_codes}
         unit_initial_conditions['veg_names'] = veg_names
 
-        progress += 1
-        printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
-
         # output elevation rasters, textures (and remove rasters afterwards since we don't need them)
         raw_unit_elevation_stats = list()
         with rasterio.open(elev_path, 'r') as src:
@@ -206,6 +186,7 @@ def build_reporting_units(name, lib, layer, output_dir):
         unit_initial_conditions['elev'] = total_elevation_stats(raw_unit_elevation_stats)
         unit_initial_conditions['elev']['x_tiles'] = x_tiles
         unit_initial_conditions['elev']['y_tiles'] = y_tiles
+        unit_initial_conditions['elev']['tile_size'] = TILE_SIZE
 
         unit_json_path = os.path.join(unit_dir, 'initial_conditions.json')
         with open(unit_json_path, 'w') as ic:
@@ -215,8 +196,6 @@ def build_reporting_units(name, lib, layer, output_dir):
         if os.path.exists(os.path.join(unit_dir, 'temp')):
             os.rmdir(os.path.join(unit_dir, 'temp'))
 
-        progress += 1
-        printProgress(progress, total_progress, prefix='Progress:', suffix='Complete', barLength=50)
 
 
 def parse_reporting_units(path):
@@ -259,23 +238,17 @@ def total_stateclass_stats(raw_stats):
 
 def total_elevation_stats(raw_stats):
     """ Determine the overall world size """
-
-    width = height = 0
     min_height = 100000
     max_height = 0
+
+    small_tile = raw_stats[-1][-1]
+    width = TILE_SIZE * (len(raw_stats) - 1) + small_tile['dem_width']
+    height = TILE_SIZE * (len(raw_stats[0]) - 1) + small_tile['dem_height']
 
     for i in range(len(raw_stats)):
         row = raw_stats[i]
         for j in range(len(row)):
             col = row[j]
-            if i == 0:
-                # update total width
-                width += col['dem_width']
-
-            if j == 0:
-                # update total height
-                height += col['dem_height']
-
             min_height = col['dem_min'] if col['dem_min'] < min_height else min_height
             max_height = col['dem_max'] if col['dem_max'] > max_height else max_height
 
