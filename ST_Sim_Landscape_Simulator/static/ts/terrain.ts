@@ -73,7 +73,7 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 	})
 
 	const tile = new THREE.Mesh(geo, mat)
-	tile.userData = {x: params.x, y: params.y, active_texture_type: 'veg'} as TileData
+	tile.userData = {x: params.x, y: params.y, active_texture_type: 'sc'} as TileData
 	geo.dispose()
 	mat.dispose()
 

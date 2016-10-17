@@ -463,7 +463,7 @@ function updateExtent(libraryName, extent) {
 var veg_type_state_classes_json, management_actions_list, probabilistic_transitions_json;
 var probabilistic_transitions_slider_values = {};
 var veg_has_lookup = false;
-var veg_initial_conditions, state_class_color_map;
+var veg_initial_conditions, state_class_color_map, veg_type_color_map;
 
 function actualVegName(vegtype) {
     if (veg_has_lookup) {
@@ -478,6 +478,7 @@ function setLibrary(libraryName, definitions) {
     management_actions_list = definitions['management_actions_list'];
     probabilistic_transitions_json = definitions['probabilistic_transitions_json'];
     state_class_color_map = definitions['state_class_color_map'];
+    veg_type_color_map = definitions['veg_type_color_map'];
     veg_has_lookup = definitions['has_lookup']
     landscape_viewer.setLibraryDefinitions(libraryName, definitions);
     library_initialized = true;
@@ -503,6 +504,13 @@ var probability_labels = {};
     probability_labels[.75] = "Very High (+75%)";
     probability_labels[1] = "100% Probability";
 
+function drawLegend(colormap) {
+    $("#scene_legend").empty();
+    $.each(colormap, function(key,value){
+        $("#scene_legend").append("<div id='scene_legend_color' style='background-color:" + value + "'> &nbsp</div>" + key + "<br>")
+    });
+}
+
 function setInitialConditionsSidebar(initial_conditions) {
 
     total_input_percent = 100;
@@ -516,10 +524,7 @@ function setInitialConditionsSidebar(initial_conditions) {
     $("#probabilisticTransitionSliderTable").empty();
 
     // Create the legend
-    $("#scene_legend").empty();
-    $.each(state_class_color_map, function(key,value){
-        $("#scene_legend").append("<div id='scene_legend_color' style='background-color:" + value + "'> &nbsp</div>" + key + "<br>")
-    });
+    drawLegend(state_class_color_map);
 
     $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 

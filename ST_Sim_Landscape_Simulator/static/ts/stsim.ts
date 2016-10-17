@@ -41,6 +41,7 @@ export interface LibraryDefinitions {
 	has_tiles : boolean
 	veg_model_config : VisualizationConfig
 	state_class_color_map: {[sc_name: string]: string}
+	veg_type_color_map: {[veg_name: string]: string}
 }
 
 export interface ElevationStatistics {
@@ -58,13 +59,5 @@ export interface LibraryInitConditions {
 	total_cells : number
 	veg_names: {[veg_name: string] : string}
 	elev : ElevationStatistics
-	/*
-	elev: {
-		dem_height: number
-		dem_max: number
-		dem_min: number
-		dem_width: number
-	}
-	*/
 }
 

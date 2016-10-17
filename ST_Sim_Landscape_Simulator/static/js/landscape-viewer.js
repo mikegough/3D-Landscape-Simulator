@@ -54,7 +54,7 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             fragmentShader: params.fragmentShader
         });
         const tile = new THREE.Mesh(geo, mat);
-        tile.userData = { x: params.x, y: params.y, active_texture_type: 'veg' };
+        tile.userData = { x: params.x, y: params.y, active_texture_type: 'sc' };
         geo.dispose();
         mat.dispose();
         return tile;
@@ -518,7 +518,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
-        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 1000.0);
+        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
         // Camera controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableKeys = false;
@@ -682,7 +682,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             tile_group.name = 'terrain';
             scene.add(tile_group);
             function createOneTile(x, y, x_offset, y_offset) {
-                const init_tex_name = [x, y, 'veg'].join('_');
+                const init_tex_name = [x, y, 'sc'].join('_');
                 const initial_texture = loadedAssets.textures[init_tex_name];
                 const object_width = initial_texture.image.width;
                 const object_height = initial_texture.image.height;
@@ -738,6 +738,28 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     child_mat.uniforms.active_texture.needsUpdate = true;
                 }
                 render();
+                // redraw legend
+                if (child.userData.active_texture_type == 'veg') {
+                    let veg_color_map = {};
+                    for (var code in currentConditions.veg_sc_pct) {
+                        console.log(name);
+                        for (var name in currentDefinitions.veg_type_color_map) {
+                            if (Number(name) == Number(code)) {
+                                if (currentDefinitions.has_lookup) {
+                                    veg_color_map[String(currentConditions.veg_names[Number(name)]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
+                                }
+                                else {
+                                    veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
+                                }
+                                break;
+                            }
+                        }
+                    }
+                    drawLegend(veg_color_map);
+                }
+                else {
+                    drawLegend(currentDefinitions.state_class_color_map);
+                }
             });
             // always finish with a render
             render();

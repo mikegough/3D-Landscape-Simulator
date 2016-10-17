@@ -96,19 +96,35 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
 
 
-def create_rgb_colormap(sc_defs):
+def color_from_id(stsm_definition):
 
-    raw_colormap = create_colormap(sc_defs)
+    value = stsm_definition['ID']
+    return {
+        'ID': value,
+        'r': (int(value) & 0xFF),
+        'g': (int(value) & 0xFF00) >> 8,
+        'b': (int(value) & 0xFF0000) >> 16
+    }
+
+from pprint import pprint
+
+def create_rgb_colormap(definitions, decode_from_id=False):
+    pprint(definitions)
+    if decode_from_id:
+        raw_colormap = [color_from_id(definitions[row]) for row in definitions]
+    else:
+        raw_colormap = create_colormap(definitions)
+
     rgb_colormap = dict()
-    for stateclass in sc_defs.keys():
-        id = sc_defs[stateclass]['ID']
+    for key in definitions.keys():
+        id = definitions[key]['ID']
         for color in raw_colormap:
             if color['ID'] == id:
                 r = int(color['r'])
                 g = int(color['g'])
                 b = int(color['b'])
                 hex_color = rgb_to_hex((r, g, b))
-                rgb_colormap[stateclass] = hex_color
+                rgb_colormap[key] = hex_color
                 break
     return OrderedDict(sorted(rgb_colormap.items(), key=order()))
 

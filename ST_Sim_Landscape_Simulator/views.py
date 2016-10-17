@@ -340,6 +340,7 @@ class LibraryInfoView(STSimBaseView):
         response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
         response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
         response['state_class_color_map'] = texture_utils.create_rgb_colormap(sc_defs)
+        response['veg_type_color_map'] = texture_utils.create_rgb_colormap(veg_defs,decode_from_id=True)
 
         # our probabilistic transition types for this application
         probabilistic_transition_types = stsim_manager.probabilistic_transition_types[self.library]
