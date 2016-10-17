@@ -15,7 +15,6 @@
     <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.css" />
     <!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.ie.css" /><![endif]-->
 
-
     <!-- Leaflet.draw -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.3.2/leaflet.draw.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.3.2/leaflet.draw.css" />
@@ -66,9 +65,6 @@
         <div id="input">
             <div id="step1" class="steps">Welcome & Getting Started </div>
             <div id="intro">
-                <!--
-                The 3D Landscape Simulator is a web-based application that allows you to run State-and-Transition Simulation models (powered by ST-Sim) over the internet.
-                -->
                 The 3D Landscape Simulator is a web-based state-and-transition modelling framework powered by ST-Sim.
                 <p>
                 It is designed to simulate the future vegetation composition of a selected area based on a set of initial conditions, disturbance probabilities, and management actions.
@@ -153,8 +149,16 @@
                 </div>
                 <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">100%</div></div>
             </div>
+            <div style="display:none" id="input_climate_future">
+                <div class="steps">3. Climate Change Projections </div>
+                <div id="climate_future_disabled"> Using User-Defined Disturbance Probabilities<p>
+                    <input id="reset_default_probabilistic_transitions" type="button" value="Reset">
+                </div>
+                <table id="climateFutureSliderTable" class="sliderTable"></table>
+            </div>
+            <p>
             <div style="display:none" id="input_probabilistic_transitions">
-                <div class="steps">3. Annual Disturbance Probabilities</div>
+                <div class="steps">4. Annual Disturbance Probabilities</div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
             </div>
             <div style="dislay:none">

@@ -89,6 +89,25 @@ $(document).ready(function() {
 
     });
 
+    $("#reset_default_probabilistic_transitions").on("click", function(){
+        reset_probabilistic_transitions()
+    })
+
+    function reset_probabilistic_transitions() {
+        var count=1
+        $.each(probabilistic_transitions_json, function (transition_type) {
+            probabilistic_transitions_slider_values[transition_type] = 0
+            $("#probabilistic_transition" + count + "_slider").slider("value", 0);
+            $("#probabilistic_transition" + count + "_label").val("Default Probabilities");
+            count+=1
+        });
+        $("#climate_future_disabled").hide()
+        $("#climate_future_precip_slider").slider("value",0)
+        $("#climate_future_temp_slider").slider("value",0)
+        $("#climate_future_precip_label").val(climate_future_precip_labels[1]);
+        $("#climate_future_temp_label").val(climate_future_temp_labels[0]);
+    }
+
 });
 
 
@@ -106,6 +125,7 @@ function show_input_options (){
 
     $("#input_initial_veg").show();
     $("#general_settings").show();
+    $("#input_climate_future").show();
     $("#input_probabilistic_transitions").show();
     $("#run_button").on("click", function(){
             run_st_sim(feature_id)
@@ -413,7 +433,6 @@ function updateStudyArea(extent) {
     } else {
         updateExtent(libraryName, extent);
     }
-
 }
 
 var current_uuid;
@@ -618,6 +637,67 @@ function setInitialConditionsSidebar(initial_conditions) {
         });
     }
 
+/********************************************* Climate Slider Inputs  *************************************************/
+
+    climate_future_temp_labels=["Warm", "Hot", "Very Hot"];
+    climate_future_precip_labels=["Wet", "No Change", "Dry"];
+
+    $("#climateFutureSliderTable").append("<tr><td><label for='amount_climate_temp'><span class='transition_type'>" + "Temperature" + ": </span></label>" +
+            "<input type='text' id='climate_future_temp_label' class='current_climate_future_slider_setting' value='Warm' readonly>" +
+            "<div class='slider_bars probabilistic_transition_sliders' id='climate_future_temp_slider'></div>" +
+            "</td><td>"+
+            "<label for='amount_climate_precip'><span class='transition_type'>" + "Precipitation" + ": </span></label>" +
+            "<input type='text' id='climate_future_precip_label' class='current_climate_future_slider_setting' value='No Change' readonly>" +
+            "<div class='slider_bars probabilistic_transition_sliders' id='climate_future_precip_slider'></div>" +
+            "</td></tr>"
+        );
+
+    var temp_previous_value=0
+    $("#climate_future_temp_slider").slider({
+        value: 0,
+        min: 0,
+        max:2,
+        step:1,
+        slide: function (event, ui) {
+            climate_future_temp_slider_value = ui.value
+            $("#climate_future_temp_label").val(climate_future_temp_labels[ui.value]);
+            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - temp_previous_value + ui.value / 4
+            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - temp_previous_value + ui.value / 4
+            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - temp_previous_value + ui.value / 4
+            $("#probabilistic_transition1_slider").slider("value", new_value1);
+            $("#probabilistic_transition2_slider").slider("value", new_value2);
+            $("#probabilistic_transition3_slider").slider("value", new_value3);
+            $("#probabilistic_transition1_label").val(probability_labels[new_value1]);
+            $("#probabilistic_transition2_label").val(probability_labels[new_value2]);
+            $("#probabilistic_transition3_label").val(probability_labels[new_value3]);
+            temp_previous_value=ui.value/4
+        }
+    });
+
+    var precip_previous_value=0
+    $("#climate_future_precip_slider").slider({
+        value: 0,
+        min: -1,
+        max:1,
+        step:1,
+        slide: function (event, ui) {
+            climate_future_precip_slider_value = ui.value
+            $("#climate_future_precip_label").val(climate_future_precip_labels[ui.value+1]);
+            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - precip_previous_value + ui.value / 4
+            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - precip_previous_value + ui.value / 4
+            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - precip_previous_value + ui.value / 4
+            $("#probabilistic_transition1_slider").slider("value", new_value1);
+            $("#probabilistic_transition2_slider").slider("value", new_value2);
+            $("#probabilistic_transition3_slider").slider("value", new_value3);
+            $("#probabilistic_transition1_label").val(probability_labels[new_value1]);
+            $("#probabilistic_transition2_label").val(probability_labels[new_value2]);
+            $("#probabilistic_transition3_label").val(probability_labels[new_value3]);
+            precip_previous_value=ui.value/4
+        }
+    });
+
+/*********************************** Probabilistic Transitions Slider Inputs ******************************************/
+
     var probability_iteration = 1;
 
     $.each(probabilistic_transitions_json, function (transition_type, state_class_list) {
@@ -649,8 +729,11 @@ function setInitialConditionsSidebar(initial_conditions) {
                 max: 1,
                 step: .25,
                 slide: function (event, ui) {
-                    probabilistic_transitions_slider_values[transition_type] = ui.value
                     $("#probabilistic_transition" + iterator + "_label").val(probability_labels[ui.value]);
+                    $("#climate_future_disabled").show()
+                },
+                change: function (event, ui) {
+                    probabilistic_transitions_slider_values[transition_type] = ui.value
                 },
             });
 
@@ -721,7 +804,7 @@ $(document).on('change', '#settings_library', function() {
             feature_id = newLibraryName;
         }
     })
-})
+});
 
 function hideSceneLoadingDiv() {
     $('#scene_loading_div').hide();
