@@ -644,7 +644,7 @@ function setInitialConditionsSidebar(initial_conditions) {
     climate_future_temp_labels=["Warm", "Hot", "Very Hot"];
     climate_future_precip_labels=["Wet", "No Change", "Dry"];
 
-    $("#climateFutureSliderTable").append("<tr><td><label for='amount_climate_temp'><span class='transition_type'>" + "Temperature" + ": </span></label>" +
+    $("#climateFutureSliderTable").html("<tr><td><label for='amount_climate_temp'><span class='transition_type'>" + "Temperature" + ": </span></label>" +
             "<input type='text' id='climate_future_temp_label' class='current_climate_future_slider_setting' value='Warm' readonly>" +
             "<div class='slider_bars probabilistic_transition_sliders' id='climate_future_temp_slider'></div>" +
             "</td><td>"+
@@ -663,9 +663,9 @@ function setInitialConditionsSidebar(initial_conditions) {
         slide: function (event, ui) {
             climate_future_temp_slider_value = ui.value
             $("#climate_future_temp_label").val(climate_future_temp_labels[ui.value]);
-            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - temp_previous_value + ui.value / 4
-            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - temp_previous_value + ui.value / 4
-            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - temp_previous_value + ui.value / 4
+            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - temp_previous_value + ui.value / 4;
+            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - temp_previous_value + ui.value / 4;
+            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - temp_previous_value + ui.value / 4;
             $("#probabilistic_transition1_slider").slider("value", new_value1);
             $("#probabilistic_transition2_slider").slider("value", new_value2);
             $("#probabilistic_transition3_slider").slider("value", new_value3);
@@ -685,9 +685,9 @@ function setInitialConditionsSidebar(initial_conditions) {
         slide: function (event, ui) {
             climate_future_precip_slider_value = ui.value
             $("#climate_future_precip_label").val(climate_future_precip_labels[ui.value+1]);
-            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - precip_previous_value + ui.value / 4
-            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - precip_previous_value + ui.value / 4
-            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - precip_previous_value + ui.value / 4
+            var new_value1 = $('#probabilistic_transition1_slider').slider("option", "value") - precip_previous_value + ui.value / 4;
+            var new_value2 = $('#probabilistic_transition2_slider').slider("option", "value") - precip_previous_value + ui.value / 4;
+            var new_value3 = $('#probabilistic_transition3_slider').slider("option", "value") - precip_previous_value + ui.value / 4;
             $("#probabilistic_transition1_slider").slider("value", new_value1);
             $("#probabilistic_transition2_slider").slider("value", new_value2);
             $("#probabilistic_transition3_slider").slider("value", new_value3);
