@@ -76,36 +76,38 @@ $(document).ready(function() {
         if (veg_state_class_value_totals > 100){
 
             $("#total_input_percent").html(">100%");
-            total_percent_action(9999)
+            total_percent_action(9999);
 
         }
 
         else {
 
             $("#total_input_percent").html(total_input_percent.toFixed(0) + "%");
-            total_percent_action(total_input_percent.toFixed(0))
+            total_percent_action(total_input_percent.toFixed(0));
 
         }
 
     });
 
     $("#reset_default_probabilistic_transitions").on("click", function(){
-        reset_probabilistic_transitions()
+        reset_probabilistic_transitions();
     })
 
     function reset_probabilistic_transitions() {
-        var count=1
+        var count=1;
         $.each(probabilistic_transitions_json, function (transition_type) {
-            probabilistic_transitions_slider_values[transition_type] = 0
+            probabilistic_transitions_slider_values[transition_type] = 0;
             $("#probabilistic_transition" + count + "_slider").slider("value", 0);
             $("#probabilistic_transition" + count + "_label").val("Default Probabilities");
-            count+=1
+            count+=1;
         });
-        $("#climate_future_disabled").hide()
-        $("#climate_future_precip_slider").slider("value",0)
-        $("#climate_future_temp_slider").slider("value",0)
+        $("#climate_future_disabled").hide();
+        $("#climate_future_precip_slider").slider("value",0);
+        $("#climate_future_temp_slider").slider("value",0);
         $("#climate_future_precip_label").val(climate_future_precip_labels[1]);
         $("#climate_future_temp_label").val(climate_future_temp_labels[0]);
+        temp_previous_value=0;
+        precip_previous_value=0;
     }
 
 });
@@ -652,7 +654,7 @@ function setInitialConditionsSidebar(initial_conditions) {
             "</td></tr>"
         );
 
-    var temp_previous_value=0
+    temp_previous_value=0
     $("#climate_future_temp_slider").slider({
         value: 0,
         min: 0,
@@ -674,7 +676,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         }
     });
 
-    var precip_previous_value=0
+    precip_previous_value=0
     $("#climate_future_precip_slider").slider({
         value: 0,
         min: -1,
