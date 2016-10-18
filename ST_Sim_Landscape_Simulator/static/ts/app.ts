@@ -26,7 +26,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
-	controls.enableKeys = false
+	//controls.enableKeys = false
 	camera.position.y = 350
 	camera.position.z = 600
 
@@ -38,10 +38,10 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
-	renderer.domElement.addEventListener('mousedown', animate, false)
-	renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-	renderer.domElement.addEventListener('mousewheel', render, false)
-	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+	//renderer.domElement.addEventListener('mousedown', animate, false)
+	//renderer.domElement.addEventListener('mouseup', stopAnimate, false)
+	//renderer.domElement.addEventListener('mousewheel', render, false)
+	//renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
 	initialize()
 
@@ -166,8 +166,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	function setStudyAreaTiles(reporting_unit_name: string, unit_id : string, initialConditions: STSIM.LibraryInitConditions) {
 		if (unit_id != current_unit_id) {
 
-			if (scene.getChildByName('terrain') != undefined) {
-				scene.remove(scene.getChildByName('terrain'))
+			if (scene.getObjectByName('terrain') != undefined) {
+				scene.remove(scene.getObjectByName('terrain'))
 			}
 
 			currentConditions = initialConditions
@@ -288,14 +288,15 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 				let veg_color_map = {}
 				for (var code in currentConditions.veg_sc_pct) {
-					console.log(name)
+					//console.log(name)
 					for (var name in currentDefinitions.veg_type_color_map) {
 						if (Number(name) == Number(code)) {
 							if (currentDefinitions.has_lookup) {
-								veg_color_map[String(currentConditions.veg_names[Number(name)]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
+								veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
 							} else {
 								veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
 							}
+							console.log('Match!')
 							break
 						}
 					}
@@ -558,6 +559,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	function isInitialized() {
 		return initialized
 	}
+
+	animate()
 
 	return {
 		isInitialized: isInitialized,

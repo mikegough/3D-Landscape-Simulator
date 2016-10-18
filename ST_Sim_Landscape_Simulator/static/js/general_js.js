@@ -424,7 +424,6 @@ function updateStudyArea(extent, unit_id) {
                         break;
                     }
                 }
-                //console.log(unit_id);
                 $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/')
                     .done(function (init_conditions) {
                         setInitialConditionsSidebar(init_conditions);

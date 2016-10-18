@@ -521,7 +521,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
         // Camera controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableKeys = false;
+        //controls.enableKeys = false
         camera.position.y = 350;
         camera.position.z = 600;
         const disp = 2.0 / 30.0;
@@ -529,10 +529,10 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         controls.maxPolarAngle = Math.PI / 2;
         // Custom event handlers since we only want to render when something happens.
-        renderer.domElement.addEventListener('mousedown', animate, false);
-        renderer.domElement.addEventListener('mouseup', stopAnimate, false);
-        renderer.domElement.addEventListener('mousewheel', render, false);
-        renderer.domElement.addEventListener('MozMousePixelScroll', render, false); // firefox
+        //renderer.domElement.addEventListener('mousedown', animate, false)
+        //renderer.domElement.addEventListener('mouseup', stopAnimate, false)
+        //renderer.domElement.addEventListener('mousewheel', render, false)
+        //renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
         initialize();
         // Load initial assets
         function initialize() {
@@ -638,8 +638,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         let current_unit_id;
         function setStudyAreaTiles(reporting_unit_name, unit_id, initialConditions) {
             if (unit_id != current_unit_id) {
-                if (scene.getChildByName('terrain') != undefined) {
-                    scene.remove(scene.getChildByName('terrain'));
+                if (scene.getObjectByName('terrain') != undefined) {
+                    scene.remove(scene.getObjectByName('terrain'));
                 }
                 currentConditions = initialConditions;
                 current_unit_id = unit_id;
@@ -742,15 +742,16 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 if (child.userData.active_texture_type == 'veg') {
                     let veg_color_map = {};
                     for (var code in currentConditions.veg_sc_pct) {
-                        console.log(name);
+                        //console.log(name)
                         for (var name in currentDefinitions.veg_type_color_map) {
                             if (Number(name) == Number(code)) {
                                 if (currentDefinitions.has_lookup) {
-                                    veg_color_map[String(currentConditions.veg_names[Number(name)]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
+                                    veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
                                 }
                                 else {
                                     veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
                                 }
+                                console.log('Match!');
                                 break;
                             }
                         }
@@ -974,6 +975,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         function isInitialized() {
             return initialized;
         }
+        animate();
         return {
             isInitialized: isInitialized,
             resize: resize,
