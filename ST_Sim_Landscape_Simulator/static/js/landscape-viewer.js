@@ -529,10 +529,10 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         controls.maxPolarAngle = Math.PI / 2;
         // Custom event handlers since we only want to render when something happens.
-        //renderer.domElement.addEventListener('mousedown', animate, false)
-        //renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-        //renderer.domElement.addEventListener('mousewheel', render, false)
-        //renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+        renderer.domElement.addEventListener('mousedown', animate, false);
+        renderer.domElement.addEventListener('mouseup', stopAnimate, false);
+        renderer.domElement.addEventListener('mousewheel', render, false);
+        renderer.domElement.addEventListener('MozMousePixelScroll', render, false); // firefox
         initialize();
         // Load initial assets
         function initialize() {
@@ -975,7 +975,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         function isInitialized() {
             return initialized;
         }
-        animate();
         return {
             isInitialized: isInitialized,
             resize: resize,

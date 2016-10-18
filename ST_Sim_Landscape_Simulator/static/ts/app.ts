@@ -38,10 +38,10 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	controls.maxPolarAngle = Math.PI / 2
 
 	// Custom event handlers since we only want to render when something happens.
-	//renderer.domElement.addEventListener('mousedown', animate, false)
-	//renderer.domElement.addEventListener('mouseup', stopAnimate, false)
-	//renderer.domElement.addEventListener('mousewheel', render, false)
-	//renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+	renderer.domElement.addEventListener('mousedown', animate, false)
+	renderer.domElement.addEventListener('mouseup', stopAnimate, false)
+	renderer.domElement.addEventListener('mousewheel', render, false)
+	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
 	initialize()
 
@@ -559,8 +559,6 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	function isInitialized() {
 		return initialized
 	}
-
-	animate()
 
 	return {
 		isInitialized: isInitialized,
