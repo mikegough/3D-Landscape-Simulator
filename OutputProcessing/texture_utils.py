@@ -106,10 +106,8 @@ def color_from_id(stsm_definition):
         'b': (int(value) & 0xFF0000) >> 16
     }
 
-from pprint import pprint
 
 def create_rgb_colormap(definitions, decode_from_id=False):
-    pprint(definitions)
     if decode_from_id:
         raw_colormap = [color_from_id(definitions[row]) for row in definitions]
     else:

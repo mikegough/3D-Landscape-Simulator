@@ -32,7 +32,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_lengt
     sys.stdout.flush()
 
 
-def build_reporting_units(name, lib, layer, output_dir=None):
+def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
     """
     Clips each extent for a given reporting unit and builds the textures and initial conditions
     :param name: Name of the reporting_unit in the STSIM_CONFIG
@@ -57,6 +57,10 @@ def build_reporting_units(name, lib, layer, output_dir=None):
     elev_path = stsim_manager.elev_paths[lib]
     reporting_units = parse_reporting_units(layer)
     output_dir = os.path.join(output_dir, lib, name)
+
+    veg_sc_defs = stsim_manager.all_veg_state_classes[lib]
+    veg_defs = stsim_manager.vegtype_definitions[lib]
+    sc_defs = stsim_manager.stateclass_definitions[lib]
 
     p = 0
     total_progress = len(reporting_units)
@@ -159,7 +163,7 @@ def build_reporting_units(name, lib, layer, output_dir=None):
                     row_stats.append(raster_utils.zonal_stateclass_stats(temp_veg_path, output_path))
                 raw_unit_zonal_stats.append(row_stats)
 
-        final_zonal_stats, total = total_stateclass_stats(raw_unit_zonal_stats)
+        final_zonal_stats, total = total_stateclass_stats(raw_unit_zonal_stats, veg_sc_defs, veg_defs, sc_defs)
         unit_initial_conditions['veg_sc_pct'] = final_zonal_stats
         unit_initial_conditions['total_cells'] = total
         veg_codes = final_zonal_stats.keys()
@@ -225,6 +229,8 @@ def build_reporting_units(name, lib, layer, output_dir=None):
 
         p += 1
         print_progress(p, total_progress, prefix='Progress:', suffix='Complete')
+        if one_shot:
+            break
 
 
 def parse_reporting_units(path):
@@ -242,7 +248,7 @@ def parse_reporting_units(path):
     return extents
 
 
-def total_stateclass_stats(raw_stats):
+def total_stateclass_stats(raw_stats, veg_sc_defs, veg_defs, sc_defs):
     """ Determine the overall covers """
     result = dict()
     overall_total = 0
@@ -250,13 +256,22 @@ def total_stateclass_stats(raw_stats):
         for col in row:
             block_stats, block_total = col
             overall_total += block_total
-            for veg in block_stats.keys():
-                if str(veg) not in result.keys():
-                    result[str(veg)] = dict()
-                for sc in block_stats[veg].keys():
-                    if str(sc) not in result[str(veg)].keys():
-                        result[str(veg)][str(sc)] = 0
-                    result[str(veg)][str(sc)] += block_stats[veg][sc] * block_total
+
+            for vegtype in veg_sc_defs.keys():
+                veg_id = int(veg_defs[vegtype]['ID'])
+                if veg_id in block_stats.keys():
+                    if vegtype not in result.keys():
+                        result[vegtype] = dict()
+
+                    for sc_type in veg_sc_defs[vegtype]:
+                        sc_id = int(sc_defs[sc_type]['ID'])
+                        if sc_type not in result[vegtype].keys():
+                            result[vegtype][sc_type] = 0
+                            
+                        if sc_id in block_stats[veg_id].keys():
+                            result[vegtype][sc_type] += block_stats[veg_id][sc_id] * block_total
+                        else:
+                            result[vegtype][sc_type] = 0
 
     for veg in result.keys():
         for sc in result[veg].keys():
