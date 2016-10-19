@@ -7,7 +7,8 @@ from math import ceil
 from OutputProcessing.plugins import conversions, lookups
 import sys
 
-TILE_SIZE = 512
+TIFF_SIZE = 512
+TEXTURE_SIZE_RATIO = 0.5    # texture size = tiff_size * ratio
 
 
 # Print iterations progress
@@ -32,7 +33,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_lengt
     sys.stdout.flush()
 
 
-def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
+def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, single_id=None):
     """
     Clips each extent for a given reporting unit and builds the textures and initial conditions
     :param name: Name of the reporting_unit in the STSIM_CONFIG
@@ -68,6 +69,12 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
 
     for unit in reporting_units:
 
+        if single_id is not None:
+            one_shot = True
+
+            if unit['id'] != single_id:
+                continue
+
         unit_dir = os.path.join(output_dir, unit['id'])
         if not os.path.exists(unit_dir):
             os.makedirs(os.path.join(unit_dir, 'veg'))
@@ -84,31 +91,31 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TILE_SIZE)
-            y_tiles = ceil(height / TILE_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE)
+            y_tiles = ceil(height / TIFF_SIZE)
 
             for i in range(x_tiles):
-                left_idx = i * TILE_SIZE + overall_window[1][0]
-                right_idx = left_idx + TILE_SIZE if left_idx + TILE_SIZE < overall_window[1][1] else overall_window[1][1]
+                left_idx = i * TIFF_SIZE + overall_window[1][0]
+                right_idx = left_idx + TIFF_SIZE if left_idx + TIFF_SIZE < overall_window[1][1] else overall_window[1][1]
 
                 for j in range(y_tiles):
-                    top_idx = j * TILE_SIZE + overall_window[0][0]
-                    bot_idx = top_idx + TILE_SIZE if top_idx + TILE_SIZE < overall_window[0][1] else overall_window[0][1]
+                    top_idx = j * TIFF_SIZE + overall_window[0][0]
+                    bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TILE_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TILE_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
+                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
                     })
 
-                    output_path = os.path.join(unit_dir, 'veg', '-'.join([str(i),str(j),'veg.tif']))
+                    output_path = os.path.join(unit_dir, 'veg', '-'.join([str(i), str(j), 'veg.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
                         dst.write(src.read(1, window=window).astype('int32'), 1)
-                    veg_texture = texture_utils.vegtype_texture(output_path)
+                    veg_texture = texture_utils.vegtype_texture(output_path, scale=TEXTURE_SIZE_RATIO)
                     veg_texture.save(output_path.replace('tif', 'png'))
 
         # output stateclass rasters, textures
@@ -118,24 +125,24 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TILE_SIZE)
-            y_tiles = ceil(height / TILE_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE)
+            y_tiles = ceil(height / TIFF_SIZE)
 
             sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[lib])
 
             for i in range(x_tiles):
-                left_idx = i * TILE_SIZE + overall_window[1][0]
-                right_idx = left_idx + TILE_SIZE if left_idx + TILE_SIZE < overall_window[1][1] else overall_window[1][1]
+                left_idx = i * TIFF_SIZE + overall_window[1][0]
+                right_idx = left_idx + TIFF_SIZE if left_idx + TIFF_SIZE < overall_window[1][1] else overall_window[1][1]
                 row_stats = list()
                 for j in range(y_tiles):
-                    top_idx = j * TILE_SIZE + overall_window[0][0]
-                    bot_idx = top_idx + TILE_SIZE if top_idx + TILE_SIZE < overall_window[0][1] else overall_window[0][1]
+                    top_idx = j * TIFF_SIZE + overall_window[0][0]
+                    bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TILE_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TILE_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
+                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
@@ -156,7 +163,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
                         with rasterio.open(output_path, 'w', **out_kwargs) as dst:
                             dst.write(src.read(1, window=window).astype('int32'), 1)
 
-                    sc_texture = texture_utils.stateclass_texture(output_path, sc_colormap)
+                    sc_texture = texture_utils.stateclass_texture(output_path, sc_colormap, scale=TEXTURE_SIZE_RATIO)
                     sc_texture.save(output_path.replace('tif', 'png'))
 
                     # collect zonal stats for this chunk
@@ -181,22 +188,22 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TILE_SIZE)
-            y_tiles = ceil(height / TILE_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE)
+            y_tiles = ceil(height / TIFF_SIZE)
 
             for i in range(x_tiles):
-                left_idx = i * TILE_SIZE + overall_window[1][0]
-                right_idx = left_idx + TILE_SIZE if left_idx + TILE_SIZE < overall_window[1][1] else overall_window[1][1]
+                left_idx = i * TIFF_SIZE + overall_window[1][0]
+                right_idx = left_idx + TIFF_SIZE if left_idx + TIFF_SIZE < overall_window[1][1] else overall_window[1][1]
                 row_stats = list()
                 for j in range(y_tiles):
-                    top_idx = j * TILE_SIZE + overall_window[0][0]
-                    bot_idx = top_idx + TILE_SIZE if top_idx + TILE_SIZE < overall_window[0][1] else overall_window[0][1]
+                    top_idx = j * TIFF_SIZE + overall_window[0][0]
+                    bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TILE_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TILE_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
+                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
@@ -206,7 +213,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
                     output_path = os.path.join(unit_dir, 'elev', '-'.join([str(i), str(j), 'elev.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
                         dst.write(src.read(1, window=window).astype('int32'), 1)
-                    sc_texture = texture_utils.elevation_texture(output_path)
+                    sc_texture = texture_utils.elevation_texture(output_path, scale=TEXTURE_SIZE_RATIO)
                     sc_texture.save(output_path.replace('tif', 'png'))
                     row_stats.append(raster_utils.elevation_stats(output_path))
 
@@ -217,7 +224,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False):
         unit_initial_conditions['elev'] = total_elevation_stats(raw_unit_elevation_stats)
         unit_initial_conditions['elev']['x_tiles'] = x_tiles
         unit_initial_conditions['elev']['y_tiles'] = y_tiles
-        unit_initial_conditions['elev']['tile_size'] = TILE_SIZE
+        unit_initial_conditions['elev']['tile_size'] = int(TIFF_SIZE * TEXTURE_SIZE_RATIO)
 
         unit_json_path = os.path.join(unit_dir, 'initial_conditions.json')
         with open(unit_json_path, 'w') as ic:
@@ -286,8 +293,8 @@ def total_elevation_stats(raw_stats):
     max_height = 0
 
     small_tile = raw_stats[-1][-1]
-    width = TILE_SIZE * (len(raw_stats) - 1) + small_tile['dem_width']
-    height = TILE_SIZE * (len(raw_stats[0]) - 1) + small_tile['dem_height']
+    width = int((TIFF_SIZE * (len(raw_stats) - 1) + small_tile['dem_width']) * TEXTURE_SIZE_RATIO)
+    height = int((TIFF_SIZE * (len(raw_stats[0]) - 1) + small_tile['dem_height']) * TEXTURE_SIZE_RATIO)
 
     for i in range(len(raw_stats)):
         row = raw_stats[i]
