@@ -7,7 +7,7 @@ from collections import OrderedDict
 from PIL import Image
 
 
-def elevation_texture(elev_path):
+def elevation_texture(elev_path, scale=None):
     """ Creates an elevation-encoded image from a given elevation GeoTiff
     :param elev_path: The path to the elevation to encode into the texture.
     """
@@ -44,10 +44,12 @@ def elevation_texture(elev_path):
         a_array = npi.remap(elev_flat, list(a_map.keys()), list(a_map.values()))
         image_data = [(r_array[i], g_array[i], b_array[i], a_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
-        return texture
+        if scale:
+            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
+    return texture
 
 
-def vegtype_texture(strata_path):
+def vegtype_texture(strata_path, scale=None):
     """ Creates a type-encoded image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -76,7 +78,9 @@ def vegtype_texture(strata_path):
         b_array = npi.remap(strata_flat, list(b_map.keys()), list(b_map.values()))
         image_data = [(r_array[i], g_array[i], b_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
-        return texture
+        if scale:
+            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
+    return texture
 
 
 def create_colormap(sc_defs):
@@ -127,7 +131,7 @@ def create_rgb_colormap(definitions, decode_from_id=False):
     return OrderedDict(sorted(rgb_colormap.items(), key=order()))
 
 
-def stateclass_texture(sc_tif, colormap):
+def stateclass_texture(sc_tif, colormap, scale=None):
     """ Creates a true-color image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -164,6 +168,8 @@ def stateclass_texture(sc_tif, colormap):
         image_shape = (shape[1], shape[0])  # images are column major
         texture = Image.new('RGB', image_shape)
         texture.putdata(image_data)
+        if scale:
+            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
     return texture
 
 
