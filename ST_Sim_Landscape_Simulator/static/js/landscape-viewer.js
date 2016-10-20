@@ -36,7 +36,7 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             vertices.setZ(i, params.heights[i] * params.disp);
         }
         geo.computeVertexNormals();
-        geo.translate(params.translate_x, params.translate_y, 0);
+        geo.translate(params.translate_x, params.translate_y, params.translate_z * params.disp);
         const mat = new THREE.ShaderMaterial({
             uniforms: {
                 // uniform for adjusting the current texture
@@ -502,15 +502,20 @@ define("utils", ["require", "exports"], function (require, exports) {
         }
     }
     exports.detectWebGL = detectWebGL;
+    function detectWebWorkers() {
+        return typeof (Worker) !== "undefined";
+    }
+    exports.detectWebWorkers = detectWebWorkers;
 });
 // app.ts
 define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], function (require, exports, terrain_1, veg_1, utils_1, assetloader_1) {
     "use strict";
     function run(container_id, showloadingScreen, hideLoadingScreen) {
-        if (!utils_1.detectWebGL) {
+        if (!utils_1.detectWebGL()) {
             alert("Your browser does not support WebGL. Please use a different browser (I.e. Chrome, Firefox).");
             return null;
         }
+        const useWebWorker = utils_1.detectWebWorkers();
         let initialized = false;
         let masterAssets = {};
         // setup the THREE scene
@@ -518,16 +523,19 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
-        const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
+        const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0);
         // Camera controls
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        //controls.enableKeys = false
+        controls.enableKeys = false;
+        controls.zoomSpeed = 0.1;
         camera.position.y = 350;
         camera.position.z = 600;
         const disp = 2.0 / 30.0;
-        //const camera_start_position = camera.position.copy(new THREE.Vector3())
+        //scene.translateZ(500)
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-        controls.maxPolarAngle = Math.PI / 2;
+        controls.maxPolarAngle = Math.PI / 2.4;
+        controls.minDistance = 150;
+        controls.maxDistance = 900;
         // Custom event handlers since we only want to render when something happens.
         renderer.domElement.addEventListener('mousedown', animate, false);
         renderer.domElement.addEventListener('mouseup', stopAnimate, false);
@@ -677,11 +685,22 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             const world_width = currentConditions.elev.dem_width;
             const world_height = currentConditions.elev.dem_height;
             const world_x_offset = -1 * world_width / 2 + tile_size / 2;
-            const world_y_offset = world_height / 2 - tile_size / 2;
+            const world_y_offset = world_height - tile_size / 2;
             const tile_group = new THREE.Group();
             tile_group.name = 'terrain';
             scene.add(tile_group);
             function createOneTile(x, y, x_offset, y_offset) {
+                var compute_heights_worker = new Worker('static/js/compute_heights.js');
+                const heightmap = loadedAssets.textures[[x, y, 'elev'].join('_')];
+                const image = heightmap.image;
+                let w = image.naturalWidth;
+                let h = image.naturalHeight;
+                let canvas = document.createElement('canvas');
+                canvas.width = w;
+                canvas.height = h;
+                let ctx = canvas.getContext('2d');
+                ctx.drawImage(image, 0, 0, w, h);
+                let data = ctx.getImageData(0, 0, w, h).data;
                 const init_tex_name = [x, y, 'sc'].join('_');
                 const initial_texture = loadedAssets.textures[init_tex_name];
                 const object_width = initial_texture.image.width;
@@ -690,20 +709,48 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 const y_object_offset = object_height / 2 - tile_size / 2;
                 const translate_x = world_x_offset + x_offset + x_object_offset;
                 const translate_y = world_y_offset + y_offset - y_object_offset;
-                const heights = computeHeights(loadedAssets.textures[[x, y, 'elev'].join('_')]);
-                tile_group.add(terrain_1.createTerrainTile({
-                    x: x,
-                    y: y,
-                    width: object_width,
-                    height: object_height,
-                    translate_x: translate_x,
-                    translate_y: translate_y,
-                    init_tex: initial_texture,
-                    heights: heights,
-                    disp: disp,
-                    vertexShader: masterAssets['terrain'].text['tile_vert'],
-                    fragmentShader: masterAssets['terrain'].text['tile_frag']
-                }));
+                if (useWebWorker) {
+                    compute_heights_worker.onmessage = function (e) {
+                        const heights = e.data;
+                        tile_group.add(terrain_1.createTerrainTile({
+                            x: x,
+                            y: y,
+                            width: object_width,
+                            height: object_height,
+                            translate_x: translate_x,
+                            translate_y: translate_y,
+                            translate_z: -currentConditions.elev.dem_min,
+                            init_tex: initial_texture,
+                            heights: heights,
+                            disp: disp,
+                            vertexShader: masterAssets['terrain'].text['tile_vert'],
+                            fragmentShader: masterAssets['terrain'].text['tile_frag']
+                        }));
+                        compute_heights_worker.terminate();
+                        compute_heights_worker = undefined;
+                        render();
+                    };
+                    // Send the data
+                    compute_heights_worker.postMessage({ data: data, w: w, h: h });
+                }
+                else {
+                    console.log('No web workers, computing on main thread...');
+                    const heights = computeHeights(loadedAssets.textures[[x, y, 'elev'].join('_')]);
+                    tile_group.add(terrain_1.createTerrainTile({
+                        x: x,
+                        y: y,
+                        width: object_width,
+                        height: object_height,
+                        translate_x: translate_x,
+                        translate_y: translate_y,
+                        translate_z: -currentConditions.elev.dem_min,
+                        init_tex: initial_texture,
+                        heights: heights,
+                        disp: disp,
+                        vertexShader: masterAssets['terrain'].text['tile_vert'],
+                        fragmentShader: masterAssets['terrain'].text['tile_frag']
+                    }));
+                }
             }
             let local_x_offset = 0;
             let local_y_offset = 0;
@@ -742,7 +789,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 if (child.userData.active_texture_type == 'veg') {
                     let veg_color_map = {};
                     for (var code in currentConditions.veg_sc_pct) {
-                        //console.log(name)
                         for (var name in currentDefinitions.veg_type_color_map) {
                             if (Number(name) == Number(code)) {
                                 if (currentDefinitions.has_lookup) {
@@ -751,18 +797,18 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                                 else {
                                     veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
                                 }
-                                console.log('Match!');
                                 break;
                             }
                         }
                     }
-                    drawLegend(veg_color_map);
+                    drawLegendCallback(veg_color_map);
                 }
                 else {
-                    drawLegend(currentDefinitions.state_class_color_map);
+                    drawLegendCallback(currentDefinitions.state_class_color_map);
                 }
             });
             // always finish with a render
+            controls.update();
             render();
             hideLoadingScreen();
         }
@@ -975,17 +1021,23 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         function isInitialized() {
             return initialized;
         }
+        let drawLegendCallback;
+        function registerLegendCallback(callback) {
+            drawLegendCallback = callback;
+        }
         return {
             isInitialized: isInitialized,
             resize: resize,
             scene: scene,
             camera: camera,
+            controls: controls,
             setLibraryDefinitions: setLibraryDefinitions,
             setStudyArea: setStudyArea,
             setStudyAreaTiles: setStudyAreaTiles,
             libraryDefinitions: masterAssets[currentLibraryName],
             collectSpatialOutputs: collectSpatialOutputs,
-            showLoadingScreen: showloadingScreen
+            showLoadingScreen: showloadingScreen,
+            registerLegendCallback: registerLegendCallback
         };
     }
     Object.defineProperty(exports, "__esModule", { value: true });

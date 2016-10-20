@@ -10,3 +10,7 @@ export function detectWebGL() {
 		return null
 	}
 }
+
+export function detectWebWorkers() {
+	return typeof(Worker) !== "undefined"
+}

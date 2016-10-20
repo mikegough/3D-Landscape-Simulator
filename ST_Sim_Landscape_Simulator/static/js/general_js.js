@@ -530,6 +530,7 @@ function drawLegend(colormap) {
         $("#scene_legend").append("<div id='scene_legend_color' style='background-color:" + value + "'> &nbsp</div>" + key + "<br>")
     });
 }
+landscape_viewer.registerLegendCallback(drawLegend);
 
 function setInitialConditionsSidebar(initial_conditions) {
 

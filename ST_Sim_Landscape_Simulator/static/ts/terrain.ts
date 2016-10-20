@@ -31,6 +31,7 @@ interface TerrainTile {
 	height: number
 	translate_x: number
 	translate_y: number
+	translate_z: number
 	vertexShader: string
 	fragmentShader: string
 }
@@ -53,7 +54,7 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 	}
 
 	geo.computeVertexNormals()
-	geo.translate(params.translate_x, params.translate_y, 0)
+	geo.translate(params.translate_x, params.translate_y, params.translate_z * params.disp)
 
 	const mat = new THREE.ShaderMaterial({
 		uniforms: {

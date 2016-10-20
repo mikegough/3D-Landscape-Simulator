@@ -2,17 +2,19 @@
 
 import {createTerrain, createDataTerrain, createTerrainTile, TileData} from './terrain'
 import {createSpatialVegetation, VegetationGroups} from './veg'
-import {detectWebGL} from './utils'
+import {detectWebGL, detectWebWorkers} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
 
 
 export default function run(container_id: string, showloadingScreen: Function, hideLoadingScreen: Function) {
 
-	if (!detectWebGL) {
+	if (!detectWebGL()) {
 		alert("Your browser does not support WebGL. Please use a different browser (I.e. Chrome, Firefox).")
 		return null
 	}
+
+	const useWebWorker = detectWebWorkers()
 
 	let initialized = false
 	let masterAssets = {} as AssetRepo
@@ -22,20 +24,21 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	const scene = new THREE.Scene()
 	const renderer = new THREE.WebGLRenderer({antialias: false})
 	container.appendChild(renderer.domElement)
-	const camera = new THREE.PerspectiveCamera(75, container.offsetWidth / container.offsetHeight, 2.0, 2000.0)
-	
+	const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0)
+
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
-	//controls.enableKeys = false
+	controls.enableKeys = false
+	controls.zoomSpeed = 0.1
 	camera.position.y = 350
 	camera.position.z = 600
-
 	const disp = 2.0 / 30.0
-
-	//const camera_start_position = camera.position.copy(new THREE.Vector3())
+	//scene.translateZ(500)
 	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
+	controls.maxPolarAngle = Math.PI / 2.4
 
-	controls.maxPolarAngle = Math.PI / 2
+	controls.minDistance = 150
+	controls.maxDistance = 900
 
 	// Custom event handlers since we only want to render when something happens.
 	renderer.domElement.addEventListener('mousedown', animate, false)
@@ -212,14 +215,28 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		const y_tiles = currentConditions.elev.y_tiles
 		const world_width = currentConditions.elev.dem_width
 		const world_height = currentConditions.elev.dem_height
-
 		const world_x_offset = -1 * world_width / 2 + tile_size / 2
-		const world_y_offset = world_height / 2 - tile_size / 2
+		const world_y_offset = world_height - tile_size / 2
 		const tile_group = new THREE.Group()
 		tile_group.name = 'terrain'
 		scene.add(tile_group)
 
 		function createOneTile(x: number, y: number, x_offset: number, y_offset: number) {
+
+			var compute_heights_worker = new Worker('static/js/compute_heights.js')
+
+			const heightmap = loadedAssets.textures[[x,y,'elev'].join('_')]
+
+			const image = heightmap.image
+			let w = image.naturalWidth
+			let h = image.naturalHeight
+			let canvas = document.createElement('canvas')
+			canvas.width = w
+			canvas.height = h
+			let ctx = canvas.getContext('2d')
+			ctx.drawImage(image, 0, 0, w, h)
+			let data = ctx.getImageData(0, 0, w, h).data
+			
 
 			const init_tex_name = [x,y,'sc'].join('_')
 			const initial_texture = loadedAssets.textures[init_tex_name]
@@ -230,21 +247,52 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			const translate_x = world_x_offset + x_offset + x_object_offset
 			const translate_y = world_y_offset + y_offset - y_object_offset
 
-			const heights = computeHeights(loadedAssets.textures[[x,y,'elev'].join('_')])
-			tile_group.add(createTerrainTile({
-				x: x,
-				y: y,
-				width: object_width,
-				height: object_height,
-				translate_x: translate_x,
-				translate_y: translate_y,
-				init_tex: initial_texture,
-				heights: heights,
-				disp: disp,
-				vertexShader: masterAssets['terrain'].text['tile_vert'],
-				fragmentShader: masterAssets['terrain'].text['tile_frag']
-			}))
-		}
+			if (useWebWorker) {
+				compute_heights_worker.onmessage = function(e) {
+			
+					const heights = e.data
+					tile_group.add(createTerrainTile({
+						x: x,
+						y: y,
+						width: object_width,
+						height: object_height,
+						translate_x: translate_x,
+						translate_y: translate_y,
+						translate_z: -currentConditions.elev.dem_min,
+						init_tex: initial_texture,
+						heights: heights,
+						disp: disp,
+						vertexShader: masterAssets['terrain'].text['tile_vert'],
+						fragmentShader: masterAssets['terrain'].text['tile_frag']
+					}))
+	
+					compute_heights_worker.terminate()
+					compute_heights_worker = undefined
+					render()
+				}
+
+				// Send the data
+				compute_heights_worker.postMessage({data:data, w: w, h:h})
+			}
+			else {
+				console.log('No web workers, computing on main thread...')
+				const heights = computeHeights(loadedAssets.textures[[x,y,'elev'].join('_')])
+				tile_group.add(createTerrainTile({
+					x: x,
+					y: y,
+					width: object_width,
+					height: object_height,
+					translate_x: translate_x,
+					translate_y: translate_y,
+					translate_z: -currentConditions.elev.dem_min,
+					init_tex: initial_texture,
+					heights: heights,
+					disp: disp,
+					vertexShader: masterAssets['terrain'].text['tile_vert'],
+					fragmentShader: masterAssets['terrain'].text['tile_frag']
+				}))
+			}
+		} 
 
 		let local_x_offset = 0
 		let local_y_offset = 0
@@ -288,7 +336,6 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 				let veg_color_map = {}
 				for (var code in currentConditions.veg_sc_pct) {
-					//console.log(name)
 					for (var name in currentDefinitions.veg_type_color_map) {
 						if (Number(name) == Number(code)) {
 							if (currentDefinitions.has_lookup) {
@@ -296,21 +343,21 @@ export default function run(container_id: string, showloadingScreen: Function, h
 							} else {
 								veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
 							}
-							console.log('Match!')
 							break
 						}
 					}
 				}
 
-				drawLegend(veg_color_map)
+				drawLegendCallback(veg_color_map)
 			} else {
-				drawLegend(currentDefinitions.state_class_color_map)				
+				drawLegendCallback(currentDefinitions.state_class_color_map)				
 			}
 
 		})
 
 
 		// always finish with a render
+		controls.update()
 		render()
 		hideLoadingScreen()
 	}
@@ -508,7 +555,9 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		
 	}
 
+
 	function computeHeights(hmTexture: THREE.Texture ) { //, stats: STSIM.ElevationStatistics) {
+
 		const image = hmTexture.image
 		let w = image.naturalWidth
 		let h = image.naturalHeight
@@ -518,6 +567,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		let ctx = canvas.getContext('2d')
 		ctx.drawImage(image, 0, 0, w, h)
 		let data = ctx.getImageData(0, 0, w, h).data
+
 		const heights = new Float32Array(w * h)
 		let idx: number
 		for (let y = 0; y < h; ++y) {
@@ -560,17 +610,24 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		return initialized
 	}
 
+	let drawLegendCallback : Function
+	function registerLegendCallback(callback: Function) {
+		drawLegendCallback = callback;
+	}
+
 	return {
 		isInitialized: isInitialized,
 		resize: resize,
 		scene: scene,
 		camera: camera,
+		controls: controls,
 		setLibraryDefinitions: setLibraryDefinitions,
 		setStudyArea: setStudyArea,
 		setStudyAreaTiles: setStudyAreaTiles,
 		libraryDefinitions: masterAssets[currentLibraryName],
 		collectSpatialOutputs: collectSpatialOutputs,
-		showLoadingScreen: showloadingScreen
+		showLoadingScreen: showloadingScreen,
+		registerLegendCallback: registerLegendCallback
 	}
 }
 
@@ -583,3 +640,9 @@ function reportError(error: string) {
 	return
 }
 
+
+interface WorkerResults {
+	heights: Float32Array
+	x: number
+	y: number
+}

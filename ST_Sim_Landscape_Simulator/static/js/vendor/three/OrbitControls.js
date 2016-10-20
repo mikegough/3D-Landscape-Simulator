@@ -377,8 +377,10 @@ var panUp = function() {
 				targetDistance *= Math.tan( ( scope.object.fov / 2 ) * Math.PI / 180.0 );
 
 				// we actually don't use screenWidth, since perspective camera is fixed to screen height
-				panLeft( 2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix );
-				panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
+				//panLeft( 2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix );
+				//panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
+				panLeft( deltaX * targetDistance / element.clientHeight, scope.object.matrix );
+				panUp( deltaY * targetDistance / element.clientHeight, scope.object.matrix );
 
 			} else if ( scope.object instanceof THREE.OrthographicCamera ) {
 
@@ -478,10 +480,18 @@ var panUp = function() {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
+		rotateLeft( Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+
+		// rotating up and down along whole screen attempts to go 360, but limited to 180
+		rotateUp( Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+
+		/*
+		// rotating across whole screen goes 360 degrees around
 		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
 		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		*/
 
 		rotateStart.copy( rotateEnd );
 
