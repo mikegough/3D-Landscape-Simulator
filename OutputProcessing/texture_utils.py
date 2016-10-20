@@ -7,6 +7,20 @@ from collections import OrderedDict
 from PIL import Image
 
 
+def scale_texture(image, scale):
+
+    image_shape = image.size
+    width = int(image_shape[0] * scale)
+    height = int(image_shape[1] * scale)
+
+    if width <= 0:
+        width = 1
+    if height <= 1:
+        height = 1
+
+    return image.resize((width, height))
+
+
 def elevation_texture(elev_path, scale=None):
     """ Creates an elevation-encoded image from a given elevation GeoTiff
     :param elev_path: The path to the elevation to encode into the texture.
@@ -45,7 +59,7 @@ def elevation_texture(elev_path, scale=None):
         image_data = [(r_array[i], g_array[i], b_array[i], a_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
         if scale:
-            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
+            texture = scale_texture(texture, scale)
     return texture
 
 
@@ -79,7 +93,7 @@ def vegtype_texture(strata_path, scale=None):
         image_data = [(r_array[i], g_array[i], b_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
         if scale:
-            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
+            texture = scale_texture(texture, scale)
     return texture
 
 
@@ -169,7 +183,7 @@ def stateclass_texture(sc_tif, colormap, scale=None):
         texture = Image.new('RGB', image_shape)
         texture.putdata(image_data)
         if scale:
-            texture = texture.resize((int(image_shape[0] * scale), int(image_shape[1] * scale)))
+            texture = scale_texture(texture, scale)
     return texture
 
 
