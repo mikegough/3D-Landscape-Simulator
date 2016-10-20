@@ -9,6 +9,7 @@ import sys
 
 TIFF_SIZE = 512
 TEXTURE_SIZE_RATIO = 0.5    # texture size = tiff_size * ratio
+TIFF_STRIDE = 2
 
 
 # Print iterations progress
@@ -68,6 +69,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
     print_progress(p, total_progress, prefix='Progress:', suffix='Complete')
 
     for unit in reporting_units:
+        p += 1
 
         if single_id is not None:
             one_shot = True
@@ -91,8 +93,8 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TIFF_SIZE)
-            y_tiles = ceil(height / TIFF_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE * TEXTURE_SIZE_RATIO)
+            y_tiles = ceil(height / TIFF_SIZE * TEXTURE_SIZE_RATIO)
 
             for i in range(x_tiles):
                 left_idx = i * TIFF_SIZE + overall_window[1][0]
@@ -102,11 +104,16 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     top_idx = j * TIFF_SIZE + overall_window[0][0]
                     bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
+                    tile_height = TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx
+                    tile_width = TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx
+                    tile_height *= TEXTURE_SIZE_RATIO
+                    tile_width *= TEXTURE_SIZE_RATIO
+
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': tile_height,
+                        'width': tile_width,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
@@ -114,8 +121,8 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
 
                     output_path = os.path.join(unit_dir, 'veg', '-'.join([str(i), str(j), 'veg.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
-                        dst.write(src.read(1, window=window).astype('int32'), 1)
-                    veg_texture = texture_utils.vegtype_texture(output_path, scale=TEXTURE_SIZE_RATIO)
+                        dst.write(src.read(1, window=window)[::TIFF_STRIDE, ::TIFF_STRIDE].astype('int32'), 1)
+                    veg_texture = texture_utils.vegtype_texture(output_path)
                     veg_texture.save(output_path.replace('tif', 'png'))
 
         # output stateclass rasters, textures
@@ -125,8 +132,8 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TIFF_SIZE)
-            y_tiles = ceil(height / TIFF_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE * TEXTURE_SIZE_RATIO)
+            y_tiles = ceil(height / TIFF_SIZE * TEXTURE_SIZE_RATIO)
 
             sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[lib])
 
@@ -138,11 +145,16 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     top_idx = j * TIFF_SIZE + overall_window[0][0]
                     bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
+                    tile_height = TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx
+                    tile_width = TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx
+                    tile_height *= TEXTURE_SIZE_RATIO
+                    tile_width *= TEXTURE_SIZE_RATIO
+
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': tile_height,
+                        'width': tile_width,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
@@ -155,24 +167,25 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     if len(stsim_manager.conversion_functions[lib]) > 0:
                         temp_sc_path = output_path.replace('sc', 'temp')
                         with rasterio.open(temp_sc_path, 'w', **out_kwargs) as dst:
-                            dst.write(src.read(1, window=window).astype('int32'), 1)
+                            dst.write(src.read(1, window=window)[::TIFF_STRIDE,::TIFF_STRIDE].astype('int32'), 1)
                         sc_conversion_func = getattr(conversions, stsim_manager.conversion_functions[lib])
                         sc_conversion_func(temp_veg_path, temp_sc_path, output_path)
                         os.remove(temp_sc_path)
                     else:
                         with rasterio.open(output_path, 'w', **out_kwargs) as dst:
-                            dst.write(src.read(1, window=window).astype('int32'), 1)
+                            dst.write(src.read(1, window=window)[::TIFF_STRIDE,::TIFF_STRIDE].astype('int32'), 1)
 
-                    sc_texture = texture_utils.stateclass_texture(output_path, sc_colormap, scale=TEXTURE_SIZE_RATIO)
+                    sc_texture = texture_utils.stateclass_texture(output_path, sc_colormap)
                     sc_texture.save(output_path.replace('tif', 'png'))
 
                     # collect zonal stats for this chunk
                     row_stats.append(raster_utils.zonal_stateclass_stats(temp_veg_path, output_path))
                 raw_unit_zonal_stats.append(row_stats)
 
-        final_zonal_stats, total = total_stateclass_stats(raw_unit_zonal_stats, veg_sc_defs, veg_defs, sc_defs)
+        final_zonal_stats, veg_total, sc_total = total_stateclass_stats(raw_unit_zonal_stats, veg_sc_defs, veg_defs, sc_defs)
         unit_initial_conditions['veg_sc_pct'] = final_zonal_stats
-        unit_initial_conditions['total_cells'] = total
+        unit_initial_conditions['total_cells'] = veg_total
+        unit_initial_conditions['total_active_cells'] = sc_total
         veg_codes = final_zonal_stats.keys()
         if stsim_manager.has_lookup_fields[lib]:
             lookup_function = getattr(lookups, stsim_manager.lookup_functions[lib])
@@ -188,8 +201,8 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
             height = overall_window[0][1] - overall_window[0][0]
             width = overall_window[1][1] - overall_window[1][0]
 
-            x_tiles = ceil(width / TIFF_SIZE)
-            y_tiles = ceil(height / TIFF_SIZE)
+            x_tiles = ceil(width / TIFF_SIZE * TEXTURE_SIZE_RATIO)
+            y_tiles = ceil(height / TIFF_SIZE * TEXTURE_SIZE_RATIO)
 
             for i in range(x_tiles):
                 left_idx = i * TIFF_SIZE + overall_window[1][0]
@@ -199,11 +212,16 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     top_idx = j * TIFF_SIZE + overall_window[0][0]
                     bot_idx = top_idx + TIFF_SIZE if top_idx + TIFF_SIZE < overall_window[0][1] else overall_window[0][1]
 
+                    tile_height = TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx
+                    tile_width = TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx
+                    tile_height *= TEXTURE_SIZE_RATIO
+                    tile_width *= TEXTURE_SIZE_RATIO
+
                     window = ((top_idx, bot_idx), (left_idx, right_idx))
                     out_kwargs = src.meta.copy()
                     out_kwargs.update({
-                        'height': TIFF_SIZE if bot_idx != overall_window[0][1] else bot_idx - top_idx,
-                        'width': TIFF_SIZE if right_idx != overall_window[1][1] else right_idx - left_idx,
+                        'height': tile_height,
+                        'width': tile_width,
                         'transform': src.window_transform(window),
                         'dtype': 'int32',  # SyncroSim needs a signed int32
                         'nodata': 0
@@ -212,9 +230,9 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     # output elevation texture
                     output_path = os.path.join(unit_dir, 'elev', '-'.join([str(i), str(j), 'elev.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
-                        dst.write(src.read(1, window=window).astype('int32'), 1)
-                    sc_texture = texture_utils.elevation_texture(output_path, scale=TEXTURE_SIZE_RATIO)
-                    sc_texture.save(output_path.replace('tif', 'png'))
+                        dst.write(src.read(1, window=window)[::TIFF_STRIDE,::TIFF_STRIDE].astype('int32'), 1)
+                    elev_texture = texture_utils.elevation_texture(output_path)
+                    elev_texture.save(output_path.replace('tif', 'png'))
                     row_stats.append(raster_utils.elevation_stats(output_path))
 
                     # cleanup the elevation since we don't need it anymore
@@ -234,7 +252,6 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
         if os.path.exists(os.path.join(unit_dir, 'temp')):
             os.rmdir(os.path.join(unit_dir, 'temp'))
 
-        p += 1
         print_progress(p, total_progress, prefix='Progress:', suffix='Complete')
         if one_shot:
             break
@@ -258,12 +275,14 @@ def parse_reporting_units(path):
 def total_stateclass_stats(raw_stats, veg_sc_defs, veg_defs, sc_defs):
     """ Determine the overall covers """
     result = dict()
-    overall_total = 0
+    overall_sc_total = 0
+    overall_veg_total = 0
     for row in raw_stats:
         for col in row:
-            block_stats, block_total = col
-            overall_total += block_total
-
+            print(col)
+            block_stats, veg_total, sc_total = col
+            overall_sc_total += sc_total
+            overall_veg_total += veg_total
             for vegtype in veg_sc_defs.keys():
                 veg_id = int(veg_defs[vegtype]['ID'])
                 if veg_id in block_stats.keys():
@@ -276,15 +295,15 @@ def total_stateclass_stats(raw_stats, veg_sc_defs, veg_defs, sc_defs):
                             result[vegtype][sc_type] = 0
                             
                         if sc_id in block_stats[veg_id].keys():
-                            result[vegtype][sc_type] += block_stats[veg_id][sc_id] * block_total
+                            result[vegtype][sc_type] += block_stats[veg_id][sc_id] * veg_total
                         else:
                             result[vegtype][sc_type] = 0
 
     for veg in result.keys():
         for sc in result[veg].keys():
-            result[veg][sc] /= overall_total
+            result[veg][sc] /= overall_veg_total
 
-    return result, overall_total
+    return result, overall_veg_total, overall_sc_total
 
 
 def total_elevation_stats(raw_stats):
