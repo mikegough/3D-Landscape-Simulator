@@ -200,8 +200,10 @@ map.addControl(drawButtons);
 
 map.on('draw:created', function (e) {
 
+    showSceneLoadingDiv()
+
     // Reset styling on the entire layer in order to "de-select" the previous selected feature
-    reporting_units.eachLayer(function(l){reporting_units.resetStyle(l);});
+    active_reporting_units.eachLayer(function(l){active_reporting_units.resetStyle(l);});
 
     // Prevents mouseover function from keeping the selected feature highlighted
     delete selected_feature;
