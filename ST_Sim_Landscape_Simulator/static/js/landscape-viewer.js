@@ -516,6 +516,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             return null;
         }
         const useWebWorker = utils_1.detectWebWorkers();
+        const disp = 2.0 / 30.0;
         let initialized = false;
         let masterAssets = {};
         // setup the THREE scene
@@ -528,10 +529,16 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const controls = new THREE.OrbitControls(camera, renderer.domElement);
         controls.enableKeys = false;
         controls.zoomSpeed = 0.1;
+        //console.log(camera.position.x, camera.position.y, camera.position.z)
         camera.position.y = 350;
         camera.position.z = 600;
-        const disp = 2.0 / 30.0;
-        //scene.translateZ(500)
+        scene.translateZ(500);
+        function resetCamera() {
+            controls.target = new THREE.Vector3(0, 0, 0);
+            camera.position.set(camera_start.x, camera_start.y, camera_start.z);
+            controls.update();
+            render();
+        }
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         controls.maxPolarAngle = Math.PI / 2.4;
         controls.minDistance = 150;
@@ -591,7 +598,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 initialized = tryDone();
             }, reportProgress, reportError);
         }
-        Worker;
         let currentDefinitions;
         let currentLibraryName = "";
         function setLibraryDefinitions(name, definitions) {
@@ -679,6 +685,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         }
         function createTiles(loadedAssets) {
             //masterAssets[currentLibraryName] = loadedAssets
+            //camera.position = camera_start
+            camera.position.set(camera_start.x, camera_start.y, camera_start.z);
             const tile_size = currentConditions.elev.tile_size;
             const x_tiles = currentConditions.elev.x_tiles;
             const y_tiles = currentConditions.elev.y_tiles;
@@ -689,8 +697,24 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             const tile_group = new THREE.Group();
             tile_group.name = 'terrain';
             scene.add(tile_group);
+            const compute_heights = [
+                "var onmessage = function(e) {",
+                "postMessage(computeHeights(e.data.w, e.data.h, e.data.data))",
+                "};",
+                "function computeHeights(w,h,data) {",
+                "	var idx;",
+                "	var heights = new Float32Array(w * h);",
+                "	for (var y = 0; y < h; ++y) {",
+                "		for (var x = 0; x < w; ++x) {",
+                "			idx = (x + y * w) * 4;",
+                "			heights[x + y * w] = (data[idx] | (data[idx+1] << 8) | (data[idx+2] << 16)) + data[idx+3] - 255;",
+                "		}",
+                "	}",
+                "	return heights",
+                "}"
+            ].join('\n');
             function createOneTile(x, y, x_offset, y_offset) {
-                var compute_heights_worker = new Worker('static/js/compute_heights.js');
+                var compute_heights_worker = new Worker(URL.createObjectURL(new Blob([compute_heights], { type: 'text/javascript' })));
                 const heightmap = loadedAssets.textures[[x, y, 'elev'].join('_')];
                 const image = heightmap.image;
                 let w = image.naturalWidth;
@@ -808,8 +832,9 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 }
             });
             // always finish with a render
-            controls.update();
-            render();
+            resetCamera();
+            //controls.update()
+            //render()
             hideLoadingScreen();
         }
         function createScene(loadedAssets) {
@@ -1031,6 +1056,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             scene: scene,
             camera: camera,
             controls: controls,
+            reset: resetCamera,
             setLibraryDefinitions: setLibraryDefinitions,
             setStudyArea: setStudyArea,
             setStudyAreaTiles: setStudyAreaTiles,
