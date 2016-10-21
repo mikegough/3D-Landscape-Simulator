@@ -532,7 +532,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             return null;
         }
         const useWebWorker = utils_1.detectWebWorkers();
-        const disp = 2.0 / 30.0;
+        const disp = 2.0 / 60.0;
         let initialized = false;
         let masterAssets = {};
         // setup the THREE scene

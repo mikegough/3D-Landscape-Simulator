@@ -34,7 +34,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 	const useWebWorker = detectWebWorkers()
 
-	const disp = 2.0 / 30.0
+	const disp = 2.0 / 60.0
 
 	let initialized = false
 	let masterAssets = {} as AssetRepo
