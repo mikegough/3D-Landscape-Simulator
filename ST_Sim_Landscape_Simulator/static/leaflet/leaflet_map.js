@@ -122,7 +122,7 @@ function resetHighlight(e) {
         info.update();
     }
 }
-var libraries;
+var libraries = [];
 function selectFeature(e) {
 
 
@@ -140,15 +140,14 @@ function selectFeature(e) {
         selected_feature.bringToFront();
     }
 
-    var bottom = selected_feature._bounds._southWest.lat;
-    var top = selected_feature._bounds._northEast.lat;
-    var left = selected_feature._bounds._southWest.lng;
-    var right = selected_feature._bounds._northEast.lng;
-    var extent = [left, bottom, right, top];
     feature_id = selected_feature.feature.properties.NAME;
     libraries = selected_feature.feature.properties.LIBRARIES;
 
     var unit_id = selected_feature.feature.properties.ID;
+
+    if (libraries.indexOf(current_library) == -1) {
+        library_initialized = false;
+    }
 
     // setup the library dropdown
     $('#ss1').empty();

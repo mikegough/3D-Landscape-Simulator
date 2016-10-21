@@ -459,7 +459,7 @@ function setupUserDefinedArea(extent) {
 
     var libraryName = $('#settings_library').val()
     if (!library_initialized) {
-        return getLibrary(libraryName, setupReportingUnit, unit_id)    // go back and set it, then try setting up again
+        return getLibrary(libraryName, setupUserDefinedArea, extent)    // go back and set it, then try setting up again
     }
 
     landscape_viewer.showLoadingScreen();
@@ -496,7 +496,10 @@ function getLibrary(libraryName, callbackFunction, callbackData) {
     });
 }
 
+var current_library;
 function setLibrary(libraryName, definitions) {
+    current_library = libraryName;
+    console.log(current_library);
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
     management_actions_list = definitions['management_actions_list'];
     probabilistic_transitions_json = definitions['probabilistic_transitions_json'];
@@ -510,6 +513,7 @@ function setLibrary(libraryName, definitions) {
     if (definitions.has_predefined_extent) {
         $.getJSON(libraryName + '/select/predefined-extent/stats/').done(function (init_conditions) {
             current_uuid = 'predefined-extent';
+            selection_state = 'predefined'
             setInitialConditionsSidebar(init_conditions);
             landscape_viewer.setStudyArea(current_uuid, init_conditions);
         }).always(show_input_options);
@@ -841,12 +845,18 @@ $("#spatial_link").click(function(){
 
 $(document).on('change', '#settings_library', function() {
     var newLibraryName = $(this).val();
-    $.getJSON(newLibraryName + '/info/').done(function(definitions) {
-        setLibrary(newLibraryName, definitions);
-        if (definitions.has_predefined_extent) {
-            feature_id = newLibraryName;
-        }
-    })
+    if (newLibraryName !== current_library) {
+        $.getJSON(newLibraryName + '/info/').done(function (definitions) {
+            setLibrary(newLibraryName, definitions);
+            if (definitions.has_predefined_extent) {
+                feature_id = newLibraryName;
+            }
+            else {
+                activate_map();
+            }
+
+        })
+    }
 });
 
 
