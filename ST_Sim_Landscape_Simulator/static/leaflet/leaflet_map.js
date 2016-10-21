@@ -77,7 +77,7 @@ var reporting_units = {
     "Counties": counties,
 };
 
-active_reporting_units = watersheds;
+var active_reporting_units = watersheds;
 
 map.on('baselayerchange', function (event) {
     active_reporting_units = event.layer;
@@ -166,8 +166,7 @@ function selectFeature(e) {
 }
 
 // END LAYERS AND LAYER FUNCTIONS
-
-
+// ******************************** //
 //BEGIN USER DEFINED AREA FUNCTIONS
 drawnItems = L.featureGroup().addTo(map);
 
@@ -199,8 +198,6 @@ var drawButtons = new L.Control.Draw({
 map.addControl(drawButtons);
 
 map.on('draw:created', function (e) {
-
-    showSceneLoadingDiv()
 
     // Reset styling on the entire layer in order to "de-select" the previous selected feature
     active_reporting_units.eachLayer(function(l){active_reporting_units.resetStyle(l);});

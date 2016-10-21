@@ -458,7 +458,8 @@ function setupReportingUnit(unit_id) {
 
 function setupUserDefinedArea(extent) {
 
-    var libraryName = $('#settings_library').val()
+    //var libraryName = $('#settings_library').val()
+    var libraryName = 'Landfire';   // TODO - obtain libraries from selected area
     if (!library_initialized) {
         return getLibrary(libraryName, setupUserDefinedArea, extent)    // go back and set it, then try setting up again
     }
