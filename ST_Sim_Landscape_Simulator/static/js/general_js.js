@@ -155,12 +155,12 @@ function show_input_options (){
 
 }
 
-run=0
-iteration=1
-timestep=0
+var run=0
+var iteration=1
+var timestep=0
 
 // Send the scenario and initial conditions to ST-Sim.
-settings=[]
+var settings={}
 settings["spatial"]=false
 
 function run_st_sim(feature_id) {
@@ -195,7 +195,9 @@ function run_st_sim(feature_id) {
             'probabilistic_transitions_slider_values': probabilistic_transitions_slider_values_string,
             'timesteps': settings['timesteps'],
             'iterations': settings['iterations'],
-            'spatial': settings['spatial']
+            'spatial': settings['spatial'],
+            'total_cells': veg_initial_conditions.total_cells,
+            'total_active_cells': veg_initial_conditions.total_active_cells
         },
 
         // handle a successful response
@@ -258,7 +260,6 @@ function run_st_sim(feature_id) {
 
 /****************************************  Results Table & Output Charts **********************************************/
 
-//function update_results_table(timestep,run) { // see TODO below
 function update_results_table(run) {
 
     // Create the Results Table
@@ -425,50 +426,42 @@ function showSceneLoadingDiv() {
 
 var landscape_viewer = require('app').default('scene', showSceneLoadingDiv, hideSceneLoadingDiv);
 
+var selection_state = null;   // state can be 'tiles', 'predefined', or 'user_defined'
 var library_initialized = false;
 
-function updateStudyArea(extent, unit_id) {
-
-    var libraryName = $('#settings_library').val();
+function setupReportingUnit(unit_id) {
+    var libraryName = $('#settings_library').val()
     if (!library_initialized) {
-        // setup the sidebar for the first time
-        landscape_viewer.showLoadingScreen();
-        $.getJSON(libraryName + '/info/').done(function(definitions) {
-            setLibrary(libraryName, definitions);
-
-            landscape_viewer.setLibraryDefinitions(libraryName, definitions);
-            // select the extent the user just selected
-            if (definitions.has_tiles) {
-                var reporting_units_name = "";
-                for (var key in reporting_units) {
-                    if (active_reporting_units == reporting_units[key]) {
-                        reporting_units_name = key;
-                        break;
-                    }
-                }
-                $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/')
-                    .done(function (init_conditions) {
-                        setInitialConditionsSidebar(init_conditions);
-                        landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, init_conditions);
-                        show_input_options();
-                }).fail(function () {
-                    library_initialized = false;
-                    hideSceneLoadingDiv();
-                    activate_map();
-                    alert(unit_id + ' is not yet available for layer ' + reporting_units_name + '.');
-                })
-            }
-            else if (!definitions.has_predefined_extent) {
-                updateExtent(libraryName, extent);
-            }
-        });
-    } else {
-        updateExtent(libraryName, extent);
+        return getLibrary(libraryName, setupReportingUnit, unit_id)    // go back and set it, then try setting up again
     }
+    landscape_viewer.showLoadingScreen();
+    var reporting_units_name = "";
+    for (var key in reporting_units) {
+        if (active_reporting_units == reporting_units[key]) {
+            reporting_units_name = key;
+            break;
+        }
+    }
+    $.getJSON(libraryName + '/select/' + reporting_units_name + '/' + unit_id + '/stats/')
+        .done(function (init_conditions) {
+            setInitialConditionsSidebar(init_conditions);
+            landscape_viewer.setStudyAreaTiles(reporting_units_name, unit_id, init_conditions);
+            show_input_options();
+    }).fail(function () {
+        hideSceneLoadingDiv();
+        activate_map();
+        alert(unit_id + ' is not yet available for layer ' + reporting_units_name + '.');
+    })
 }
 
 var current_uuid;
-function updateExtent(libraryName, extent) {
+function setupUserDefinedArea(extent) {
+
+    var libraryName = $('#settings_library').val()
+    if (!library_initialized) {
+        return getLibrary(libraryName, setupReportingUnit, unit_id)    // go back and set it, then try setting up again
+    }
+
     landscape_viewer.showLoadingScreen();
     $.getJSON(libraryName + '/select/' + extent.join('/') + '/').done(function (uuid_res) {
         var raster_uuid = uuid_res['uuid'];
@@ -483,7 +476,7 @@ function updateExtent(libraryName, extent) {
 var veg_type_state_classes_json, management_actions_list, probabilistic_transitions_json;
 var probabilistic_transitions_slider_values = {};
 var veg_has_lookup = false;
-var veg_initial_conditions, state_class_color_map, veg_type_color_map;
+var veg_initial_conditions, state_class_color_map, veg_type_color_map, veg_slider_values_state_class;
 
 function actualVegName(vegtype) {
     if (veg_has_lookup) {
@@ -492,6 +485,16 @@ function actualVegName(vegtype) {
     return vegtype
 }
 
+function getLibrary(libraryName, callbackFunction, callbackData) {
+    $.getJSON(libraryName + '/info/').done(function(definitions) {
+        setLibrary(libraryName, definitions);
+
+        // if not predefined extent, continue doing what we were doing
+        if (!definitions.has_predefined_extent) {   // TODO - check if callbackFunction is null?
+            callbackFunction(callbackData);
+        }
+    });
+}
 
 function setLibrary(libraryName, definitions) {
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
@@ -502,10 +505,13 @@ function setLibrary(libraryName, definitions) {
     veg_has_lookup = definitions['has_lookup']
     landscape_viewer.setLibraryDefinitions(libraryName, definitions);
     library_initialized = true;
+
+    // if predefined extent, just setup the scene
     if (definitions.has_predefined_extent) {
-        $.getJSON(libraryName + '/select/predefined-extent/stats/').done(function (initConditions) {
-            setInitialConditionsSidebar(initConditions);
-            landscape_viewer.setStudyArea('predefined-extent', initConditions);
+        $.getJSON(libraryName + '/select/predefined-extent/stats/').done(function (init_conditions) {
+            current_uuid = 'predefined-extent';
+            setInitialConditionsSidebar(init_conditions);
+            landscape_viewer.setStudyArea(current_uuid, init_conditions);
         }).always(show_input_options);
     }
 }
@@ -534,11 +540,9 @@ landscape_viewer.registerLegendCallback(drawLegend);
 
 function setInitialConditionsSidebar(initial_conditions) {
 
-    total_input_percent = 100;
+    var total_input_percent = 100;
     veg_initial_conditions = initial_conditions;
     var veg_iteration = 1;
-    //console.log(initial_conditions.veg_names);
-    //console.log(initial_conditions.veg_sc_pct);
 
     // empty the tables
     $("#vegTypeSliderTable").empty();
@@ -820,6 +824,7 @@ function activate_scene(){
     $("#selected_features").show()
     window.addEventListener('resize', landscape_viewer.resize, false);
     landscape_viewer.resize();
+    //landscape_viewer.showGUI();
     $("#scene_legend").show()
     $("#general_settings_instructions").html("Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.")
 }

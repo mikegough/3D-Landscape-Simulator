@@ -161,7 +161,8 @@ function selectFeature(e) {
     }
     $("select").selectBoxIt();
 
-    updateStudyArea(extent, unit_id);
+    selection_state = 'tiles';
+    setupReportingUnit(unit_id);
 
 }
 
@@ -221,7 +222,9 @@ map.on('draw:created', function (e) {
     var right = e.layer._bounds._northEast.lng;
     var extent = [left, bottom, right, top];
     feature_id="User Defined Area";
-    updateStudyArea(extent);
+
+    selection_state = 'user_defined';
+    setupUserDefinedArea(extent);
 });
 
 //END USER DEFINED AREA FUNCTIONS
