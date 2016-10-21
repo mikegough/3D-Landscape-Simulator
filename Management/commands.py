@@ -279,7 +279,6 @@ def total_stateclass_stats(raw_stats, veg_sc_defs, veg_defs, sc_defs):
     overall_veg_total = 0
     for row in raw_stats:
         for col in row:
-            print(col)
             block_stats, veg_total, sc_total = col
             overall_sc_total += sc_total
             overall_veg_total += veg_total
