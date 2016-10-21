@@ -1040,9 +1040,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     else {
                         timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)];
                     }
-                    // update the dataGroup terrain and vegtypes
-                    //const dataGroup = scene.getObjectByName('data') as THREE.Group
-                    // TODO - do this change for each level of detail in the LOD
                     let vegetation = scene.getObjectByName('vegetation');
                     let childMaterial;
                     for (var i = 0; i < vegetation.children.length; i++) {

@@ -603,19 +603,12 @@ export default function run(container_id: string, showloadingScreen: Function, h
 				animationSlider.on('input', function() {
 					const timestep = animationSlider.val()
 					let timeTexture: THREE.Texture
-
-					
 					if (timestep == 0 || timestep == '0') {
 						timeTexture = masterAssets[String(sid)].textures['1_0']
 					}
 					else {
 						timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
 					}
-
-					// update the dataGroup terrain and vegtypes
-					//const dataGroup = scene.getObjectByName('data') as THREE.Group
-
-					// TODO - do this change for each level of detail in the LOD
 
 					let vegetation = scene.getObjectByName('vegetation')
 					let childMaterial: THREE.RawShaderMaterial
@@ -627,14 +620,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 					}
 
 					render()
-					
 				})
-				
-			},
-			reportProgress,
-			reportError
-		)
-		
+			},reportProgress,reportError)
 	}
 
 

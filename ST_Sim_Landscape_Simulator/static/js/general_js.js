@@ -428,12 +428,14 @@ var landscape_viewer = require('app').default('scene', showSceneLoadingDiv, hide
 
 var selection_state = null;   // state can be 'tiles', 'predefined', or 'user_defined'
 var library_initialized = false;
+var current_uuid;
 
 function setupReportingUnit(unit_id) {
     var libraryName = $('#settings_library').val()
     if (!library_initialized) {
         return getLibrary(libraryName, setupReportingUnit, unit_id)    // go back and set it, then try setting up again
     }
+    current_uuid = 'predefined-extent';
     landscape_viewer.showLoadingScreen();
     var reporting_units_name = "";
     for (var key in reporting_units) {
@@ -454,7 +456,6 @@ function setupReportingUnit(unit_id) {
     })
 }
 
-var current_uuid;
 function setupUserDefinedArea(extent) {
 
     var libraryName = $('#settings_library').val()
