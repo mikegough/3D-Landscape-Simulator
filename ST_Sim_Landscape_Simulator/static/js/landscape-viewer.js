@@ -524,30 +524,50 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         const scene = new THREE.Scene();
         const renderer = new THREE.WebGLRenderer({ antialias: false });
         container.appendChild(renderer.domElement);
+        // camera creation
         const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0);
-        // Camera controls
-        const controls = new THREE.OrbitControls(camera, renderer.domElement);
-        controls.enableKeys = false;
-        controls.zoomSpeed = 0.1;
-        //console.log(camera.position.x, camera.position.y, camera.position.z)
         camera.position.y = 350;
         camera.position.z = 600;
-        scene.translateZ(500);
+        const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
         function resetCamera() {
             controls.target = new THREE.Vector3(0, 0, 0);
             camera.position.set(camera_start.x, camera_start.y, camera_start.z);
             controls.update();
             render();
         }
-        const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
-        controls.maxPolarAngle = Math.PI / 2.4;
-        controls.minDistance = 150;
-        controls.maxDistance = 900;
         // Custom event handlers since we only want to render when something happens.
         renderer.domElement.addEventListener('mousedown', animate, false);
         renderer.domElement.addEventListener('mouseup', stopAnimate, false);
         renderer.domElement.addEventListener('mousewheel', render, false);
         renderer.domElement.addEventListener('MozMousePixelScroll', render, false); // firefox
+        // Camera controls
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.enableKeys = false;
+        controls.zoomSpeed = 0.1;
+        controls.maxPolarAngle = Math.PI / 2.4;
+        controls.minDistance = 150;
+        controls.maxDistance = 900;
+        /*
+        var gui = new dat.GUI({autoPlace: false});
+        var terrainControls = gui.addFolder('Terrain Controls', "a");
+        terrainControls.add(verticalScale, 'verticalScale',0.0, 10.0).onChange( function(){
+            material.uniforms.verticalScale.value = verticalScale.verticalScale;
+        });
+        terrainControls.add(verticalScale, 'flipLegend', 1.0).onChange( function() {
+            if (material.uniforms.legendOrientation.value == 1) {
+                material.uniforms.legendOrientation.value = 0;
+            } else {
+                material.uniforms.legendOrientation.value = 1;
+            }
+            RedrawLegend(currentVariableName);
+        });
+        terrainControls.open();
+        gui.domElement.style.position='absolute';
+        gui.domElement.style.bottom = '20px';
+        gui.domElement.style.right = '0%';
+        gui.domElement.style.textAlign = 'center';
+        container.appendChild(gui.domElement);
+        */
         initialize();
         // Load initial assets
         function initialize() {
@@ -684,8 +704,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             }
         }
         function createTiles(loadedAssets) {
-            //masterAssets[currentLibraryName] = loadedAssets
-            //camera.position = camera_start
             camera.position.set(camera_start.x, camera_start.y, camera_start.z);
             const tile_size = currentConditions.elev.tile_size;
             const x_tiles = currentConditions.elev.x_tiles;
@@ -789,48 +807,52 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             }
             tile_group.rotateX(-Math.PI / 2);
             // show the animation controls for the outputs
+            /*
             $('#animation_container').show();
+        
             // activate the checkbox
-            $('#viz_type').on('change', function () {
-                let i;
-                let child;
+            $('#viz_type').on('change', function() {
+                let i : number
+                let child : THREE.Mesh
                 for (i = 0; i < tile_group.children.length; i++) {
-                    child = tile_group.children[i];
-                    let child_data = child.userData;
-                    let child_mat = child.material;
+                    child = tile_group.children[i] as THREE.Mesh
+                    let child_data = child.userData as TileData
+                    let child_mat = child.material as THREE.ShaderMaterial
                     if (child_data['active_texture_type'] == 'veg') {
-                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'sc'].join('_')];
-                        child_data['active_texture_type'] = 'sc';
+                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'sc'].join('_')]
+                        child_data['active_texture_type'] = 'sc'
+                    } else {
+                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'veg'].join('_')]
+                        child_data['active_texture_type'] = 'veg'
                     }
-                    else {
-                        child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'veg'].join('_')];
-                        child_data['active_texture_type'] = 'veg';
-                    }
-                    child_mat.uniforms.active_texture.needsUpdate = true;
+                    child_mat.uniforms.active_texture.needsUpdate = true
                 }
-                render();
+                render()
                 // redraw legend
                 if (child.userData.active_texture_type == 'veg') {
-                    let veg_color_map = {};
+    
+    
+                    let veg_color_map = {}
                     for (var code in currentConditions.veg_sc_pct) {
                         for (var name in currentDefinitions.veg_type_color_map) {
                             if (Number(name) == Number(code)) {
                                 if (currentDefinitions.has_lookup) {
-                                    veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
+                                    veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
+                                } else {
+                                    veg_color_map[name] = currentDefinitions.veg_type_color_map[name]
                                 }
-                                else {
-                                    veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
-                                }
-                                break;
+                                break
                             }
                         }
                     }
-                    drawLegendCallback(veg_color_map);
+    
+                    drawLegendCallback(veg_color_map)
+                } else {
+                    drawLegendCallback(currentDefinitions.state_class_color_map)
                 }
-                else {
-                    drawLegendCallback(currentDefinitions.state_class_color_map);
-                }
-            });
+    
+            })
+            */
             // always finish with a render
             resetCamera();
             //controls.update()

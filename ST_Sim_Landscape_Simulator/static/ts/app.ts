@@ -26,16 +26,12 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	const scene = new THREE.Scene()
 	const renderer = new THREE.WebGLRenderer({antialias: false})
 	container.appendChild(renderer.domElement)
-	const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0)
 
-	// Camera controls
-	const controls = new THREE.OrbitControls(camera, renderer.domElement)
-	controls.enableKeys = false
-	controls.zoomSpeed = 0.1
-	//console.log(camera.position.x, camera.position.y, camera.position.z)
+	// camera creation
+	const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0)
 	camera.position.y = 350
 	camera.position.z = 600
-	scene.translateZ(500)
+	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
 
 	function resetCamera() {
 		controls.target = new THREE.Vector3(0,0,0)
@@ -44,17 +40,43 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		render()
 	}
 
-	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
-	controls.maxPolarAngle = Math.PI / 2.4
-
-	controls.minDistance = 150
-	controls.maxDistance = 900
-
 	// Custom event handlers since we only want to render when something happens.
 	renderer.domElement.addEventListener('mousedown', animate, false)
 	renderer.domElement.addEventListener('mouseup', stopAnimate, false)
 	renderer.domElement.addEventListener('mousewheel', render, false)
 	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
+
+
+	// Camera controls
+	const controls = new THREE.OrbitControls(camera, renderer.domElement)
+	controls.enableKeys = false
+	controls.zoomSpeed = 0.1
+	controls.maxPolarAngle = Math.PI / 2.4
+	controls.minDistance = 150
+	controls.maxDistance = 900
+
+	/*
+	var gui = new dat.GUI({autoPlace: false});
+    var terrainControls = gui.addFolder('Terrain Controls', "a");
+    terrainControls.add(verticalScale, 'verticalScale',0.0, 10.0).onChange( function(){
+        material.uniforms.verticalScale.value = verticalScale.verticalScale;
+    });
+    terrainControls.add(verticalScale, 'flipLegend', 1.0).onChange( function() {
+        if (material.uniforms.legendOrientation.value == 1) {
+            material.uniforms.legendOrientation.value = 0;
+        } else {
+            material.uniforms.legendOrientation.value = 1;
+        }
+        RedrawLegend(currentVariableName);
+    });
+    terrainControls.open();
+    gui.domElement.style.position='absolute';
+    gui.domElement.style.bottom = '20px';
+    gui.domElement.style.right = '0%';
+    gui.domElement.style.textAlign = 'center';
+    container.appendChild(gui.domElement);
+    */
+
 
 	initialize()
 
@@ -87,7 +109,6 @@ export default function run(container_id: string, showloadingScreen: Function, h
 					{name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg'},
 					{name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg'},
 					{name: 'terrain_water', url: 'static/img/terrain/water-512.jpg'},
-		
 				],
 			},
 			function(loadedAssets: Assets) {
@@ -212,15 +233,11 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 			studyAreaTileAssets.textures = textures
 			studyAreaLoader.load(studyAreaTileAssets, createTiles, reportProgress, reportError)
-
 		}
 	}
 
 	function createTiles(loadedAssets: Assets) {
 
-		//masterAssets[currentLibraryName] = loadedAssets
-
-		//camera.position = camera_start
 		camera.position.set(camera_start.x, camera_start.y, camera_start.z)
 
 		const tile_size = currentConditions.elev.tile_size
@@ -339,6 +356,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 		tile_group.rotateX(-Math.PI / 2)
 
 		// show the animation controls for the outputs
+		/*
     	$('#animation_container').show();
 	
 		// activate the checkbox
@@ -383,6 +401,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			}
 
 		})
+		*/
+
 
 
 		// always finish with a render
