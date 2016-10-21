@@ -10,11 +10,13 @@ from OutputProcessing import texture_utils, raster_utils
 from OutputProcessing.plugins import lookups, conversions
 from Heightmaps.plugins import heights
 from Sagebrush.stsim_utils import stsim_manager
+from stsimpy import cells_to_acres
 from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-
+# Resolution of the datasets. TODO - set in config? obtain from rasters?
+RESOLUTION = 30
 
 class HomepageView(TemplateView):
 
@@ -174,7 +176,7 @@ class RasterTextureStats(RasterTextureBase):
         veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
         vegtype_defs = stsim_manager.vegtype_definitions[self.library]
         stateclass_defs = stsim_manager.stateclass_definitions[self.library]
-        veg_sc_pcts, total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
+        veg_sc_pcts, veg_total, sc_total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
 
         zonal_veg_sc_pcts = dict()
         for vegtype in veg_state_defs.keys():
@@ -199,7 +201,8 @@ class RasterTextureStats(RasterTextureBase):
         return JsonResponse({'elev': elev_stats,
                              'veg_sc_pct': zonal_veg_sc_pcts,
                              'veg_names': veg_names,
-                             'total_cells': total})
+                             'total_cells': veg_total,
+                             'total_active_cells': sc_total})
 
 
 class RasterTileBase(View):
@@ -374,12 +377,14 @@ class RunModelView(STSimBaseView):
     def post(self, request, *args, **kwargs):
 
         timesteps = int(request.POST['timesteps'])
-        step = 1        # TODO - provide min/max timesteps in interface (under advanced tab)?
+        step = 1
         min_step = 0
         max_step = timesteps
         iterations = int(request.POST['iterations'])
         is_spatial = json.loads(request.POST['spatial'])
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
+        total_active_cells = int(request.POST['total_active_cells'])
+        total_cells = int(request.POST['total_cells'])
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
 
         # working file path
@@ -418,6 +423,11 @@ class RunModelView(STSimBaseView):
                 self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
                                                          strata_path=veg_path, sc_path=sc_path)
         else:
+            self.stsim.import_nonspatial_conditions(self.scenario_id,
+                                                    {'TotalAmount': str(cells_to_acres(total_active_cells, RESOLUTION)),
+                                                     'NumCells': str(total_active_cells),
+                                                     'CalcFromDist': ''},   # Distribution seems off, since we would need to set the number of acres per vegtype.
+                                                    init_conditions_file)
             self.stsim.import_nonspatial_distribution(self.scenario_id,
                                                       stateclass_relative_distribution,
                                                       init_conditions_file)
@@ -460,7 +470,8 @@ class RunModelView(STSimBaseView):
             os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file))
+        norm = total_cells / total_active_cells # normalize the results
+        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file, norm=norm))
         return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
 
