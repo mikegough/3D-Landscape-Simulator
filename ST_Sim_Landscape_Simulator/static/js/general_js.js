@@ -501,7 +501,6 @@ function getLibrary(libraryName, callbackFunction, callbackData) {
 var current_library;
 function setLibrary(libraryName, definitions) {
     current_library = libraryName;
-    console.log(current_library);
     veg_type_state_classes_json = definitions['veg_type_state_classes_json'];
     management_actions_list = definitions['management_actions_list'];
     probabilistic_transitions_json = definitions['probabilistic_transitions_json'];

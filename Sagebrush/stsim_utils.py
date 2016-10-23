@@ -103,6 +103,14 @@ class STSimManager:
                 raise KeyError("Invalid transition group specified in configuration for this library. "
                                "Check configuration.")
 
+        # transition target groups, available per veg
+        self.transition_groups_by_veg = {
+            lib_name: compute_groups_by_veg(self.consoles[lib_name], self.pids[lib_name],
+                                            self.sids[lib_name], os.path.join(init_path, lib_name + '-trgrps.csv'),
+                                            selected=self.probabilistic_transition_groups[lib_name])
+            for lib_name in self.library_names
+        }
+
         self.vegtype_definitions = {
             lib_name: self.consoles[lib_name].export_vegtype_definitions(
                 pid=self.pids[lib_name],
@@ -118,5 +126,33 @@ class STSimManager:
                 working_path=os.path.join(init_path, lib_name + '-scdefs.csv'))
             for lib_name in self.library_names
         }
+
+
+def compute_groups_by_veg(console, pid, sid, path, selected=None):
+
+    # This is how to get transition groups by veg.
+    transitions = console.export_probabilistic_transitions_map(sid, path.split('.')[0] + '-map.csv',
+                                                               readonly=os.path.exists(path.split('.')[0] + '-map.csv'))
+    types_by_group = console.export_probabilistic_transitions_by_group(pid, path.split('.')[0] + '-grps.csv',
+                                                                       readonly=os.path.exists(path.split('.')[0] + '-grps.csv'))
+
+    transition_types_by_veg = dict()
+    for veg in transitions:
+        transition_types_by_veg[veg] = list()
+        for transition in transitions[veg]:
+            transition_types_by_veg[veg].append(transition['type'])
+        transition_types_by_veg[veg] = list(set(transition_types_by_veg[veg]))
+
+    groups_by_veg = dict()
+    for veg in transition_types_by_veg:
+        groups_by_veg[veg] = list()
+        for transition_type in transition_types_by_veg[veg]:
+
+            for group in types_by_group:
+                if group not in groups_by_veg[veg] and transition_type in types_by_group[group]\
+                        and (selected == None or (selected != None and group in selected)):    # extra clarifier here for narrowing groups down to the ones we choose to expose
+                    groups_by_veg[veg].append(group)
+
+    return groups_by_veg
 
 stsim_manager = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)
