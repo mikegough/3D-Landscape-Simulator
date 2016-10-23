@@ -351,7 +351,8 @@ class LibraryInfoView(STSimBaseView):
         response['probabilistic_transitions_json'] = probabilistic_transition_dict
 
         # transition groups, used for specifying transition targets in the UI
-        response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
+        #response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
+        response['management_actions_list'] = stsim_manager.transition_groups_by_veg[self.library]
 
         # pass the model config to tell the viz which assets to load
         veg_model_config = stsim_manager.veg_model_configs[self.library]

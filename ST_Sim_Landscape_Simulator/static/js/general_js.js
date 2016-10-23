@@ -612,7 +612,7 @@ function setInitialConditionsSidebar(initial_conditions) {
 
         var management_action_count = 1;
         // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
-        management_actions_dict[veg_type] = management_actions_list;
+        management_actions_dict[veg_type] = management_actions_list[veg_type];
         $.each(management_actions_dict[veg_type], function (index, management_action) {
             $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input class='veg_state_class_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
             management_action_count++
