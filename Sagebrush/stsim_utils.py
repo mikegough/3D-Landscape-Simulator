@@ -136,7 +136,6 @@ def compute_groups_by_veg(console, pid, sid, path, selected=None):
                                                                readonly=os.path.exists(path.split('.')[0] + '-map.csv'))
     types_by_group = console.export_probabilistic_transitions_by_group(pid, path.split('.')[0] + '-grps.csv',
                                                                        readonly=os.path.exists(path.split('.')[0] + '-grps.csv'))
-
     transition_types_by_veg = dict()
     for veg in transitions:
         transition_types_by_veg[veg] = list()
@@ -148,11 +147,10 @@ def compute_groups_by_veg(console, pid, sid, path, selected=None):
     for veg in transition_types_by_veg:
         groups_by_veg[veg] = list()
         for transition_type in transition_types_by_veg[veg]:
-
             for group in types_by_group:
-                if group not in groups_by_veg[veg] and transition_type in types_by_group[group]\
-                        and (selected == None or (selected != None and group in selected)):    # extra clarifier here for narrowing groups down to the ones we choose to expose
+                if transition_type in types_by_group[group] and group in selected:
                     groups_by_veg[veg].append(group)
+        groups_by_veg[veg] = list(set(groups_by_veg[veg]))
 
     return groups_by_veg
 
