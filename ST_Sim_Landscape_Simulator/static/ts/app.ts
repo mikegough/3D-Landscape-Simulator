@@ -68,7 +68,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
 	controls.enableKeys = false
-	controls.zoomSpeed = 0.1
+	controls.zoomSpeed = 0.5
 	controls.maxPolarAngle = Math.PI / 2.4
 	controls.minDistance = 150
 	controls.maxDistance = 900
