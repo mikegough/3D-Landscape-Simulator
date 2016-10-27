@@ -349,7 +349,6 @@ class LibraryInfoView(STSimBaseView):
         response['probabilistic_transitions_json'] = probabilistic_transition_dict
 
         # transition groups, used for specifying transition targets in the UI
-        #response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
         response['management_actions_list'] = stsim_manager.transition_groups_by_veg[self.library]
 
         # pass the model config to tell the viz which assets to load
@@ -388,6 +387,7 @@ class RunModelView(STSimBaseView):
             total_active_cells = int(total_active_cells / total_cells * 100000)
             total_cells = 100000
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
+        transition_targets = json.loads(request.POST['transition_targets'])
 
         # working file path
         init_conditions_file = os.path.join(settings.STSIM_WORKING_DIR,
@@ -454,6 +454,30 @@ class RunModelView(STSimBaseView):
         self.stsim.import_probabilistic_transitions(self.scenario_id,
                                                     probabilities,
                                                     init_conditions_file)
+
+        # clean input and import transition targets
+        clean_transition_targets = dict()
+        for veg in transition_targets:
+            veg_targets = list()
+            for action in transition_targets[veg]:
+                try:
+                    value = int(transition_targets[veg][action])
+                    veg_targets.append({
+                        action: {
+                        'iteration': '',    # no iteration or timestep control, yet
+                        'timestep': '',
+                        'amount': int(transition_targets[veg][action])
+                        }
+                    })
+                except:
+                    continue
+            if len(veg_targets) > 0:
+                clean_transition_targets[veg] = veg_targets
+        print(init_conditions_file)
+        if len(clean_transition_targets.keys()) > 0:
+            self.stsim.import_transition_targets(self.scenario_id,
+                                                 init_conditions_file,
+                                                 clean_transition_targets)
 
         # run stsim model at self.scenario_id and return the result scenario id
         result_scenario_id = self.stsim.run_model(sid=self.scenario_id)

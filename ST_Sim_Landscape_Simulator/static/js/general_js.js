@@ -35,8 +35,16 @@ $(document).ready(function() {
     delegatedPopupContext('.show_state_classes_link', '.sub_slider_text_inputs');
     delegatedPopupContext('.manage_div', '.management_action_inputs');
 
+    // On management action value entry, update the transition target dictionary.
+    $(document).on('keyup', '.management_action_entry', function() {
+        var veg_type_id = this.id.split("_")[1];
+        var veg_type = this.closest('table').title;
+        var target_value = $(this).val();
+        var action = $(this).parent().parent().text().split(' ').slice(0,-1).join(' ');
+        transition_targets_dict[veg_type][action] = isNaN(parseInt(target_value)) ? '' : target_value;
+    })
+
     // On state class value entry move slider bar
-    //$(".veg_state_class_entry").keyup(function(){
     $(document).on('keyup', '.veg_state_class_entry', function() {
         veg_type_id=this.id.split("_")[1];
         veg_type=this.closest('table').title;
@@ -186,6 +194,7 @@ function run_st_sim(feature_id) {
 
     var veg_slider_values_state_class_string = JSON.stringify(veg_slider_values_state_class)
     var probabilistic_transitions_slider_values_string = JSON.stringify(probabilistic_transitions_slider_values)
+    var transition_targets_string = JSON.stringify(transition_targets_dict)
 
     $.ajax({
         url: settings['library'] + "/run_st_sim/" + current_uuid + '/', // the endpoint (for a specific view configured in urls.conf /view_name/)
@@ -197,7 +206,8 @@ function run_st_sim(feature_id) {
             'iterations': settings['iterations'],
             'spatial': settings['spatial'],
             'total_cells': veg_initial_conditions.total_cells,
-            'total_active_cells': veg_initial_conditions.total_active_cells
+            'total_active_cells': veg_initial_conditions.total_active_cells,
+            'transition_targets': transition_targets_string
         },
 
         // handle a successful response
@@ -524,6 +534,7 @@ function setLibrary(libraryName, definitions) {
 var slider_values = {};
 var veg_proportion = {};
 var management_actions_dict = {};
+var transition_targets_dict = {};
 var probability_labels = {};
     probability_labels[-1] = "0% Probability";
     probability_labels[-.75] = "Very Low (-75%)";
@@ -545,7 +556,8 @@ landscape_viewer.registerLegendCallback(drawLegend);
 
 var total_input_percent = 100;
 function setInitialConditionsSidebar(initial_conditions) {
-
+    management_actions_dict = {};
+    transition_targets_dict = {};
     total_input_percent = 100;
     veg_initial_conditions = initial_conditions;
     var veg_iteration = 1;
@@ -614,8 +626,10 @@ function setInitialConditionsSidebar(initial_conditions) {
         var management_action_count = 1;
         // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
         management_actions_dict[veg_type] = management_actions_list[veg_type];
+        transition_targets_dict[veg_type] = {}
         $.each(management_actions_dict[veg_type], function (index, management_action) {
-            $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
+            transition_targets_dict[veg_type][management_action] = '';
+            $("#" + management_table_id).append("<tr><td>" + management_action + "</td><td><input class='management_action_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value=''> Acres</td></tr>")
             management_action_count++
         });
 
