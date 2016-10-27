@@ -27,31 +27,31 @@ for cover in cover_map:
     for struct in struct_map:
         sc_map.append(convert_code(cover, struct))
 
+if 'Landfire' in stsim_manager.library_names:
+    # collect the description data from LANDFIRE map
+    landfire_descriptions_file = stsim_manager.desc_file_path['Landfire']
+    with open(landfire_descriptions_file,'r') as f:
+        reader = csv.DictReader(f)
+        data = [row for row in reader]
 
-# collect the description data from LANDFIRE map
-landfire_descriptions_file = stsim_manager.desc_file_path['Landfire']
-with open(landfire_descriptions_file,'r') as f:
-    reader = csv.DictReader(f)
-    data = [row for row in reader]
+    # construct mapping for bps_codes to sc_codes
+    sc_code_map = dict()
+    for row in data:
+        bps_code = int(row['BpS_Code'])  # important to keep as string
+        a = convert_code(row['ClassACover'], row['ClassAStruct'])
+        b = convert_code(row['ClassBCover'], row['ClassBStruct'])
+        c = convert_code(row['ClassCCover'], row['ClassCStruct'])
+        d = convert_code(row['ClassDCover'], row['ClassDStruct'])
+        e = convert_code(row['ClassECover'], row['ClassEStruct'])
+        sc_code_map[bps_code] = {1: a, 2: b, 3: c, 4: d, 5: e}
 
-# construct mapping for bps_codes to sc_codes
-sc_code_map = dict()
-for row in data:
-    bps_code = int(row['BpS_Code'])  # important to keep as string
-    a = convert_code(row['ClassACover'], row['ClassAStruct'])
-    b = convert_code(row['ClassBCover'], row['ClassBStruct'])
-    c = convert_code(row['ClassCCover'], row['ClassCStruct'])
-    d = convert_code(row['ClassDCover'], row['ClassDStruct'])
-    e = convert_code(row['ClassECover'], row['ClassEStruct'])
-    sc_code_map[bps_code] = {1: a, 2: b, 3: c, 4: d, 5: e}
-
-# veg types and state classes are sorted by name
-# We match that mapping by creating an index for the stateclasses here
-sclass_index = dict()
-idx = 1
-for code in sorted(sc_map):  # sorts by name
-    sclass_index[code] = idx
-    idx += 1
+    # veg types and state classes are sorted by name
+    # We match that mapping by creating an index for the stateclasses here
+    sclass_index = dict()
+    idx = 1
+    for code in sorted(sc_map):  # sorts by name
+        sclass_index[code] = idx
+        idx += 1
 
 
 def landfire_stateclass_index_raster(bps_path, sc_path, output_path):
