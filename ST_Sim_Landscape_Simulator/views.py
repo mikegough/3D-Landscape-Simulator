@@ -386,6 +386,9 @@ class RunModelView(STSimBaseView):
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
         total_active_cells = int(request.POST['total_active_cells'])
         total_cells = int(request.POST['total_cells'])
+        if total_active_cells > 100000:
+            total_active_cells = total_active_cells / total_cells * 100000
+            total_cells = 100000
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
 
         # working file path
