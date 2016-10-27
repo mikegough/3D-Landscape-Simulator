@@ -543,9 +543,10 @@ function drawLegend(colormap) {
 }
 landscape_viewer.registerLegendCallback(drawLegend);
 
+var total_input_percent = 100;
 function setInitialConditionsSidebar(initial_conditions) {
 
-    var total_input_percent = 100;
+    total_input_percent = 100;
     veg_initial_conditions = initial_conditions;
     var veg_iteration = 1;
 
@@ -614,7 +615,7 @@ function setInitialConditionsSidebar(initial_conditions) {
         // TODO: Currently hard coded. Same for each veg type. List of management actions will eventually be specific to the veg type.
         management_actions_dict[veg_type] = management_actions_list[veg_type];
         $.each(management_actions_dict[veg_type], function (index, management_action) {
-            $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input class='veg_state_class_entry' id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
+            $("#" + management_table_id).append("<tr><td>" + management_action + " </td><td><input id='" + "management_" + veg_iteration + "_" + state_class_count + "_manage' type='text' size='2' value='0'> Acres</td></tr>")
             management_action_count++
         });
 
