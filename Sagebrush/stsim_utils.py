@@ -41,6 +41,7 @@ class STSimManager:
         self.sc_paths = {lib_name: os.path.join(asset_dir[lib_name], config[lib_name]['sc_path']) for lib_name in self.library_names}
         self.elev_paths = {lib_name: os.path.join(asset_dir[lib_name], config[lib_name]['elev_path']) for lib_name in self.library_names}
         self.output_paths = {lib_name: config[lib_name]['output_path'] for lib_name in self.library_names}
+        self.resolutions = {lib_name: config[lib_name]['resolution'] for lib_name in self.library_names}
 
         # viz configuration
         self.veg_model_configs = {lib_name: config[lib_name]['veg_model_config'] for lib_name in self.library_names}

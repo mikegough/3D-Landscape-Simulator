@@ -15,8 +15,6 @@ from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-# Resolution of the datasets. TODO - set in config? obtain from rasters?
-RESOLUTION = 30
 
 class HomepageView(TemplateView):
 
@@ -387,7 +385,7 @@ class RunModelView(STSimBaseView):
         total_active_cells = int(request.POST['total_active_cells'])
         total_cells = int(request.POST['total_cells'])
         if total_active_cells > 100000:
-            total_active_cells = total_active_cells / total_cells * 100000
+            total_active_cells = int(total_active_cells / total_cells * 100000)
             total_cells = 100000
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
 
@@ -427,11 +425,13 @@ class RunModelView(STSimBaseView):
                 self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
                                                          strata_path=veg_path, sc_path=sc_path)
         else:
-            self.stsim.import_nonspatial_conditions(self.scenario_id,
-                                                    {'TotalAmount': str(cells_to_acres(total_active_cells, RESOLUTION)),
-                                                     'NumCells': str(total_active_cells),
-                                                     'CalcFromDist': ''},   # Distribution seems off, since we would need to set the number of acres per vegtype.
-                                                    init_conditions_file)
+            self.stsim.import_nonspatial_conditions(
+                self.scenario_id,
+                {'TotalAmount': str(cells_to_acres(total_active_cells,
+                                    stsim_manager.resolutions[self.library])),
+                 'NumCells': str(total_active_cells),
+                 'CalcFromDist': ''},   # Distribution seems off, since we would need to set the number of acres per vegtype.
+                 init_conditions_file)
             self.stsim.import_nonspatial_distribution(self.scenario_id,
                                                       stateclass_relative_distribution,
                                                       init_conditions_file)
