@@ -1,12 +1,11 @@
 // app.ts
-
 import {createTerrain, createDataTerrain, createTerrainTile, TileData} from './terrain'
 import {createSpatialVegetation, VegetationGroups} from './veg'
 import {detectWebGL, detectWebWorkers} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
 
-
+// Internal script for decoding the heights on the client.
 const compute_heights = [
 	"var onmessage = function(e) {",
 		"postMessage(computeHeights(e.data.w, e.data.h, e.data.data))",
@@ -73,27 +72,77 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	controls.minDistance = 150
 	controls.maxDistance = 900
 
-	/*
-	var gui = new dat.GUI({autoPlace: false});
-    var terrainControls = gui.addFolder('Terrain Controls', "a");
-    terrainControls.add(verticalScale, 'verticalScale',0.0, 10.0).onChange( function(){
-        material.uniforms.verticalScale.value = verticalScale.verticalScale;
-    });
-    terrainControls.add(verticalScale, 'flipLegend', 1.0).onChange( function() {
-        if (material.uniforms.legendOrientation.value == 1) {
-            material.uniforms.legendOrientation.value = 0;
-        } else {
-            material.uniforms.legendOrientation.value = 1;
-        }
-        RedrawLegend(currentVariableName);
-    });
+	
+	var terrainControls = new dat.GUI({autoPlace: false});
+	var guiParams = {
+		'Available Layers': "State Class",
+		'Vertical Scale': 1.0,
+	}
+
+    terrainControls.addFolder('Terrain Controls');
+    //var blah = ['Vegetation', 'State Class', 'Elevation']
+    terrainControls.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange( function(value: any) {
+    	let terrain = scene.getObjectByName('terrain')
+		if (terrain.children.length > 0) {
+			let i : number
+			let child : THREE.Mesh
+			for (i = 0; i < terrain.children.length; i++) {
+				child = terrain.children[i] as THREE.Mesh
+				let child_data = child.userData as TileData
+				let child_mat = child.material as THREE.ShaderMaterial
+				if (child_data['active_texture_type'] == 'veg') {
+					child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'sc'].join('_')]		
+					child_data['active_texture_type'] = 'sc'
+				} else {
+					child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'veg'].join('_')]
+					child_data['active_texture_type'] = 'veg'
+				}
+				child_mat.uniforms.active_texture.needsUpdate = true
+			}
+			render()
+			if (child.userData.active_texture_type == 'veg') {
+				let veg_color_map = {}
+				for (var code in currentConditions.veg_sc_pct) {
+					for (var name in currentDefinitions.veg_type_color_map) {
+						if (Number(name) == Number(code)) {
+							if (currentDefinitions.has_lookup) {
+								veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
+							} else {
+								veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
+							}
+							break
+						}
+					}
+				}
+
+				drawLegendCallback(veg_color_map)
+			} else {
+				drawLegendCallback(currentDefinitions.state_class_color_map)				
+			}
+		}
+    })
+
+    terrainControls.add(guiParams, 'Vertical Scale',0.0, 3.0).onChange( function(value: any){
+    	let terrain = scene.getObjectByName('terrain')
+    	// update the terrain scalar
+    	if (terrain.children.length > 0) {
+    		let child : THREE.Mesh
+    		for (let i = 0; i < terrain.children.length; i++) {
+    			child = terrain.children[i] as THREE.Mesh
+    			let child_mat = child.material as THREE.ShaderMaterial
+				child_mat.uniforms.disp.value = value
+				child_mat.uniforms.disp.needsUpdate = true
+    		}
+    		render()
+    	}
+    })
     terrainControls.open();
-    gui.domElement.style.position='absolute';
-    gui.domElement.style.bottom = '20px';
-    gui.domElement.style.right = '0%';
-    gui.domElement.style.textAlign = 'center';
-    container.appendChild(gui.domElement);
-    */
+    terrainControls.domElement.style.position='absolute';
+    terrainControls.domElement.style.bottom = '20px';
+    terrainControls.domElement.style.left = '0%';
+    terrainControls.domElement.style.textAlign = 'center';
+    container.appendChild(terrainControls.domElement);
+    
 
 
 	initialize()
@@ -260,6 +309,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	}
 
 	function createTiles(loadedAssets: Assets) {
+		masterAssets[currentLibraryName] = loadedAssets
 
 		camera.position.set(camera_start.x, camera_start.y, camera_start.z)
 
@@ -361,60 +411,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 		tile_group.rotateX(-Math.PI / 2)
 
-		// show the animation controls for the outputs
-		/*
-    	$('#animation_container').show();
-	
-		// activate the checkbox
-		$('#viz_type').on('change', function() {
-			let i : number
-			let child : THREE.Mesh
-			for (i = 0; i < tile_group.children.length; i++) {
-				child = tile_group.children[i] as THREE.Mesh
-				let child_data = child.userData as TileData
-				let child_mat = child.material as THREE.ShaderMaterial
-				if (child_data['active_texture_type'] == 'veg') {
-					child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'sc'].join('_')]		
-					child_data['active_texture_type'] = 'sc'
-				} else {
-					child_mat.uniforms.active_texture.value = loadedAssets.textures[[child_data.x, child_data.y, 'veg'].join('_')]
-					child_data['active_texture_type'] = 'veg'
-				}
-				child_mat.uniforms.active_texture.needsUpdate = true
-			}
-			render()
-			// redraw legend
-			if (child.userData.active_texture_type == 'veg') {
-
-
-				let veg_color_map = {}
-				for (var code in currentConditions.veg_sc_pct) {
-					for (var name in currentDefinitions.veg_type_color_map) {
-						if (Number(name) == Number(code)) {
-							if (currentDefinitions.has_lookup) {
-								veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
-							} else {
-								veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
-							}
-							break
-						}
-					}
-				}
-
-				drawLegendCallback(veg_color_map)
-			} else {
-				drawLegendCallback(currentDefinitions.state_class_color_map)				
-			}
-
-		})
-		*/
-
-
-
 		// always finish with a render
 		resetCamera()
-		//controls.update()
-		//render()
 		hideLoadingScreen()
 	}
 

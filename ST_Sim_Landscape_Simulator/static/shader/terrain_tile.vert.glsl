@@ -27,13 +27,13 @@ void main()
 { 
     vUV = uv;
     //vAmount = decodeElevation(texture2D(heightmap, uv));
-    
+    vec3 pos = vec3(position.xy, position.z * disp);
     // use this for lighting based on sun location
     fN = normalize( vec4(normal, 0.0) ).xyz;
     fE = -(modelViewMatrix*vec4(position, 1.0)).xyz;
     fL = lightPosition;
 
         // set the position since we don't need to alter it
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
 
 }

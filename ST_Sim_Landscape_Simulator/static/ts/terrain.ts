@@ -67,7 +67,8 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 			specularProduct: {type: "c", value: SPEC},
 			shininess: {type: "f", value: SHINY},
 			// height exageration
-			disp: {type: "f", value: params.disp}
+			//disp: {type: "f", value: params.disp}
+			disp: {type: "f", value: 1.0}	// start with 1.0, range from 0 to 3.0
 		},
 		vertexShader: params.vertexShader,
 		fragmentShader: params.fragmentShader
