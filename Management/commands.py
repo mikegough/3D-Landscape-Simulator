@@ -34,7 +34,7 @@ def print_progress(iteration, total, prefix='', suffix='', decimals=1, bar_lengt
     sys.stdout.flush()
 
 
-def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, single_id=None):
+def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, single_id=None, save_tifs=False):
     """
     Clips each extent for a given reporting unit and builds the textures and initial conditions
     :param name: Name of the reporting_unit in the STSIM_CONFIG
@@ -63,6 +63,18 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
     veg_sc_defs = stsim_manager.all_veg_state_classes[lib]
     veg_defs = stsim_manager.vegtype_definitions[lib]
     sc_defs = stsim_manager.stateclass_definitions[lib]
+
+    sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[lib])
+    misc_colors = stsim_manager.misc_legend_info[lib]
+    if len(misc_colors) > 0:
+
+        misc_conv = getattr(conversions, 'convert_misc_info')
+        misc_colors = [{'ID': str(misc_conv(color['ID'])),  # convert the codes to the proper codes in the textures
+                        'r': color['r'],
+                        'g': color['g'],
+                        'b': color['b']} for color in misc_colors]
+
+        sc_colormap += misc_colors
 
     p = 0
     total_progress = len(reporting_units)
@@ -135,7 +147,6 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
             x_tiles = ceil(width / TIFF_SIZE * TEXTURE_SIZE_RATIO)
             y_tiles = ceil(height / TIFF_SIZE * TEXTURE_SIZE_RATIO)
 
-            sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[lib])
 
             for i in range(x_tiles):
                 left_idx = i * TIFF_SIZE + overall_window[1][0]
@@ -180,6 +191,12 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
 
                     # collect zonal stats for this chunk
                     row_stats.append(raster_utils.zonal_stateclass_stats(temp_veg_path, output_path))
+
+                    if not save_tifs:
+                        # Remove the tifs after the conversion process is done.
+                        os.remove(output_path)
+                        os.remove(output_path.replace('sc', 'veg'))
+
                 raw_unit_zonal_stats.append(row_stats)
 
         final_zonal_stats, veg_total, sc_total = total_stateclass_stats(raw_unit_zonal_stats, veg_sc_defs, veg_defs, sc_defs)

@@ -53,6 +53,21 @@ if 'Landfire' in stsim_manager.library_names:
         sclass_index[code] = idx
         idx += 1
 
+valid_sclass_codes = [1, 2, 3, 4, 5]
+
+valid_misc_codes = [6, 7, 111, 112, 120, 121, 131, 132, 180, 181]
+
+
+def convert_misc_info(misc_code):
+    """
+    Converts non-sclass codes into codes that won't interfere with ST-Sim but are present for creating textures.
+    :param misc_code:
+    :return:
+    """
+    if misc_code < 100:
+        misc_code += 100
+    return misc_code
+
 
 def landfire_stateclass_index_raster(bps_path, sc_path, output_path):
     """
@@ -79,10 +94,12 @@ def landfire_stateclass_index_raster(bps_path, sc_path, output_path):
                     for pixel in range(mapped_data.size):
                         bps_code = bps_ravel[pixel]
                         sc_code = sc_ravel[pixel]
-                        if sc_code in [1, 2, 3, 4, 5] and bps_code != 0 and bps_code in sc_code_map.keys():
+                        if sc_code in valid_sclass_codes and bps_code != 0 and bps_code in sc_code_map.keys():
                             state_class_type = sc_code_map[bps_code][sc_code]
                             if len(state_class_type) > 0:
                                 state_class_value = sclass_index[state_class_type]
                                 mapped_data[pixel] = state_class_value
+                        elif sc_code in valid_misc_codes:
+                            mapped_data[pixel] = convert_misc_info(sc_code)
                     output_data = np.reshape(mapped_data, shape)
                     dst.write(output_data, indexes=1, window=window)

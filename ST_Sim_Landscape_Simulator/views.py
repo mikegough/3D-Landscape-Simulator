@@ -342,6 +342,8 @@ class LibraryInfoView(STSimBaseView):
         response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
         response['state_class_color_map'] = texture_utils.create_rgb_colormap(sc_defs)
         response['veg_type_color_map'] = texture_utils.create_rgb_colormap(veg_defs,decode_from_id=True)
+        response['misc_legend_info'] = [{info['label']: texture_utils.rgb_to_hex((info['r'], info['g'], info['b']))}    # TODO - move this to a function?
+                                        for info in stsim_manager.misc_legend_info[self.library]]
 
         # our probabilistic transition types for this application
         probabilistic_transition_types = stsim_manager.probabilistic_transition_types[self.library]

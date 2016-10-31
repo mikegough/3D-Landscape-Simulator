@@ -46,6 +46,7 @@ class STSimManager:
         # viz configuration
         self.veg_model_configs = {lib_name: config[lib_name]['veg_model_config'] for lib_name in self.library_names}
         self.has_lookup_fields = {lib_name: config[lib_name]['has_lookup'] for lib_name in self.library_names}
+        self.misc_legend_info = {lib_name: config[lib_name]['misc_legend_info'] for lib_name in self.library_names}
 
         # lookup specifics
         self.lookup_fields = {lib_name: config[lib_name]['lookup_fields'] for lib_name in self.library_names}
