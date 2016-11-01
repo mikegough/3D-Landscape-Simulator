@@ -139,7 +139,7 @@ class RasterTextureView(RasterTextureBase):
             sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[self.library])
             texture = texture_utils.stateclass_texture(path, sc_colormap)
         elif self.type == 'veg':
-            texture = texture_utils.vegtype_texture(path)
+            texture = texture_utils.vegtype_texture(path, veg_defs=stsim_manager.vegtype_definitions[self.library])
         else:
             return HttpResponseNotFound()
 
@@ -341,7 +341,8 @@ class LibraryInfoView(STSimBaseView):
         response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
         response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
         response['state_class_color_map'] = texture_utils.create_rgb_colormap(sc_defs)
-        response['veg_type_color_map'] = texture_utils.create_rgb_colormap(veg_defs,decode_from_id=True)
+        response['veg_type_color_map'] = texture_utils.create_rgb_colormap(veg_defs,
+                                                                           decode_from_id=stsim_manager.has_tiles[self.library])
         response['misc_legend_info'] = [{info['label']: texture_utils.rgb_to_hex((info['r'], info['g'], info['b']))}    # TODO - move this to a function?
                                         for info in stsim_manager.misc_legend_info[self.library]]
 
@@ -475,7 +476,7 @@ class RunModelView(STSimBaseView):
                     continue
             if len(veg_targets) > 0:
                 clean_transition_targets[veg] = veg_targets
-        print(init_conditions_file)
+
         if len(clean_transition_targets.keys()) > 0:
             self.stsim.import_transition_targets(self.scenario_id,
                                                  init_conditions_file,
