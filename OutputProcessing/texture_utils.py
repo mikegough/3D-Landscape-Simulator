@@ -63,7 +63,7 @@ def elevation_texture(elev_path, scale=None):
     return texture
 
 
-def vegtype_texture(strata_path, scale=None):
+def vegtype_texture(strata_path, veg_defs=None, scale=None):
     """ Creates a type-encoded image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -74,16 +74,24 @@ def vegtype_texture(strata_path, scale=None):
         shape = strata_data.shape
         strata_flat = strata_data.ravel()
 
-        # Pack the codes into the color channels.
-        # Allows for a max of a 24 unsigned integer.
-        unique_codes = np.unique(strata_flat)
         r_map = dict()
         g_map = dict()
         b_map = dict()
-        for value in list(unique_codes):
-            r_map[value] = (value & 0xFF)
-            g_map[value] = (value & 0xFF00) >> 8
-            b_map[value] = (value & 0xFF0000) >> 16
+        if veg_defs is None:
+            # Pack the codes into the color channels.
+            # Allows for a max of a 24 unsigned integer.
+            unique_codes = np.unique(strata_flat)
+            for value in list(unique_codes):
+                r_map[value] = (value & 0xFF)
+                g_map[value] = (value & 0xFF00) >> 8
+                b_map[value] = (value & 0xFF0000) >> 16
+        else:
+            colormap = create_colormap(veg_defs)
+            for row in colormap:
+                idx = int(row['ID'])
+                r_map[idx] = int(row['r'])
+                g_map[idx] = int(row['g'])
+                b_map[idx] = int(row['b'])
 
         image_shape = (shape[1], shape[0])  # images are column major
         texture = Image.new('RGB', image_shape)
@@ -97,15 +105,14 @@ def vegtype_texture(strata_path, scale=None):
     return texture
 
 
-def create_colormap(sc_defs):
-
-    colormap = list()   # TODO - let colors be determined by the UI or by the user?
-    for stateclass in sc_defs.keys():
-        color = sc_defs[stateclass]['Color'].split(',')
+def create_colormap(stsim_defs):
+    colormap = list()
+    for definition in stsim_defs.keys():
+        color = stsim_defs[definition]['Color'].split(',')
         r = color[1]
         g = color[2]
         b = color[3]
-        idx = sc_defs[stateclass]['ID']
+        idx = stsim_defs[definition]['ID']
         colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
     return colormap
 
