@@ -143,9 +143,24 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
     }
     exports.createDataTerrain = createDataTerrain;
 });
-// stsim.ts
-define("stsim", ["require", "exports"], function (require, exports) {
+// utils.ts
+define("utils", ["require", "exports"], function (require, exports) {
     "use strict";
+    function detectWebGL() {
+        try {
+            const canvas = document.createElement('canvas');
+            return !!window['WebGLRenderingContext'] &&
+                (!!canvas.getContext('webgl') || !!canvas.getContext('experimental-webgl'));
+        }
+        catch (e) {
+            return null;
+        }
+    }
+    exports.detectWebGL = detectWebGL;
+    function detectWebWorkers() {
+        return typeof (Worker) !== "undefined";
+    }
+    exports.detectWebWorkers = detectWebWorkers;
 });
 // Loader that provides a dictionary of named assets
 // LICENSE: MIT
@@ -296,218 +311,9 @@ define("assetloader", ["require", "exports"], function (require, exports) {
     }
     exports.Loader = Loader; // end Loader
 });
-define("veg", ["require", "exports", "globals"], function (require, exports, globals) {
+// stsim.ts
+define("stsim", ["require", "exports"], function (require, exports) {
     "use strict";
-    const RESOLUTION = 30; // 30 meter resolution
-    const AMBIENT = new THREE.Color(globals.WHITE);
-    const DIFFUSE = new THREE.Color(globals.WHITE);
-    const SPEC = new THREE.Color(globals.WHITE);
-    const INTENSITY = 1.0;
-    const KA = 0.63;
-    //const KA = 0.2
-    const KD = 1.0;
-    const KS = 0.2;
-    const SHINY = 20.0;
-    AMBIENT.multiplyScalar(KA * INTENSITY);
-    DIFFUSE.multiplyScalar(KD * INTENSITY);
-    SPEC.multiplyScalar(KS * INTENSITY);
-    function decodeStrataImage(raw_data) {
-        let decoded_data = new Uint32Array(raw_data.length / 4);
-        let idx;
-        for (var i = 0; i < decoded_data.length; i++) {
-            idx = i * 4;
-            decoded_data[i] = raw_data[idx] | (raw_data[idx + 1] << 8) | (raw_data[idx + 2] << 16);
-        }
-        return decoded_data;
-    }
-    // returns a THREE.Group of vegetation
-    function createSpatialVegetation(params) {
-        console.log('Generating realistic vegetation...');
-        let realismGroup = new THREE.Group();
-        let dataGroup = new THREE.Group();
-        dataGroup.name = realismGroup.name = 'vegetation';
-        const strata_map = params.strataTexture;
-        const image = strata_map.image;
-        let w = image.naturalWidth;
-        let h = image.naturalHeight;
-        let canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        let ctx = canvas.getContext('2d');
-        ctx.drawImage(image, 0, 0, w, h);
-        // get the image data and convert to IDs
-        let raw_image_data = ctx.getImageData(0, 0, w, h).data;
-        let strata_data = decodeStrataImage(raw_image_data);
-        raw_image_data = null;
-        const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h);
-        for (var name in params.zonalVegtypes) {
-            const assetGroup = params.vegAssetGroups[name];
-            const veg_geo = params.geometries[assetGroup.asset_name];
-            const veg_tex = params.textures[assetGroup.asset_name];
-            const vegtypePositions = computeVegtypePositions(params.vegtypes[name], strata_positions, strata_data, w, h);
-            const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h, assetGroup.symmetric, assetGroup.scale);
-            realismGroup.add(createRealismVegtype({
-                name: name,
-                heightmap: params.heightmap,
-                map: vegtypePositions.map,
-                numValid: vegtypePositions.numValid,
-                heightStats: params.heightStats,
-                geo: geometry,
-                tex: veg_tex,
-                sc_tex: params.stateclassTexture,
-                width: w,
-                height: h,
-                vertexShader: params.realismVertexShader,
-                fragmentShader: params.realismFragmentShader,
-                disp: params.disp
-            }));
-            dataGroup.add(createDataVegtype({
-                name: name,
-                heightmap: params.heightmap,
-                map: vegtypePositions.map,
-                numValid: vegtypePositions.numValid,
-                heightStats: params.heightStats,
-                geo: geometry,
-                tex: veg_tex,
-                sc_tex: params.stateclassTexture,
-                width: w,
-                height: h,
-                vertexShader: params.dataVertexShader,
-                fragmentShader: params.dataFragmentShader,
-                disp: params.disp
-            }));
-        }
-        strata_data = ctx = canvas = null;
-        console.log('Vegetation generated!');
-        return { realism: realismGroup, data: dataGroup };
-    }
-    exports.createSpatialVegetation = createSpatialVegetation;
-    function computeStrataPositions(vegtypes, data, w, h) {
-        let strata_map = new Array(); // declare boolean array
-        let strata_data = data.slice();
-        // convert to boolean and return the map
-        for (var i = 0; i < strata_data.length; i++) {
-            strata_map.push(strata_data[i] != 0 && i % Math.floor((Math.random() * 75)) == 0 ? true : false);
-        }
-        return strata_map;
-    }
-    function computeVegtypePositions(id, position_map, type_data, w, h) {
-        let vegtype_map = new Array(); // declare boolean array
-        let idx;
-        let valid;
-        let numValid = 0;
-        for (let y = 0; y < h; ++y) {
-            for (let x = 0; x < w; x++) {
-                // idx in the image
-                idx = (x + y * w);
-                // update vegtype map
-                valid = type_data[idx] == id && position_map[idx];
-                // how many are valid? This informs the number of instances to do
-                if (valid)
-                    numValid++;
-                vegtype_map.push(valid);
-            }
-        }
-        return { map: vegtype_map, numValid: numValid };
-    }
-    function createRealismVegtype(params) {
-        const lightPosition = globals.getVegetationLightPosition(name);
-        const diffuseScale = DIFFUSE;
-        const mat = new THREE.RawShaderMaterial({
-            uniforms: {
-                heightmap: { type: "t", value: params.heightmap },
-                disp: { type: "f", value: params.disp },
-                tex: { type: "t", value: params.tex },
-                sc_tex: { type: "t", value: params.sc_tex },
-                // lighting
-                lightPosition: { type: "3f", value: lightPosition },
-                ambientProduct: { type: "c", value: AMBIENT },
-                diffuseProduct: { type: "c", value: DIFFUSE },
-                diffuseScale: { type: "f", value: diffuseScale },
-                specularProduct: { type: "c", value: SPEC },
-                shininess: { type: "f", value: SHINY }
-            },
-            vertexShader: params.vertexShader,
-            fragmentShader: params.fragmentShader,
-            side: THREE.DoubleSide
-        });
-        const mesh = new THREE.Mesh(params.geo, mat);
-        mesh.name = name;
-        //mesh.frustumCulled = false
-        return mesh;
-    }
-    function createVegtypeGeometry(geo, positions, width, height, symmetric, scale) {
-        const baseGeo = new THREE.BoxGeometry(1, 1, 1);
-        baseGeo.translate(0, 0.5, 0);
-        const inst_geo = new THREE.InstancedBufferGeometry();
-        inst_geo.fromGeometry(baseGeo);
-        baseGeo.dispose();
-        // always remove the color buffer since we are using textures
-        if (inst_geo.attributes['color']) {
-            inst_geo.removeAttribute('color');
-        }
-        inst_geo.maxInstancedCount = positions.numValid;
-        const offsets = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2);
-        const hCoords = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2);
-        const rotations = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid), 1);
-        inst_geo.addAttribute('offset', offsets);
-        inst_geo.addAttribute('hCoord', hCoords);
-        inst_geo.addAttribute('rotation', rotations);
-        // generate offsets
-        let i = 0;
-        let x, y, idx, posx, posy, tx, ty;
-        for (y = 0; y < height; y += 1) {
-            for (x = 0; x < width; x += 1) {
-                idx = (x + y * width);
-                if (positions.map[idx]) {
-                    posx = (x - width / 2);
-                    posy = (y - height / 2);
-                    tx = x / width;
-                    ty = y / height;
-                    offsets.setXY(i, posx, posy);
-                    hCoords.setXY(i, tx, 1 - ty);
-                    rotations.setX(i, Math.random() * 2.0);
-                    i++;
-                }
-            }
-        }
-        return inst_geo;
-    }
-    function createDataVegtype(params) {
-        const mat = new THREE.RawShaderMaterial({
-            uniforms: {
-                heightmap: { type: "t", value: params.heightmap },
-                disp: { type: "f", value: params.disp },
-                sc_tex: { type: "t", value: params.sc_tex },
-            },
-            vertexShader: params.vertexShader,
-            fragmentShader: params.fragmentShader,
-            side: THREE.DoubleSide
-        });
-        const mesh = new THREE.Mesh(params.geo, mat);
-        mesh.name = name;
-        mesh.frustumCulled = false;
-        return mesh;
-    }
-});
-// utils.ts
-define("utils", ["require", "exports"], function (require, exports) {
-    "use strict";
-    function detectWebGL() {
-        try {
-            const canvas = document.createElement('canvas');
-            return !!window['WebGLRenderingContext'] &&
-                (!!canvas.getContext('webgl') || !!canvas.getContext('experimental-webgl'));
-        }
-        catch (e) {
-            return null;
-        }
-    }
-    exports.detectWebGL = detectWebGL;
-    function detectWebWorkers() {
-        return typeof (Worker) !== "undefined";
-    }
-    exports.detectWebWorkers = detectWebWorkers;
 });
 define("app", ["require", "exports", "terrain", "utils", "assetloader"], function (require, exports, terrain_1, utils_1, assetloader_1) {
     "use strict";
@@ -543,7 +349,7 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
         const renderer = new THREE.WebGLRenderer();
         container.appendChild(renderer.domElement);
         // camera creation
-        const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
+        const camera = new THREE.PerspectiveCamera(70, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
         camera.position.y = 350;
         camera.position.z = 600;
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
@@ -669,26 +475,11 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                     /* tile shaders */
                     { name: 'tile_vert', url: 'static/shader/terrain_tile.vert.glsl' },
                     { name: 'tile_frag', url: 'static/shader/terrain_tile.frag.glsl' }
-                ],
-                textures: [],
+                ]
             }, function (loadedAssets) {
                 console.log('Terrain loaded');
                 masterAssets['terrain'] = loadedAssets;
                 terrainInitialized = true;
-                initialized = tryDone();
-            }, reportProgress, reportError);
-            const vegetationLoader = assetloader_1.Loader();
-            vegetationLoader.load({
-                text: [
-                    { name: 'real_veg_vert', url: 'static/shader/real_veg.vert.glsl' },
-                    { name: 'real_veg_frag', url: 'static/shader/real_veg.frag.glsl' },
-                    { name: 'data_veg_vert', url: 'static/shader/data_veg.vert.glsl' },
-                    { name: 'data_veg_frag', url: 'static/shader/data_veg.frag.glsl' },
-                ]
-            }, function (loadedAssets) {
-                console.log('Vegetation shaders loaded');
-                masterAssets['vegetation'] = loadedAssets;
-                vegetationInitialized = true;
                 initialized = tryDone();
             }, reportProgress, reportError);
         }
@@ -1130,6 +921,200 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
     function reportError(error) {
         console.log(error);
         return;
+    }
+});
+define("veg", ["require", "exports", "globals"], function (require, exports, globals) {
+    "use strict";
+    const RESOLUTION = 30; // 30 meter resolution
+    const AMBIENT = new THREE.Color(globals.WHITE);
+    const DIFFUSE = new THREE.Color(globals.WHITE);
+    const SPEC = new THREE.Color(globals.WHITE);
+    const INTENSITY = 1.0;
+    const KA = 0.63;
+    //const KA = 0.2
+    const KD = 1.0;
+    const KS = 0.2;
+    const SHINY = 20.0;
+    AMBIENT.multiplyScalar(KA * INTENSITY);
+    DIFFUSE.multiplyScalar(KD * INTENSITY);
+    SPEC.multiplyScalar(KS * INTENSITY);
+    function decodeStrataImage(raw_data) {
+        let decoded_data = new Uint32Array(raw_data.length / 4);
+        let idx;
+        for (var i = 0; i < decoded_data.length; i++) {
+            idx = i * 4;
+            decoded_data[i] = raw_data[idx] | (raw_data[idx + 1] << 8) | (raw_data[idx + 2] << 16);
+        }
+        return decoded_data;
+    }
+    // returns a THREE.Group of vegetation
+    function createSpatialVegetation(params) {
+        console.log('Generating realistic vegetation...');
+        let realismGroup = new THREE.Group();
+        let dataGroup = new THREE.Group();
+        dataGroup.name = realismGroup.name = 'vegetation';
+        const strata_map = params.strataTexture;
+        const image = strata_map.image;
+        let w = image.naturalWidth;
+        let h = image.naturalHeight;
+        let canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        let ctx = canvas.getContext('2d');
+        ctx.drawImage(image, 0, 0, w, h);
+        // get the image data and convert to IDs
+        let raw_image_data = ctx.getImageData(0, 0, w, h).data;
+        let strata_data = decodeStrataImage(raw_image_data);
+        raw_image_data = null;
+        const strata_positions = computeStrataPositions(params.vegtypes, strata_data, w, h);
+        for (var name in params.zonalVegtypes) {
+            const assetGroup = params.vegAssetGroups[name];
+            const veg_geo = params.geometries[assetGroup.asset_name];
+            const veg_tex = params.textures[assetGroup.asset_name];
+            const vegtypePositions = computeVegtypePositions(params.vegtypes[name], strata_positions, strata_data, w, h);
+            const geometry = createVegtypeGeometry(veg_geo, vegtypePositions, w, h, assetGroup.symmetric, assetGroup.scale);
+            realismGroup.add(createRealismVegtype({
+                name: name,
+                heightmap: params.heightmap,
+                map: vegtypePositions.map,
+                numValid: vegtypePositions.numValid,
+                heightStats: params.heightStats,
+                geo: geometry,
+                tex: veg_tex,
+                sc_tex: params.stateclassTexture,
+                width: w,
+                height: h,
+                vertexShader: params.realismVertexShader,
+                fragmentShader: params.realismFragmentShader,
+                disp: params.disp
+            }));
+            dataGroup.add(createDataVegtype({
+                name: name,
+                heightmap: params.heightmap,
+                map: vegtypePositions.map,
+                numValid: vegtypePositions.numValid,
+                heightStats: params.heightStats,
+                geo: geometry,
+                tex: veg_tex,
+                sc_tex: params.stateclassTexture,
+                width: w,
+                height: h,
+                vertexShader: params.dataVertexShader,
+                fragmentShader: params.dataFragmentShader,
+                disp: params.disp
+            }));
+        }
+        strata_data = ctx = canvas = null;
+        console.log('Vegetation generated!');
+        return { realism: realismGroup, data: dataGroup };
+    }
+    exports.createSpatialVegetation = createSpatialVegetation;
+    function computeStrataPositions(vegtypes, data, w, h) {
+        let strata_map = new Array(); // declare boolean array
+        let strata_data = data.slice();
+        // convert to boolean and return the map
+        for (var i = 0; i < strata_data.length; i++) {
+            strata_map.push(strata_data[i] != 0 && i % Math.floor((Math.random() * 75)) == 0 ? true : false);
+        }
+        return strata_map;
+    }
+    function computeVegtypePositions(id, position_map, type_data, w, h) {
+        let vegtype_map = new Array(); // declare boolean array
+        let idx;
+        let valid;
+        let numValid = 0;
+        for (let y = 0; y < h; ++y) {
+            for (let x = 0; x < w; x++) {
+                // idx in the image
+                idx = (x + y * w);
+                // update vegtype map
+                valid = type_data[idx] == id && position_map[idx];
+                // how many are valid? This informs the number of instances to do
+                if (valid)
+                    numValid++;
+                vegtype_map.push(valid);
+            }
+        }
+        return { map: vegtype_map, numValid: numValid };
+    }
+    function createRealismVegtype(params) {
+        const lightPosition = globals.getVegetationLightPosition(name);
+        const diffuseScale = DIFFUSE;
+        const mat = new THREE.RawShaderMaterial({
+            uniforms: {
+                heightmap: { type: "t", value: params.heightmap },
+                disp: { type: "f", value: params.disp },
+                tex: { type: "t", value: params.tex },
+                sc_tex: { type: "t", value: params.sc_tex },
+                // lighting
+                lightPosition: { type: "3f", value: lightPosition },
+                ambientProduct: { type: "c", value: AMBIENT },
+                diffuseProduct: { type: "c", value: DIFFUSE },
+                diffuseScale: { type: "f", value: diffuseScale },
+                specularProduct: { type: "c", value: SPEC },
+                shininess: { type: "f", value: SHINY }
+            },
+            vertexShader: params.vertexShader,
+            fragmentShader: params.fragmentShader,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(params.geo, mat);
+        mesh.name = name;
+        //mesh.frustumCulled = false
+        return mesh;
+    }
+    function createVegtypeGeometry(geo, positions, width, height, symmetric, scale) {
+        const baseGeo = new THREE.BoxGeometry(1, 1, 1);
+        baseGeo.translate(0, 0.5, 0);
+        const inst_geo = new THREE.InstancedBufferGeometry();
+        inst_geo.fromGeometry(baseGeo);
+        baseGeo.dispose();
+        // always remove the color buffer since we are using textures
+        if (inst_geo.attributes['color']) {
+            inst_geo.removeAttribute('color');
+        }
+        inst_geo.maxInstancedCount = positions.numValid;
+        const offsets = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2);
+        const hCoords = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid * 2), 2);
+        const rotations = new THREE.InstancedBufferAttribute(new Float32Array(positions.numValid), 1);
+        inst_geo.addAttribute('offset', offsets);
+        inst_geo.addAttribute('hCoord', hCoords);
+        inst_geo.addAttribute('rotation', rotations);
+        // generate offsets
+        let i = 0;
+        let x, y, idx, posx, posy, tx, ty;
+        for (y = 0; y < height; y += 1) {
+            for (x = 0; x < width; x += 1) {
+                idx = (x + y * width);
+                if (positions.map[idx]) {
+                    posx = (x - width / 2);
+                    posy = (y - height / 2);
+                    tx = x / width;
+                    ty = y / height;
+                    offsets.setXY(i, posx, posy);
+                    hCoords.setXY(i, tx, 1 - ty);
+                    rotations.setX(i, Math.random() * 2.0);
+                    i++;
+                }
+            }
+        }
+        return inst_geo;
+    }
+    function createDataVegtype(params) {
+        const mat = new THREE.RawShaderMaterial({
+            uniforms: {
+                heightmap: { type: "t", value: params.heightmap },
+                disp: { type: "f", value: params.disp },
+                sc_tex: { type: "t", value: params.sc_tex },
+            },
+            vertexShader: params.vertexShader,
+            fragmentShader: params.fragmentShader,
+            side: THREE.DoubleSide
+        });
+        const mesh = new THREE.Mesh(params.geo, mat);
+        mesh.name = name;
+        mesh.frustumCulled = false;
+        return mesh;
     }
 });
 //# sourceMappingURL=landscape-viewer.js.map

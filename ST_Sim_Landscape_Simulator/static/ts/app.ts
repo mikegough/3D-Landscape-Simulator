@@ -1,6 +1,5 @@
 // app.ts
-import {createTerrain, createDataTerrain, createTerrainTile, TileData} from './terrain'
-import {createSpatialVegetation, VegetationGroups} from './veg'
+import {createTerrainTile, TileData} from './terrain'
 import {detectWebGL, detectWebWorkers} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
@@ -45,7 +44,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	container.appendChild(renderer.domElement)
 
 	// camera creation
-	const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 2000.0)
+	const camera = new THREE.PerspectiveCamera(70, container.offsetWidth / container.offsetHeight, 2.0, 2000.0)
 	camera.position.y = 350
 	camera.position.z = 600
 	const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z)
@@ -186,46 +185,12 @@ export default function run(container_id: string, showloadingScreen: Function, h
 					/* tile shaders */
 					{name: 'tile_vert', url: 'static/shader/terrain_tile.vert.glsl'},
 					{name: 'tile_frag', url: 'static/shader/terrain_tile.frag.glsl'}
-					/*
-					// realism shaders
-					{name: 'terrain_vert', url: 'static/shader/terrain.vert.glsl'},
-					{name: 'terrain_frag', url: 'static/shader/terrain.frag.glsl'},
-					// data shaders
-					{name: 'data_terrain_vert', url: 'static/shader/data_terrain.vert.glsl'},
-					{name: 'data_terrain_frag', url: 'static/shader/data_terrain.frag.glsl'},
-					*/
-				],
-				textures: [
-					// terrain materials
-					/*{name: 'terrain_dirt', url: 'static/img/terrain/dirt-512.jpg'},
-					{name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg'},
-					{name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg'},
-					{name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg'},
-					{name: 'terrain_water', url: 'static/img/terrain/water-512.jpg'},*/
-				],
+				]
 			},
 			function(loadedAssets: Assets) {
 				console.log('Terrain loaded')
 				masterAssets['terrain'] = loadedAssets
 				terrainInitialized = true
-				initialized = tryDone()
-			},
-			reportProgress, reportError)
-
-		const vegetationLoader = Loader()
-		vegetationLoader.load(
-			{
-				text: [
-					{name: 'real_veg_vert', url: 'static/shader/real_veg.vert.glsl'},
-					{name: 'real_veg_frag', url: 'static/shader/real_veg.frag.glsl'},
-					{name: 'data_veg_vert', url: 'static/shader/data_veg.vert.glsl'},
-					{name: 'data_veg_frag', url: 'static/shader/data_veg.frag.glsl'},
-				]
-			},
-			function(loadedAssets: Assets) {
-				console.log('Vegetation shaders loaded')
-				masterAssets['vegetation'] = loadedAssets
-				vegetationInitialized = true
 				initialized = tryDone()
 			},
 			reportProgress, reportError)
