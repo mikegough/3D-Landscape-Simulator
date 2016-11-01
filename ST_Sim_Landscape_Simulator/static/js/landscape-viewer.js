@@ -509,7 +509,7 @@ define("utils", ["require", "exports"], function (require, exports) {
     }
     exports.detectWebWorkers = detectWebWorkers;
 });
-define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], function (require, exports, terrain_1, veg_1, utils_1, assetloader_1) {
+define("app", ["require", "exports", "terrain", "utils", "assetloader"], function (require, exports, terrain_1, utils_1, assetloader_1) {
     "use strict";
     // Internal script for decoding the heights on the client.
     const compute_heights = [
@@ -576,7 +576,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         var layerFolder = terrainControls.addFolder('Terrain Controls');
         layerFolder.open();
         layerFolder.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange(function (value) {
-            console.log(value);
             let active_type;
             switch (value) {
                 case 'State Class':
@@ -655,7 +654,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         terrainControls.domElement.style.position = 'absolute';
         terrainControls.domElement.style.bottom = '20px';
         terrainControls.domElement.style.left = '0%';
-        //terrainControls.domElement.style.textAlign = 'center';
         container.appendChild(terrainControls.domElement);
         initialize();
         // Load initial assets
@@ -670,22 +668,9 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 text: [
                     /* tile shaders */
                     { name: 'tile_vert', url: 'static/shader/terrain_tile.vert.glsl' },
-                    { name: 'tile_frag', url: 'static/shader/terrain_tile.frag.glsl' },
-                    /* realism shaders */
-                    { name: 'terrain_vert', url: 'static/shader/terrain.vert.glsl' },
-                    { name: 'terrain_frag', url: 'static/shader/terrain.frag.glsl' },
-                    /* data shaders */
-                    { name: 'data_terrain_vert', url: 'static/shader/data_terrain.vert.glsl' },
-                    { name: 'data_terrain_frag', url: 'static/shader/data_terrain.frag.glsl' },
+                    { name: 'tile_frag', url: 'static/shader/terrain_tile.frag.glsl' }
                 ],
-                textures: [
-                    // terrain materials
-                    { name: 'terrain_dirt', url: 'static/img/terrain/dirt-512.jpg' },
-                    { name: 'terrain_grass', url: 'static/img/terrain/grass-512.jpg' },
-                    { name: 'terrain_snow', url: 'static/img/terrain/snow-512.jpg' },
-                    { name: 'terrain_sand', url: 'static/img/terrain/sand-512.jpg' },
-                    { name: 'terrain_water', url: 'static/img/terrain/water-512.jpg' },
-                ],
+                textures: [],
             }, function (loadedAssets) {
                 console.log('Terrain loaded');
                 masterAssets['terrain'] = loadedAssets;
@@ -734,28 +719,13 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 const studyAreaLoader = assetloader_1.Loader();
                 let studyAreaAssets = {};
                 // Construct urls for vegetation geometry, textures based on asset names
-                const assetNamesList = currentDefinitions.veg_model_config.visualization_asset_names;
                 let textures = [];
-                let geometries = [];
                 let assetName;
                 let assetPath;
-                textures.push({ name: 'elevation', url: baseSourceURL + '/elev/' });
-                textures.push({ name: 'veg_tex', url: baseSourceURL + '/veg/' });
-                textures.push({ name: 'sc_tex', url: baseSourceURL + '/sc/' });
-                for (var idx in assetNamesList) {
-                    assetName = assetNamesList[idx].asset_name;
-                    assetPath = [currentLibraryName, assetName].join('/');
-                    geometries.push({
-                        name: assetName,
-                        url: 'static/json/geometry/' + assetPath + '.json'
-                    });
-                    textures.push({
-                        name: assetName,
-                        url: 'static/img/' + assetPath + '.png'
-                    });
-                }
+                textures.push({ name: '0_0_elev', url: baseSourceURL + '/elev/' });
+                textures.push({ name: '0_0_veg', url: baseSourceURL + '/veg/' });
+                textures.push({ name: '0_0_sc', url: baseSourceURL + '/sc/' });
                 studyAreaAssets.textures = textures;
-                studyAreaAssets.geometries = geometries;
                 studyAreaLoader.load(studyAreaAssets, createScene, reportProgress, reportError);
             }
         }
@@ -764,9 +734,9 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             if (unit_id != current_unit_id) {
                 if (scene.getObjectByName('terrain') != undefined) {
                     scene.remove(scene.getObjectByName('terrain'));
-                    scene.remove(scene.getObjectByName('data'));
-                    scene.remove(scene.getObjectByName('realism'));
-                    scene.remove(scene.getObjectByName('vegetation'));
+                    //scene.remove(scene.getObjectByName('data'))
+                    //scene.remove(scene.getObjectByName('realism'))
+                    //scene.remove(scene.getObjectByName('vegetation'))
                     render();
                 }
                 currentConditions = initialConditions;
@@ -847,8 +817,6 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                             vertexShader: masterAssets['terrain'].text['tile_vert'],
                             fragmentShader: masterAssets['terrain'].text['tile_frag']
                         }));
-                        //loadedAssets.textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
-                        //masterAssets[currentLibraryName].textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
                         compute_heights_worker.terminate();
                         compute_heights_worker = undefined;
                         render();
@@ -894,117 +862,12 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         }
         function createScene(loadedAssets) {
             masterAssets[currentLibraryName] = loadedAssets;
-            const heightmapTexture = loadedAssets.textures['elevation'];
-            const terrainAssets = masterAssets['terrain'];
-            const vegetationAssets = masterAssets['vegetation'];
-            function createObjects(heights) {
-                // define the realism group
-                let realismGroup = new THREE.Group();
-                realismGroup.name = 'realism';
-                const realismTerrain = terrain_1.createTerrain({
-                    dirt: terrainAssets.textures['terrain_dirt'],
-                    snow: terrainAssets.textures['terrain_snow'],
-                    grass: terrainAssets.textures['terrain_grass'],
-                    sand: terrainAssets.textures['terrain_sand'],
-                    water: terrainAssets.textures['terrain_water'],
-                    vertShader: terrainAssets.text['terrain_vert'],
-                    fragShader: terrainAssets.text['terrain_frag'],
-                    data: currentConditions.elev,
-                    heightmap: heightmapTexture,
-                    heights: heights,
-                    disp: disp
-                });
-                realismGroup.add(realismTerrain);
-                // define the data group
-                let dataGroup = new THREE.Group();
-                dataGroup.name = 'data';
-                dataGroup.visible = false; // initially set to false
-                const dataTerrain = terrain_1.createDataTerrain({
-                    heightmap: heightmapTexture,
-                    heights: heights,
-                    stateclassTexture: loadedAssets.textures['sc_tex'],
-                    data: currentConditions.elev,
-                    vertShader: terrainAssets.text['data_terrain_vert'],
-                    fragShader: terrainAssets.text['data_terrain_frag'],
-                    disp: disp
-                });
-                dataGroup.add(dataTerrain);
-                let vegAssetGroups = {};
-                let assetGroup;
-                let i, j, breakout, name;
-                for (name in currentConditions.veg_sc_pct) {
-                    for (i = 0; i < currentDefinitions.veg_model_config.visualization_asset_names.length; i++) {
-                        assetGroup = currentDefinitions.veg_model_config.visualization_asset_names[i];
-                        breakout = false;
-                        for (j = 0; j < assetGroup.valid_names.length; j++) {
-                            // is there a lookup in our definitions
-                            if (currentDefinitions.veg_model_config.lookup_field) {
-                                const lookupNames = currentDefinitions.veg_model_config.asset_map;
-                                if (lookupNames[name] == assetGroup.valid_names[j]) {
-                                    vegAssetGroups[name] = assetGroup;
-                                    breakout = true;
-                                    break;
-                                }
-                            }
-                            else {
-                                if (name == assetGroup.valid_names[j]) {
-                                    vegAssetGroups[name] = assetGroup;
-                                    breakout = true;
-                                    break;
-                                }
-                            }
-                        }
-                        if (breakout)
-                            break;
-                    }
-                }
-                // create the vegetation
-                const vegGroups = veg_1.createSpatialVegetation({
-                    libraryName: currentLibraryName,
-                    zonalVegtypes: currentConditions.veg_sc_pct,
-                    veg_names: currentConditions.veg_names,
-                    vegAssetGroups: vegAssetGroups,
-                    vegtypes: currentDefinitions.vegtype_definitions,
-                    config: currentDefinitions.veg_model_config,
-                    strataTexture: loadedAssets.textures['veg_tex'],
-                    stateclassTexture: loadedAssets.textures['sc_tex'],
-                    heightmap: heightmapTexture,
-                    geometries: loadedAssets.geometries,
-                    textures: loadedAssets.textures,
-                    realismVertexShader: vegetationAssets.text['real_veg_vert'],
-                    realismFragmentShader: vegetationAssets.text['real_veg_frag'],
-                    dataVertexShader: vegetationAssets.text['data_veg_vert'],
-                    dataFragmentShader: vegetationAssets.text['data_veg_frag'],
-                    heightStats: currentConditions.elev,
-                    disp: disp
-                });
-                //realismGroup.add(vegGroups.data)		
-                //dataGroup.add(vegGroups.data)
-                scene.add(vegGroups.data);
-                scene.add(realismGroup);
-                scene.add(dataGroup);
-                // show the animation controls for the outputs
-                $('#animation_container').show();
-                // activate the checkbox
-                $('#viz_type').on('change', function () {
-                    if (dataGroup.visible) {
-                        dataGroup.visible = false;
-                        realismGroup.visible = true;
-                    }
-                    else {
-                        dataGroup.visible = true;
-                        realismGroup.visible = false;
-                    }
-                    render();
-                });
-                // render the scene once everything is finished being processed
-                console.log('Vegetation Rendered!');
-                //render()
-                resetCamera();
-                hideLoadingScreen();
-            }
-            if (useWebWorker) {
-                const image = heightmapTexture.image;
+            const tile_group = new THREE.Group();
+            tile_group.name = 'terrain';
+            scene.add(tile_group);
+            function createOneTile(x, y, x_offset, y_offset) {
+                const heightmap = loadedAssets.textures[[x, y, 'elev'].join('_')];
+                const image = heightmap.image;
                 let w = image.naturalWidth;
                 let h = image.naturalHeight;
                 let canvas = document.createElement('canvas');
@@ -1013,25 +876,64 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 let ctx = canvas.getContext('2d');
                 ctx.drawImage(image, 0, 0, w, h);
                 let data = ctx.getImageData(0, 0, w, h).data;
-                var compute_heights_worker = new Worker(URL.createObjectURL(new Blob([compute_heights], { type: 'text/javascript' })));
-                compute_heights_worker.onmessage = function (e) {
-                    createObjects(e.data);
-                    compute_heights_worker.terminate();
-                    compute_heights_worker = undefined;
-                    render();
-                };
-                // Send the data
-                compute_heights_worker.postMessage({ data: data, w: w, h: h });
+                const init_tex_name = [x, y, 'sc'].join('_');
+                const initial_texture = loadedAssets.textures[init_tex_name];
+                const object_width = initial_texture.image.width;
+                const object_height = initial_texture.image.height;
+                if (useWebWorker) {
+                    var compute_heights_worker = new Worker(URL.createObjectURL(new Blob([compute_heights], { type: 'text/javascript' })));
+                    compute_heights_worker.onmessage = function (e) {
+                        const heights = e.data;
+                        tile_group.add(terrain_1.createTerrainTile({
+                            x: x,
+                            y: y,
+                            width: object_width,
+                            height: object_height,
+                            translate_x: 0,
+                            translate_y: 0,
+                            translate_z: -currentConditions.elev.dem_min,
+                            init_tex: initial_texture,
+                            heights: heights,
+                            disp: disp,
+                            vertexShader: masterAssets['terrain'].text['tile_vert'],
+                            fragmentShader: masterAssets['terrain'].text['tile_frag']
+                        }));
+                        compute_heights_worker.terminate();
+                        compute_heights_worker = undefined;
+                        render();
+                    };
+                    // Send the data
+                    compute_heights_worker.postMessage({ data: data, w: w, h: h });
+                }
+                else {
+                    console.log('No web workers, computing on main thread...');
+                    const heights = computeHeightsCPU(loadedAssets.textures[[x, y, 'elev'].join('_')]);
+                    tile_group.add(terrain_1.createTerrainTile({
+                        x: x,
+                        y: y,
+                        width: object_width,
+                        height: object_height,
+                        translate_x: 0,
+                        translate_y: 0,
+                        translate_z: -currentConditions.elev.dem_min,
+                        init_tex: initial_texture,
+                        heights: heights,
+                        disp: disp,
+                        vertexShader: masterAssets['terrain'].text['tile_vert'],
+                        fragmentShader: masterAssets['terrain'].text['tile_frag']
+                    }));
+                }
             }
-            else {
-                const heights = computeHeightsCPU(heightmapTexture);
-                createObjects(heights);
-            }
+            createOneTile(0, 0, 0, 0);
+            tile_group.rotateX(-Math.PI / 2);
+            // always finish with a render
+            resetCamera();
+            buildLegend('sc'); // we know this is what is loaded
+            hideLoadingScreen();
         }
         function collectSpatialOutputs(runControl) {
             if (!runControl.spatial)
                 return;
-            console.log('Updating vegetation covers');
             const sid = runControl.result_scenario_id;
             const srcSpatialTexturePath = runControl.library + '/outputs/' + sid;
             let model_outputs = new Array();
@@ -1133,13 +1035,12 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 let veg_color_map = {};
                 for (var code in currentConditions.veg_sc_pct) {
                     for (var name in currentDefinitions.veg_type_color_map) {
-                        if (Number(name) == Number(code)) {
-                            if (currentDefinitions.has_lookup) {
-                                veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
-                            }
-                            else {
-                                veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
-                            }
+                        if (currentDefinitions.has_lookup && Number(name) == Number(code)) {
+                            veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
+                            break;
+                        }
+                        else if (name == code) {
+                            veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
                             break;
                         }
                     }
