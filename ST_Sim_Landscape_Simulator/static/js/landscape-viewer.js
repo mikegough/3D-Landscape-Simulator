@@ -571,7 +571,7 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
             'Vertical Scale': 1.0,
             'Light Position (x)': 1.0,
             'Light Position (y)': -1.0,
-            'Light Position (z)': 2.0
+            'Light Position (z)': 1.0
         };
         var layerFolder = terrainControls.addFolder('Terrain Controls');
         layerFolder.open();
