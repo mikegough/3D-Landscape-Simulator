@@ -41,7 +41,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	// setup the THREE scene
 	const container = document.getElementById(container_id)
 	const scene = new THREE.Scene()
-	const renderer = new THREE.WebGLRenderer({antialias: false})
+	const renderer = new THREE.WebGLRenderer()
 	container.appendChild(renderer.domElement)
 
 	// camera creation
@@ -63,7 +63,6 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	renderer.domElement.addEventListener('mousewheel', render, false)
 	renderer.domElement.addEventListener( 'MozMousePixelScroll', render, false ); // firefox
 
-
 	// Camera controls
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
 	controls.enableKeys = false
@@ -71,17 +70,32 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	controls.maxPolarAngle = Math.PI / 2.4
 	controls.minDistance = 150
 	controls.maxDistance = 900
-
 	
-	var terrainControls = new dat.GUI({autoPlace: false});
+	var terrainControls = new dat.GUI({autoPlace: false})
 	var guiParams = {
 		'Available Layers': "State Class",
 		'Vertical Scale': 1.0,
+		'Light Position (x)': 1.0,
+		'Light Position (y)': -1.0,
+		'Light Position (z)': 2.0
 	}
 
-    terrainControls.addFolder('Terrain Controls');
-    //var blah = ['Vegetation', 'State Class', 'Elevation']
-    terrainControls.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange( function(value: any) {
+    var layerFolder = terrainControls.addFolder('Terrain Controls')
+    layerFolder.open()
+
+    layerFolder.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange( function(value: any) {
+    	console.log(value)
+    	let active_type : string
+    	switch (value) {
+    		case 'State Class':
+    			active_type = 'sc'
+    			break
+    		case 'Vegetation':
+    			active_type = 'veg'
+    			break
+    		default:
+    			active_type = 'elev'
+    	}
     	let terrain = scene.getObjectByName('terrain')
 		if (terrain.children.length > 0) {
 			let i : number
@@ -90,41 +104,25 @@ export default function run(container_id: string, showloadingScreen: Function, h
 				child = terrain.children[i] as THREE.Mesh
 				let child_data = child.userData as TileData
 				let child_mat = child.material as THREE.ShaderMaterial
-				if (child_data['active_texture_type'] == 'veg') {
-					child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'sc'].join('_')]		
-					child_data['active_texture_type'] = 'sc'
+				child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, active_type].join('_')]
+				child_data['active_texture_type'] = active_type
+				if (active_type == 'elev') {
+					child_mat.uniforms.useElevation.value = 1
 				} else {
-					child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'veg'].join('_')]
-					child_data['active_texture_type'] = 'veg'
+					child_mat.uniforms.useElevation.value = 0
 				}
+				child_mat.uniforms.useElevation.needsUpdate = true
 				child_mat.uniforms.active_texture.needsUpdate = true
 			}
+			buildLegend(active_type)
 			render()
-			if (child.userData.active_texture_type == 'veg') {
-				let veg_color_map = {}
-				for (var code in currentConditions.veg_sc_pct) {
-					for (var name in currentDefinitions.veg_type_color_map) {
-						if (Number(name) == Number(code)) {
-							if (currentDefinitions.has_lookup) {
-								veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
-							} else {
-								veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
-							}
-							break
-						}
-					}
-				}
-
-				drawLegendCallback(veg_color_map)
-			} else {
-				drawLegendCallback(currentDefinitions.state_class_color_map)				
-			}
 		}
     })
 
-    terrainControls.add(guiParams, 'Vertical Scale',0.0, 3.0).onChange( function(value: any){
+    var advControls = terrainControls.addFolder('Advanced Controls')
+
+    advControls.add(guiParams, 'Vertical Scale',0.0, 3.0).onChange( function(value: any){
     	let terrain = scene.getObjectByName('terrain')
-    	// update the terrain scalar
     	if (terrain.children.length > 0) {
     		let child : THREE.Mesh
     		for (let i = 0; i < terrain.children.length; i++) {
@@ -136,14 +134,42 @@ export default function run(container_id: string, showloadingScreen: Function, h
     		render()
     	}
     })
+
+
+    let dynamicLightPosition = Array(1.0,-1.0,2.0)
+    function updateLightPosition() {
+    	let terrain = scene.getObjectByName('terrain')
+    	if (terrain.children.length > 0) {
+    		let child : THREE.Mesh
+    		for (let i = 0; i < terrain.children.length; i++) {
+    			child = terrain.children[i] as THREE.Mesh
+    			let child_mat = child.material as THREE.ShaderMaterial
+				child_mat.uniforms.lightPosition.value = dynamicLightPosition
+				child_mat.uniforms.disp.needsUpdate = true
+    		}
+    		render()
+    	}
+    }
+
+    advControls.add(guiParams, 'Light Position (x)', -1.0, 1.0).onChange(function(value: any) {
+    	dynamicLightPosition[0] = value
+    	updateLightPosition()
+    })
+    advControls.add(guiParams, 'Light Position (y)', -1.0, 1.0).onChange(function(value: any) {
+    	dynamicLightPosition[1] = value
+    	updateLightPosition()
+    })
+    advControls.add(guiParams, 'Light Position (z)', 1.0, 3.0).onChange(function(value: any) {
+    	dynamicLightPosition[2] = value    	
+    	updateLightPosition()
+    })
+
     terrainControls.open();
     terrainControls.domElement.style.position='absolute';
     terrainControls.domElement.style.bottom = '20px';
     terrainControls.domElement.style.left = '0%';
-    terrainControls.domElement.style.textAlign = 'center';
+    //terrainControls.domElement.style.textAlign = 'center';
     container.appendChild(terrainControls.domElement);
-    
-
 
 	initialize()
 
@@ -367,7 +393,10 @@ export default function run(container_id: string, showloadingScreen: Function, h
 						vertexShader: masterAssets['terrain'].text['tile_vert'],
 						fragmentShader: masterAssets['terrain'].text['tile_frag']
 					}))
-	
+					
+					//loadedAssets.textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
+					//masterAssets[currentLibraryName].textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
+
 					compute_heights_worker.terminate()
 					compute_heights_worker = undefined
 					render()
@@ -413,6 +442,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 		// always finish with a render
 		resetCamera()
+		buildLegend('sc')	// we know this is what is loaded
 		hideLoadingScreen()
 	}
 
@@ -680,6 +710,36 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	let drawLegendCallback : Function
 	function registerLegendCallback(callback: Function) {
 		drawLegendCallback = callback;
+	}
+
+	function buildLegend(active_type: string) {
+		if (active_type == 'veg') {
+			let veg_color_map = {}
+			for (var code in currentConditions.veg_sc_pct) {
+				for (var name in currentDefinitions.veg_type_color_map) {
+					if (Number(name) == Number(code)) {
+						if (currentDefinitions.has_lookup) {
+							veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
+						} else {
+							veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
+						}
+						break
+					}
+				}
+			}
+
+			drawLegendCallback(veg_color_map)
+		} else {
+			let state_class_color_map = currentDefinitions.state_class_color_map
+			let misc_info = currentDefinitions.misc_legend_info
+			let misc : any
+			for (misc in misc_info) {
+				for (var attr in misc_info[misc]) {
+					state_class_color_map[attr] = misc_info[misc][attr]
+				}
+			}
+			drawLegendCallback(state_class_color_map)
+		}
 	}
 
 	return {

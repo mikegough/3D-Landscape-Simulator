@@ -28,7 +28,7 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
     SPEC.multiplyScalar(KS * INTENSITY);
     const SUN = [1.0, 3.0, -1.0]; // light position for the terrain, i.e. the ball in the sky
     // shines from the top and slightly behind and west
-    const SUN_Z = [1.0, -1.0, 3.0]; // alternative sun position
+    const SUN_Z = [1.0, -1.0, 1.0]; // alternative sun position
     function createTerrainTile(params) {
         var geo = new THREE.PlaneBufferGeometry(params.width, params.height, params.width - 1, params.height - 1);
         let vertices = geo.getAttribute('position');
@@ -41,6 +41,8 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
             uniforms: {
                 // uniform for adjusting the current texture
                 active_texture: { type: 't', value: params.init_tex },
+                // Decide whether to decode elevation in shader or not.
+                useElevation: { type: 'i', value: 0 },
                 // lighting
                 lightPosition: { type: "3f", value: SUN_Z },
                 ambientProduct: { type: "c", value: AMBIENT },
@@ -48,7 +50,6 @@ define("terrain", ["require", "exports", "globals"], function (require, exports,
                 specularProduct: { type: "c", value: SPEC },
                 shininess: { type: "f", value: SHINY },
                 // height exageration
-                //disp: {type: "f", value: params.disp}
                 disp: { type: "f", value: 1.0 } // start with 1.0, range from 0 to 3.0
             },
             vertexShader: params.vertexShader,
@@ -539,7 +540,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         // setup the THREE scene
         const container = document.getElementById(container_id);
         const scene = new THREE.Scene();
-        const renderer = new THREE.WebGLRenderer({ antialias: false });
+        const renderer = new THREE.WebGLRenderer();
         container.appendChild(renderer.domElement);
         // camera creation
         const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0);
@@ -568,10 +569,25 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         var guiParams = {
             'Available Layers': "State Class",
             'Vertical Scale': 1.0,
+            'Light Position (x)': 1.0,
+            'Light Position (y)': -1.0,
+            'Light Position (z)': 2.0
         };
-        terrainControls.addFolder('Terrain Controls');
-        //var blah = ['Vegetation', 'State Class', 'Elevation']
-        terrainControls.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange(function (value) {
+        var layerFolder = terrainControls.addFolder('Terrain Controls');
+        layerFolder.open();
+        layerFolder.add(guiParams, 'Available Layers', ['Vegetation', 'State Class', 'Elevation']).onChange(function (value) {
+            console.log(value);
+            let active_type;
+            switch (value) {
+                case 'State Class':
+                    active_type = 'sc';
+                    break;
+                case 'Vegetation':
+                    active_type = 'veg';
+                    break;
+                default:
+                    active_type = 'elev';
+            }
             let terrain = scene.getObjectByName('terrain');
             if (terrain.children.length > 0) {
                 let i;
@@ -580,42 +596,24 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                     child = terrain.children[i];
                     let child_data = child.userData;
                     let child_mat = child.material;
-                    if (child_data['active_texture_type'] == 'veg') {
-                        child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'sc'].join('_')];
-                        child_data['active_texture_type'] = 'sc';
+                    child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, active_type].join('_')];
+                    child_data['active_texture_type'] = active_type;
+                    if (active_type == 'elev') {
+                        child_mat.uniforms.useElevation.value = 1;
                     }
                     else {
-                        child_mat.uniforms.active_texture.value = masterAssets[currentLibraryName].textures[[child_data.x, child_data.y, 'veg'].join('_')];
-                        child_data['active_texture_type'] = 'veg';
+                        child_mat.uniforms.useElevation.value = 0;
                     }
+                    child_mat.uniforms.useElevation.needsUpdate = true;
                     child_mat.uniforms.active_texture.needsUpdate = true;
                 }
+                buildLegend(active_type);
                 render();
-                if (child.userData.active_texture_type == 'veg') {
-                    let veg_color_map = {};
-                    for (var code in currentConditions.veg_sc_pct) {
-                        for (var name in currentDefinitions.veg_type_color_map) {
-                            if (Number(name) == Number(code)) {
-                                if (currentDefinitions.has_lookup) {
-                                    veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
-                                }
-                                else {
-                                    veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    drawLegendCallback(veg_color_map);
-                }
-                else {
-                    drawLegendCallback(currentDefinitions.state_class_color_map);
-                }
             }
         });
-        terrainControls.add(guiParams, 'Vertical Scale', 0.0, 3.0).onChange(function (value) {
+        var advControls = terrainControls.addFolder('Advanced Controls');
+        advControls.add(guiParams, 'Vertical Scale', 0.0, 3.0).onChange(function (value) {
             let terrain = scene.getObjectByName('terrain');
-            // update the terrain scalar
             if (terrain.children.length > 0) {
                 let child;
                 for (let i = 0; i < terrain.children.length; i++) {
@@ -627,11 +625,37 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                 render();
             }
         });
+        let dynamicLightPosition = Array(1.0, -1.0, 2.0);
+        function updateLightPosition() {
+            let terrain = scene.getObjectByName('terrain');
+            if (terrain.children.length > 0) {
+                let child;
+                for (let i = 0; i < terrain.children.length; i++) {
+                    child = terrain.children[i];
+                    let child_mat = child.material;
+                    child_mat.uniforms.lightPosition.value = dynamicLightPosition;
+                    child_mat.uniforms.disp.needsUpdate = true;
+                }
+                render();
+            }
+        }
+        advControls.add(guiParams, 'Light Position (x)', -1.0, 1.0).onChange(function (value) {
+            dynamicLightPosition[0] = value;
+            updateLightPosition();
+        });
+        advControls.add(guiParams, 'Light Position (y)', -1.0, 1.0).onChange(function (value) {
+            dynamicLightPosition[1] = value;
+            updateLightPosition();
+        });
+        advControls.add(guiParams, 'Light Position (z)', 1.0, 3.0).onChange(function (value) {
+            dynamicLightPosition[2] = value;
+            updateLightPosition();
+        });
         terrainControls.open();
         terrainControls.domElement.style.position = 'absolute';
         terrainControls.domElement.style.bottom = '20px';
         terrainControls.domElement.style.left = '0%';
-        terrainControls.domElement.style.textAlign = 'center';
+        //terrainControls.domElement.style.textAlign = 'center';
         container.appendChild(terrainControls.domElement);
         initialize();
         // Load initial assets
@@ -823,6 +847,8 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
                             vertexShader: masterAssets['terrain'].text['tile_vert'],
                             fragmentShader: masterAssets['terrain'].text['tile_frag']
                         }));
+                        //loadedAssets.textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
+                        //masterAssets[currentLibraryName].textures[[x,y,'elev'].join('_')] = computeGreyscaleTexture(heights, object_width, object_height, currentConditions.elev)
                         compute_heights_worker.terminate();
                         compute_heights_worker = undefined;
                         render();
@@ -863,6 +889,7 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
             tile_group.rotateX(-Math.PI / 2);
             // always finish with a render
             resetCamera();
+            buildLegend('sc'); // we know this is what is loaded
             hideLoadingScreen();
         }
         function createScene(loadedAssets) {
@@ -1100,6 +1127,36 @@ define("app", ["require", "exports", "terrain", "veg", "utils", "assetloader"], 
         let drawLegendCallback;
         function registerLegendCallback(callback) {
             drawLegendCallback = callback;
+        }
+        function buildLegend(active_type) {
+            if (active_type == 'veg') {
+                let veg_color_map = {};
+                for (var code in currentConditions.veg_sc_pct) {
+                    for (var name in currentDefinitions.veg_type_color_map) {
+                        if (Number(name) == Number(code)) {
+                            if (currentDefinitions.has_lookup) {
+                                veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name];
+                            }
+                            else {
+                                veg_color_map[name] = currentDefinitions.veg_type_color_map[name];
+                            }
+                            break;
+                        }
+                    }
+                }
+                drawLegendCallback(veg_color_map);
+            }
+            else {
+                let state_class_color_map = currentDefinitions.state_class_color_map;
+                let misc_info = currentDefinitions.misc_legend_info;
+                let misc;
+                for (misc in misc_info) {
+                    for (var attr in misc_info[misc]) {
+                        state_class_color_map[attr] = misc_info[misc][attr];
+                    }
+                }
+                drawLegendCallback(state_class_color_map);
+            }
         }
         return {
             isInitialized: isInitialized,

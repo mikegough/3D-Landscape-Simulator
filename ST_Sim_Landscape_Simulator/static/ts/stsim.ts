@@ -42,6 +42,13 @@ export interface LibraryDefinitions {
 	veg_model_config : VisualizationConfig
 	state_class_color_map: {[sc_name: string]: string}
 	veg_type_color_map: {[veg_name: string]: string}
+	misc_legend_info: [{
+		ID: number
+		r: number
+		g: number
+		b: number
+		label: string
+	}]
 }
 
 export interface ElevationStatistics {

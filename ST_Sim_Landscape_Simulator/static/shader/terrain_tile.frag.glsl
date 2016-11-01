@@ -9,16 +9,22 @@ uniform vec3 ambientProduct;
 uniform vec3 diffuseProduct;
 uniform vec3 specularProduct;
 uniform float shininess;
+uniform int useElevation;
 
 // light varyings
 varying vec3 fN;
 varying vec3 fE;
 varying vec3 fL;
 
+// elevation varying
+varying float vAmount;
 
 void main() {
 
     vec4 myColor = texture2D(active_texture, vUV);
+    if (useElevation == 1) {
+        myColor = vec4(vec3(vAmount), 1.0);
+    }
 
 	// compute lighting
 	vec3 N = normalize(fN);

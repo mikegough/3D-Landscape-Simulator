@@ -18,7 +18,8 @@ SPEC.multiplyScalar(KS * INTENSITY)
 const SUN = [1.0, 3.0, -1.0]	// light position for the terrain, i.e. the ball in the sky
 								// shines from the top and slightly behind and west
 
-const SUN_Z = [1.0, -1.0, 3.0]	// alternative sun position
+const SUN_Z = [1.0, -1.0, 1.0]	// alternative sun position
+
 
 interface TerrainTile {
 	x: number
@@ -60,6 +61,8 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 		uniforms: {
 			// uniform for adjusting the current texture
 			active_texture: {type: 't', value: params.init_tex},
+			// Decide whether to decode elevation in shader or not.
+			useElevation: {type: 'i', value: 0},
 			// lighting
 			lightPosition: {type: "3f", value: SUN_Z},
 			ambientProduct: {type: "c", value: AMBIENT},
@@ -67,7 +70,6 @@ export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
 			specularProduct: {type: "c", value: SPEC},
 			shininess: {type: "f", value: SHINY},
 			// height exageration
-			//disp: {type: "f", value: params.disp}
 			disp: {type: "f", value: 1.0}	// start with 1.0, range from 0 to 3.0
 		},
 		vertexShader: params.vertexShader,
