@@ -158,8 +158,7 @@ function selectFeature(e) {
         if (lib == 'Landfire') selected = " selected";  // Our default library.
         $('#settings_library').append("<option value='" + lib + "'" + selected +">" + lib +"</option>");
     }
-    //$("select").selectBoxIt();
-
+    $("#settings_library").selectBoxIt();
     selection_state = 'tiles';
     setupReportingUnit(unit_id);
 
