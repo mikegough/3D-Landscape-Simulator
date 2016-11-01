@@ -118,6 +118,12 @@ $(document).ready(function() {
         precip_previous_value=0;
     }
 
+    // Set the run handler
+    $("#run_button").on("click", function(){
+            run_st_sim(feature_id)
+        }
+    );
+
 });
 
 
@@ -137,10 +143,7 @@ function show_input_options (){
     $("#general_settings").show();
     $("#input_climate_future").show();
     $("#input_probabilistic_transitions").show();
-    $("#run_button").on("click", function(){
-            run_st_sim(feature_id)
-        }
-    );
+
 
     $("#scene").show()
     $("#scene_legend").show()
