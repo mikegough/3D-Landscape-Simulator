@@ -543,7 +543,7 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
         const renderer = new THREE.WebGLRenderer();
         container.appendChild(renderer.domElement);
         // camera creation
-        const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 1500.0);
+        const camera = new THREE.PerspectiveCamera(60, container.offsetWidth / container.offsetHeight, 2.0, 2000.0);
         camera.position.y = 350;
         camera.position.z = 600;
         const camera_start = new THREE.Vector3(camera.position.x, camera.position.y, camera.position.z);
@@ -1048,15 +1048,62 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                 drawLegendCallback(veg_color_map);
             }
             else {
+                // Add in miscellaneous labels, colors
                 let state_class_color_map = currentDefinitions.state_class_color_map;
                 let misc_info = currentDefinitions.misc_legend_info;
-                let misc;
+                let misc, attr;
                 for (misc in misc_info) {
-                    for (var attr in misc_info[misc]) {
+                    for (attr in misc_info[misc]) {
                         state_class_color_map[attr] = misc_info[misc][attr];
                     }
                 }
-                drawLegendCallback(state_class_color_map);
+                // Determine unique colors
+                let colors = new Array();
+                for (attr in state_class_color_map) {
+                    colors.push(state_class_color_map[attr]);
+                }
+                const unique_colors = colors.filter((v, i, a) => a.indexOf(v) === i); // ES6, might break if not compiled correctly
+                // temporary structure for mapping colors to labels
+                let colors_to_labels = {};
+                for (attr in state_class_color_map) {
+                    const color = state_class_color_map[attr];
+                    if (!colors_to_labels.hasOwnProperty(color)) {
+                        colors_to_labels[color] = new Array();
+                    }
+                    colors_to_labels[color].push(attr);
+                }
+                let final_sc_color_map = {};
+                let final_label;
+                for (attr in colors_to_labels) {
+                    // TODO - handle this more generally
+                    if (currentLibraryName == 'Landfire') {
+                        // list of similar labels
+                        let similar_labels = colors_to_labels[attr];
+                        if (similar_labels.length > 1) {
+                            let i;
+                            let label;
+                            // Each label looks like 'Early1:All', 'Early2:All', but they have the same color, 
+                            // so we simplify it by stripping the extra numeric character, which has no symbology except in ST-Sim
+                            for (i = 0; i < similar_labels.length; i++) {
+                                label = similar_labels[i];
+                                label = label.split(':');
+                                label[0] = label[0].substr(0, label[0].length - 1);
+                                label = label.join(':');
+                                similar_labels[i] = label;
+                            }
+                            // We now expect the final label to be the only one, so we take the first element.
+                            final_label = similar_labels.filter((v, i, a) => a.indexOf(v) === i)[0];
+                        }
+                        else {
+                            final_label = similar_labels[0];
+                        }
+                    }
+                    else {
+                        final_label = colors_to_labels[attr].join(',');
+                    }
+                    final_sc_color_map[final_label] = attr;
+                }
+                drawLegendCallback(final_sc_color_map);
             }
         }
         return {

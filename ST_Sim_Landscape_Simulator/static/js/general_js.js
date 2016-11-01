@@ -569,9 +569,6 @@ function setInitialConditionsSidebar(initial_conditions) {
     $("#vegTypeSliderTable").empty();
     $("#probabilisticTransitionSliderTable").empty();
 
-    // Create the legend
-    drawLegend(state_class_color_map);
-
     $.each(veg_type_state_classes_json, function (veg_type, state_class_list) {
 
         if (!(veg_type in veg_initial_conditions.veg_sc_pct)) {
