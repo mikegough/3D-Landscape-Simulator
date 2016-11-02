@@ -134,7 +134,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     output_path = os.path.join(unit_dir, 'veg', '-'.join([str(i), str(j), 'veg.tif']))
                     with rasterio.open(output_path, 'w', **out_kwargs) as dst:
                         dst.write(src.read(1, window=window)[::TIFF_STRIDE, ::TIFF_STRIDE].astype('int32'), 1)
-                    veg_texture = texture_utils.vegtype_texture(output_path, truncate=5 if lib == 'Landfire' else 0)    # TODO - generalize the truncating of IDs
+                    veg_texture = texture_utils.vegtype_texture(output_path)
                     veg_texture.save(output_path.replace('tif', 'png'))
 
         # output stateclass rasters, textures

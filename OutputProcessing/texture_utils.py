@@ -63,7 +63,7 @@ def elevation_texture(elev_path, scale=None):
     return texture
 
 
-def vegtype_texture(strata_path, veg_defs=None, scale=None, truncate=0):
+def vegtype_texture(strata_path, veg_defs=None, scale=None):
     """ Creates a type-encoded image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -82,12 +82,9 @@ def vegtype_texture(strata_path, veg_defs=None, scale=None, truncate=0):
             # Allows for a max of a 24 unsigned integer.
             unique_codes = np.unique(strata_flat)
             for value in list(unique_codes):
-                orig_value = value
-                if 0 < truncate < len(str(value)):      # yay integer ranges!
-                    value = int(str(value)[-truncate:])
-                r_map[orig_value] = (value & 0xFF)
-                g_map[orig_value] = (value & 0xFF00) >> 8
-                b_map[orig_value] = (value & 0xFF0000) >> 16
+                r_map[value] = (value & 0xFF)
+                g_map[value] = (value & 0xFF00) >> 8
+                b_map[value] = (value & 0xFF0000) >> 16
         else:
             colormap = create_colormap(veg_defs)
             for row in colormap:
@@ -124,22 +121,20 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
 
 
-def color_from_id(stsm_definition, truncate=0):
+def color_from_id(stsm_definition):
 
-    orig_value = value = stsm_definition['ID']
-    if 0 < truncate < len(str(value)):      # yay integer ranges!
-        value = int(str(value)[-truncate:])
+    value = stsm_definition['ID']
     return {
-        'ID': orig_value,
+        'ID': value,
         'r': (int(value) & 0xFF),
         'g': (int(value) & 0xFF00) >> 8,
         'b': (int(value) & 0xFF0000) >> 16
     }
 
 
-def create_rgb_colormap(definitions, decode_from_id=False, truncate=0):
+def create_rgb_colormap(definitions, decode_from_id=False):
     if decode_from_id:
-        raw_colormap = [color_from_id(definitions[row], truncate) for row in definitions]
+        raw_colormap = [color_from_id(definitions[row]) for row in definitions]
     else:
         raw_colormap = create_colormap(definitions)
 
