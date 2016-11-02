@@ -1,6 +1,6 @@
 // app.ts
 import {createTerrainTile, TileData} from './terrain'
-import {detectWebGL, detectWebWorkers} from './utils'
+import {detectWebGL, detectWebWorkers, suppressConsole} from './utils'
 import {Loader, Assets, AssetList, AssetDescription, AssetRepo} from './assetloader'
 import * as STSIM from './stsim'
 
@@ -73,6 +73,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	var terrainControls = new dat.GUI({autoPlace: false})
 	var guiParams = {
 		'Available Layers': "State Class",
+		'Show Legend': true,
 		'Vertical Scale': 1.0,
 		'Light Position (x)': 1.0,
 		'Light Position (y)': -1.0,
@@ -115,6 +116,15 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			buildLegend(active_type)
 			render()
 		}
+    })
+
+    layerFolder.add(guiParams, 'Show Legend').onChange(function(value: any) {
+    	if (value == true) {
+    		$('#scene_legend').show()
+    	}
+    	else {
+    		$('#scene_legend').hide()
+    	}
     })
 
     var advControls = terrainControls.addFolder('Advanced Controls')
@@ -701,7 +711,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 }
 
 function reportProgress(progress: number) {
-	console.log("Loading assets... " + progress * 100 + "%")
+	if (!suppressConsole) console.log("Loading assets... " + progress * 100 + "%")
 }
 
 function reportError(error: string) {

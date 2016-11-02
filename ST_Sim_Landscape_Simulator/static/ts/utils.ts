@@ -14,3 +14,5 @@ export function detectWebGL() {
 export function detectWebWorkers() {
 	return typeof(Worker) !== "undefined"
 }
+
+export const suppressConsole = true

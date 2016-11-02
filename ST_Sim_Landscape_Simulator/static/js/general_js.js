@@ -844,7 +844,6 @@ function activate_scene(){
     $("#selected_features").show()
     window.addEventListener('resize', landscape_viewer.resize, false);
     landscape_viewer.resize();
-    //landscape_viewer.showGUI();
     $("#scene_legend").show()
     $("#general_settings_instructions").html("Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.")
 }

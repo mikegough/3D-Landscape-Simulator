@@ -161,6 +161,7 @@ define("utils", ["require", "exports"], function (require, exports) {
         return typeof (Worker) !== "undefined";
     }
     exports.detectWebWorkers = detectWebWorkers;
+    exports.suppressConsole = true;
 });
 // Loader that provides a dictionary of named assets
 // LICENSE: MIT
@@ -374,6 +375,7 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
         var terrainControls = new dat.GUI({ autoPlace: false });
         var guiParams = {
             'Available Layers': "State Class",
+            'Show Legend': true,
             'Vertical Scale': 1.0,
             'Light Position (x)': 1.0,
             'Light Position (y)': -1.0,
@@ -414,6 +416,14 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                 }
                 buildLegend(active_type);
                 render();
+            }
+        });
+        layerFolder.add(guiParams, 'Show Legend').onChange(function (value) {
+            if (value == true) {
+                $('#scene_legend').show();
+            }
+            else {
+                $('#scene_legend').hide();
             }
         });
         var advControls = terrainControls.addFolder('Advanced Controls');
@@ -921,7 +931,8 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.default = run;
     function reportProgress(progress) {
-        console.log("Loading assets... " + progress * 100 + "%");
+        if (!utils_1.suppressConsole)
+            console.log("Loading assets... " + progress * 100 + "%");
     }
     function reportError(error) {
         console.log(error);
