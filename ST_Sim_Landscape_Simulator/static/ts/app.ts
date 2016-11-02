@@ -279,6 +279,8 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 			studyAreaTileAssets.textures = textures
 			studyAreaLoader.load(studyAreaTileAssets, createTiles, reportProgress, reportError)
+		} else {
+			hideLoadingScreen()
 		}
 	}
 

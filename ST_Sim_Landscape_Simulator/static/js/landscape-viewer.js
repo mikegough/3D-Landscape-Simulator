@@ -557,6 +557,9 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                 studyAreaTileAssets.textures = textures;
                 studyAreaLoader.load(studyAreaTileAssets, createTiles, reportProgress, reportError);
             }
+            else {
+                hideLoadingScreen();
+            }
         }
         function createTiles(loadedAssets) {
             masterAssets[currentLibraryName] = loadedAssets;
