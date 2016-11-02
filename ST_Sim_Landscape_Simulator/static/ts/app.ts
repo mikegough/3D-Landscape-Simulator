@@ -134,7 +134,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
     })
 
 
-    let dynamicLightPosition = Array(1.0,-1.0,2.0)
+    let dynamicLightPosition = Array(1.0,-1.0,1.0)
     function updateLightPosition() {
     	let terrain = scene.getObjectByName('terrain')
     	if (terrain.children.length > 0) {
@@ -603,7 +603,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			for (var code in currentConditions.veg_sc_pct) {
 				for (var name in currentDefinitions.veg_type_color_map) {
 					if (currentDefinitions.has_lookup && Number(name) == Number(code)) {	// comparing integers yields match
-						veg_color_map[String(currentConditions.veg_names[name]).substr(0, 30) + '...'] = currentDefinitions.veg_type_color_map[name]
+						veg_color_map[currentConditions.veg_names[name]] = currentDefinitions.veg_type_color_map[name]
 						break
 					} else if (name == code) {	// comparing strings yields match
 						veg_color_map[name] = currentDefinitions.veg_type_color_map[name]								
