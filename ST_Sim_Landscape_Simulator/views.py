@@ -257,6 +257,8 @@ class RasterTileView(RasterTileBase):
 
 class RasterTileStats(RasterTileBase):
 
+    MIN_SC_PCT = 0.5
+
     def __init__(self):
 
         self.stats = None
@@ -277,9 +279,18 @@ class RasterTileStats(RasterTileBase):
 
     def remove_small_classes(self):
 
-        from pprint import pprint
-        pprint(self.stats)
+        temp_stats = dict()
+        veg_keys = self.stats['veg_sc_pct'].keys()
+        for veg in veg_keys:
+            valid = False
+            for sc in self.stats['veg_sc_pct'][veg]:
+                if self.stats['veg_sc_pct'][veg][sc] >= self.MIN_SC_PCT:
+                    valid = True
+                    break
+            if valid:
+                temp_stats[veg] = self.stats['veg_sc_pct'][veg]
 
+        self.stats['veg_sc_pct'] = temp_stats
 
 
 """ STSimBaseView and children handle interaction with ST-Sim from the client. """
