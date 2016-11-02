@@ -174,7 +174,7 @@ class RasterTextureStats(RasterTextureBase):
         veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
         vegtype_defs = stsim_manager.vegtype_definitions[self.library]
         stateclass_defs = stsim_manager.stateclass_definitions[self.library]
-        veg_sc_pcts, veg_total, sc_total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
+        veg_sc_pcts, veg_total, sc_total = raster_utils.zonal_stateclass_stats(veg_path, sc_path, stateclass_defs)
 
         zonal_veg_sc_pcts = dict()
         for vegtype in veg_state_defs.keys():
@@ -257,6 +257,11 @@ class RasterTileView(RasterTileBase):
 
 class RasterTileStats(RasterTileBase):
 
+    def __init__(self):
+
+        self.stats = None
+        super().__init__()
+
     def get(self, request, *args, **kwargs):
 
         stats_path = os.path.join(
@@ -265,7 +270,16 @@ class RasterTileStats(RasterTileBase):
         if not os.path.exists(stats_path):
             return HttpResponseNotFound()
 
-        return JsonResponse(json.load(open(stats_path, 'r')))
+        self.stats = json.load(open(stats_path, 'r'))
+        self.remove_small_classes()
+
+        return JsonResponse(self.stats)
+
+    def remove_small_classes(self):
+
+        from pprint import pprint
+        pprint(self.stats)
+
 
 
 """ STSimBaseView and children handle interaction with ST-Sim from the client. """

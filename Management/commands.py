@@ -190,7 +190,7 @@ def build_reporting_units(name, lib, layer, output_dir=None, one_shot=False, sin
                     sc_texture.save(output_path.replace('tif', 'png'))
 
                     # collect zonal stats for this chunk
-                    row_stats.append(raster_utils.zonal_stateclass_stats(temp_veg_path, output_path))
+                    row_stats.append(raster_utils.zonal_stateclass_stats(temp_veg_path, output_path, sc_defs))
 
                     if not save_tifs:
                         # Remove the tifs after the conversion process is done.
