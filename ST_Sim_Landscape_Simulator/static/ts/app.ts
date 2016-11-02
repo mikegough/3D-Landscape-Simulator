@@ -66,9 +66,9 @@ export default function run(container_id: string, showloadingScreen: Function, h
 	const controls = new THREE.OrbitControls(camera, renderer.domElement)
 	controls.enableKeys = false
 	controls.zoomSpeed = 0.5
-	controls.maxPolarAngle = Math.PI / 2.4
-	controls.minDistance = 150
-	controls.maxDistance = 900
+	controls.maxPolarAngle = Math.PI / 2.3
+	controls.minDistance = 75
+	controls.maxDistance = 800
 	
 	var terrainControls = new dat.GUI({autoPlace: false})
 	var guiParams = {
@@ -656,20 +656,22 @@ export default function run(container_id: string, showloadingScreen: Function, h
 						// so we simplify it by stripping the extra numeric character, which has no symbology except in ST-Sim
 						for (i = 0; i < similar_labels.length; i++) {
 							label = similar_labels[i]
-							label = label.split(':')
-							label[0] = label[0].substr(0,label[0].length-1)
-							label = label.join(':')
-							similar_labels[i] = label
+							if (label.includes(':')) {
+								label = label.split(':')
+								label[0] = label[0].substr(0,label[0].length-1)
+								label = label.join(':')
+								similar_labels[i] = label
+							}
 						}
 
 						// We now expect the final label to be the only one, so we take the first element.
-						final_label = similar_labels.filter((v,i,a) => a.indexOf(v) === i)[0]
+						final_label = similar_labels.filter((v,i,a) => a.indexOf(v) === i).join(', ')
 
 					} else {
 						final_label = similar_labels[0]
 					}
 				} else {
-					final_label = colors_to_labels[attr].join(',')
+					final_label = colors_to_labels[attr].join(', ')
 				}
 
 				final_sc_color_map[final_label] = attr
