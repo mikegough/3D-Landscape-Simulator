@@ -1,6 +1,6 @@
 $(document).ready(function() {
 
-    //$("select").selectBoxIt();
+    alertify.init()
 
     // Tooltip popup on management scenarios
     $(".scenario_radio_label").hover(function(e) {
@@ -21,7 +21,7 @@ $(document).ready(function() {
     );
 
     // delegate the popup menus for any that occur on the page.
-    function delegatedPopupContext(selector, element) {
+    function delegatedPopupMenu(selector, element) {
         $(document).on('click', selector, function () {
             if ($(this).siblings(element).is(":visible")) {
                 $(this).siblings(element).hide()
@@ -32,8 +32,8 @@ $(document).ready(function() {
         });
     }
 
-    delegatedPopupContext('.show_state_classes_link', '.sub_slider_text_inputs');
-    delegatedPopupContext('.manage_div', '.management_action_inputs');
+    delegatedPopupMenu('.show_state_classes_link', '.sub_slider_text_inputs');
+    delegatedPopupMenu('.manage_div', '.management_action_inputs');
 
     // On management action value entry, update the transition target dictionary.
     $(document).on('keyup', '.management_action_entry', function() {
@@ -845,17 +845,28 @@ function activate_scene(){
     window.addEventListener('resize', landscape_viewer.resize, false);
     landscape_viewer.resize();
     $("#scene_legend").show()
-    $("#general_settings_instructions").html("Now use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.")
+    $("#general_settings_instructions").html(
+        "Use the controls below to define the scenario you'd like to simulate. " +
+        "When you are ready, push the Run Model button to conduct a model run. " +
+        "For more information, hover or click the<img class='context_img' style='padding-right: 6px;' src='/static/img/help.png'>  icons."
+    )
 }
 
+var enable_spatial = false
 $("#spatial_link").click(function(){
-    var button = $('#spatial_button');
-    if (button.hasClass('selected')) {
-        button.removeClass('selected');
-    } else {
-        button.addClass('selected');
+
+    if (!enable_spatial) {
+        alertify.alert("Spatial runs are currently under development and are unavailable at this time.")
     }
-    settings['spatial'] = button.hasClass('selected');
+    else {
+        var button = $('#spatial_button');
+        if (button.hasClass('selected')) {
+            button.removeClass('selected');
+        } else {
+            button.addClass('selected');
+        }
+        settings['spatial'] = button.hasClass('selected');
+    }
 });
 
 $(document).on('change', '#settings_library', function() {
