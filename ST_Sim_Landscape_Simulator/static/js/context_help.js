@@ -10,23 +10,20 @@ function helpContentBasic(helpID) {
 	switch (helpID) {
 		case 1:
 			return  "<div class='context_basic'>" +
-                    "<p>Model run parameters. These determine which ST-Sim model library to use, the number of " +
-                    "timesteps to run the model for, and the number of Monte-Carlo iterations to simulate.</p>" +
+                    "<p>Decide which ST-Sim model library to use, number of " +
+                    "timesteps, and number of Monte-Carlo iterations.</p>" +
                     "</div>";
 		case 2:
 			return  "<div class='context_basic'>" +
-                    "<p>List of all vegetation/strata visible in this region, separated by percent cover. " +
-                    "Adjusting the value will affect the proportion of the landscape the vegetation/strata covers.</p>" +
+                    "<p>Vegetation present in this study area, separated by percent cover." +
                     "</div>";
 		case 3:
 			return  "<div class='context_basic'>" +
-                    "<p>Climate scenarios for normal and increased temperature and precipitation levels. " +
-                    "These adjust the overall affect that temperature and precipitation will have on various vegetation.</p>" +
+                    "<p>Adjust climate scenarios for temperature and precipitation." +
                     "</div>";
 		case 4:
 			return  "<div class='context_basic'>" +
-                    "<p>Annual disturbance probabilities affect the rate that vegetation will change due to a " +
-                    "probabilistic (or stochastic) change or event that occurs, such as fire or insect invasion.</p>" +
+                    "<p>Adjust probabilities to affect the rate at which vegetation will change due to disturbances." +
                     "</div>";
 		default:
 			return '';
@@ -96,7 +93,12 @@ function helpContentInDepth(helpID) {
                     "</tr>" +
                     "</table>";
         case 2:
-            return "<tr><td>" +
+            return  "<div style='text-align: left'>" +
+                    "<p>Each slider present represents a recorded vegetation type visible in the region. " +
+                    "Adjusting the value will change the proportion of the landscape the vegetation/strata covers.</p>" +
+
+                    "</div>" +
+                    "<div><tr><td>" +
                     "<table class='initial_veg_cover_input_table' style='background-color: #E9E9E9;'>" +
                     "<tr><td colspan='4'>" +
                     "<label for='amount_veg1'><div class='imageOverlayLink' style='width: 328px;'>Vegetation/Strata Type </div></label>" +
@@ -111,33 +113,66 @@ function helpContentInDepth(helpID) {
                     "</td>" +
                     "<td>" +
                     "<div class='show_state_classes_link state_class_div'> <span class='state_class_span'>State Classes</span></div>" +
-                    "<div class='sub_slider_text_inputs' style='display:none'>" +
+                    "<div class='sub_slider_text_inputs_demo' style='display:none'>" +
                     "<div class='callout right '>" +
                     "<table class='sub_slider_table' title='Vegtype'></table>" +
                     "</div></div>" +
                     "</td><td>" +
                     "<div class='manage_div'><span class='manage_span'>Manage</span></div>" +
                     "<div class='management_action_inputs' style='display:none'>" +
-                    "<div class='manage_callout callout right'>" +
+                    "<div class='manage_callout_demo callout_demo right'>" +
                     "<table class='sub_slider_table' title='Vegtype'></table>" +
                     "</div>" +
                     "</div>" +
                     "</td></tr></table>" +
-                    "</td></tr>";
+                    "</td></tr>" +
+                    "<div style='text-align: left'>" +
+                    "<p>Note: the 3D viewer will not update the percent on the landscape. " +
+                    "Changes in the proportion are relative to the overall proportion of the landscape, and are valid only for the selected location.</p>" +
+                    "</div>" +
+                    "<div class='sub_slider_text_inputs_demo' style='display: block; position: relative!important; left: 0px;'>" +
+                    "<div class='callout_demo right'><table id='noID' class='sub_slider_table' title='1010451'>" +
+                    "<tbody>" +
+                    "<tr><td>Early1:ALL </td><td><input class='veg_state_class_entry' id='noID' type='text' size='2' value='1.021'>%</td></tr>" +
+                    "<tr><td>Late1:CLS </td><td><input class='veg_state_class_entry' id='noID' type='text' size='2' value='0.184'>%</td></tr>"+
+                    "<tr><td>Late1:OPN </td><td><input class='veg_state_class_entry' id='noID' type='text' size='2' value='0.427'>%</td></tr>" +
+                    "<tr><td>Mid1:CLS </td><td><input class='veg_state_class_entry' id='noID' type='text' size='2' value='0.118'>%</td></tr>" +
+                    "<tr><td>Mid1:OPN </td><td><input class='veg_state_class_entry' id='noID' type='text' size='2' value='3.802'>%</td></tr>" +
+                    "</tbody></table></div></div>" +
+                    "<div class='management_action_inputs_demo' style='display: block; position: relative!important; left: 0px;'>" +
+                    "<div class='manage_callout_demo right'>" +
+                    "<table id='noID_management' class='sub_slider_table' title='1210110'>" +
+                    "<tbody><tr><td>Insect/Disease</td>" +
+                    "<td><input class='management_action_entry' id='management_noID_manage' type='text' size='2' value='150'> Acres</td></tr>" +
+                    "<tr><td>AllFire</td><td><input class='management_action_entry' id='management_1_5_manage' type='text' size='2' value='250'> Acres</td></tr>" +
+                    "</tbody></table></div></div>" +
+                    "</div>" +
+                    "<div style='text-align: left'>" +
+                    "<p>Each vegetation/strata is broken down by state class, which is defined by the ST-Sim library.</p>" +
+                    "<p>Each state class is defined with a development stage and a structural stage.</p>" +
+                    "</div>" +
+                    "<div style='text-align: left'>" +
+                    "<p>Each vegetation/strata also has a group of management actions associated with it, also defined by " +
+                    "the ST-Sim library. Each management action defines a target number of acres to apply the management action to, " +
+                    "adjusting the model to aim for the targeted number of actions by utilizing the specified action.</p>" +
+                    "</div>";
         case 3:
             return  '<table class="sliderTable climateFutureSliderTable_disabled">' +
                     '<tbody><tr><td>' +
                     '<label for="amount_climate_temp"><span class="transition_type">Temperature: </span></label>' +
-                    '<input type="text" class="current_climate_future_slider_setting" value="Warm" readonly="">' +
+                    '<input type="text" class="current_climate_future_slider_setting" value="Hot" readonly="">' +
                     '<div class="slider_bars probabilistic_transition_sliders ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all" id="climate_future_temp_slider" aria-disabled="false">' +
-                    '<a class="ui-slider-handle ui-state-default ui-corner-all" href="#" style="left: 0%;"></a>' +
+                    '<a class="ui-slider-handle ui-state-default ui-corner-all" href="#" style="left: 50%;"></a>' +
                     '</div></td>' +
                     '<td><label for="amount_climate_precip"><span class="transition_type">Precipitation: </span></label>' +
-                    '<input type="text" class="current_climate_future_slider_setting" value="No Change" readonly="">' +
+                    '<input type="text" class="current_climate_future_slider_setting" value="Wet" readonly="">' +
                     '<div class="slider_bars_disabled probabilistic_transition_sliders ui-slider ui-slider-horizontal ui-widget ui-widget-content ui-corner-all" id="climate_future_precip_slider" aria-disabled="false">' +
-                    '<a class="ui-slider-handle ui-state-default ui-corner-all" href="#" style="left: 50%;">' +
+                    '<a class="ui-slider-handle ui-state-default ui-corner-all" href="#" style="left: 0%;">' +
                     '</a></div></td></tr></tbody></table>' +
-                    '<p></p>';
+                    '<div style="text-align: left">' +
+                    '<p>Climate futures relate potential climate scenarios to increased or ' +
+                    'decreased occurrence of probable events that promote changes in vegetation or state classes outside of stand age. </p>' +
+                    '</div>';
         case 4:
             return  '<table class="sliderTable">' +
                     '<tbody><tr><td><label for="amount_veg1"><span class="transition_type">Replacement Fire: </span></label>' +
@@ -149,8 +184,10 @@ function helpContentInDepth(helpID) {
                     '<div style="text-align: left">' +
                     '<p>Disturbance probabilities relate the probability of changes from one state to another.</p>' +
                     '<p>For many STSM models, this is demonstrated by a change between state classes within a vegetation type, while others demonstrate changes by replacing complete strata types with another. ' +
-                    'Adjusting these sliders will affect the probability that the vegetation type will be influenced by a probabilistic event caused by the transition type, such as fire or disease.</p>' +
-                    '<p>For example, an increase in the probability of "Replacement Fire" will increase the probability that a replacement fire will occur.</p>' +
+                    'Adjusting these sliders will affect the probability that the vegetation type will be influenced by a probabilistic event caused by the transition type, such as fire or disease.' +
+                    'Disturbance probabilities will often cause stand ages to reset, moving state classes down from Late stage to Early stage.</p>' +
+                    '<p>For example, an increase in the probability of "Replacement Fire" will increase the probability that a replacement fire will occur,' +
+                    'causing vegetation to shift from Mid or Late stages to Early stages.</p>' +
                     '</div>';
         default:
             return '';
