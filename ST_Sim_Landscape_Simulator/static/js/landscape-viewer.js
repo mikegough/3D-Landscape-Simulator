@@ -607,7 +607,7 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                     var compute_heights_worker = new Worker(URL.createObjectURL(new Blob([compute_heights], { type: 'text/javascript' })));
                     compute_heights_worker.onmessage = function (e) {
                         const heights = e.data;
-                        const translate_z = currentConditions.elev.dem_min == -9999 ? 0 : -9999;
+                        const translate_z = currentConditions.elev.dem_min == -9999 ? 0 : -currentConditions.elev.dem_min;
                         tile_group.add(terrain_1.createTerrainTile({
                             x: x,
                             y: y,

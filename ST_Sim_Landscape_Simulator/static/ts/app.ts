@@ -339,7 +339,7 @@ export default function run(container_id: string, showloadingScreen: Function, h
 			
 					const heights = e.data
 
-					const translate_z = currentConditions.elev.dem_min == -9999? 0 : -9999
+					const translate_z = currentConditions.elev.dem_min == -9999? 0 : -currentConditions.elev.dem_min
 
 					tile_group.add(createTerrainTile({
 						x: x,
