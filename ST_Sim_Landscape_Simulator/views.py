@@ -437,6 +437,9 @@ class RunModelView(STSimBaseView):
 
         if is_spatial:
 
+            if not settings.DEBUG:
+                return HttpResponseNotFound()   # Prevent spatial runs for now.
+
             output_settings['RasterOutputSC'] = True
             output_settings['RasterOutputSCTimesteps'] = step
 
