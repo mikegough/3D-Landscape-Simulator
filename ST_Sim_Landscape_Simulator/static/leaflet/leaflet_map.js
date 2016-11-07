@@ -77,7 +77,7 @@ var reporting_units = {
     "Counties": counties,
 };
 
-active_reporting_units = watersheds;
+var active_reporting_units = watersheds;
 
 map.on('baselayerchange', function (event) {
     active_reporting_units = event.layer;
@@ -122,10 +122,9 @@ function resetHighlight(e) {
         info.update();
     }
 }
-var libraries;
+var libraries = [];
 function selectFeature(e) {
 
-    showSceneLoadingDiv()
 
     if (typeof drawn_layer != "undefined" && map.hasLayer(drawn_layer)){
         map.removeLayer(drawn_layer)
@@ -141,13 +140,14 @@ function selectFeature(e) {
         selected_feature.bringToFront();
     }
 
-    var bottom = selected_feature._bounds._southWest.lat;
-    var top = selected_feature._bounds._northEast.lat;
-    var left = selected_feature._bounds._southWest.lng;
-    var right = selected_feature._bounds._northEast.lng;
-    var extent = [left, bottom, right, top];
     feature_id = selected_feature.feature.properties.NAME;
     libraries = selected_feature.feature.properties.LIBRARIES;
+
+    var unit_id = selected_feature.feature.properties.ID;
+
+    if (libraries.indexOf(current_library) == -1) {
+        library_initialized = false;
+    }
 
     // setup the library dropdown
     $('#ss1').empty();
@@ -158,15 +158,14 @@ function selectFeature(e) {
         if (lib == 'Landfire') selected = " selected";  // Our default library.
         $('#settings_library').append("<option value='" + lib + "'" + selected +">" + lib +"</option>");
     }
-    $("select").selectBoxIt();
-
-    updateStudyArea(extent);
+    $("#settings_library").selectBoxIt();
+    selection_state = 'tiles';
+    setupReportingUnit(unit_id);
 
 }
 
 // END LAYERS AND LAYER FUNCTIONS
-
-
+// ******************************** //
 //BEGIN USER DEFINED AREA FUNCTIONS
 drawnItems = L.featureGroup().addTo(map);
 
@@ -199,8 +198,6 @@ map.addControl(drawButtons);
 
 map.on('draw:created', function (e) {
 
-    showSceneLoadingDiv()
-
     // Reset styling on the entire layer in order to "de-select" the previous selected feature
     active_reporting_units.eachLayer(function(l){active_reporting_units.resetStyle(l);});
 
@@ -222,7 +219,9 @@ map.on('draw:created', function (e) {
     var right = e.layer._bounds._northEast.lng;
     var extent = [left, bottom, right, top];
     feature_id="User Defined Area";
-    updateStudyArea(extent);
+
+    selection_state = 'user_defined';
+    setupUserDefinedArea(extent);
 });
 
 //END USER DEFINED AREA FUNCTIONS

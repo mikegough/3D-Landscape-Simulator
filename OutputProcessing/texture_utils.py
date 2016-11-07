@@ -7,7 +7,21 @@ from collections import OrderedDict
 from PIL import Image
 
 
-def elevation_texture(elev_path):
+def scale_texture(image, scale):
+
+    image_shape = image.size
+    width = int(image_shape[0] * scale)
+    height = int(image_shape[1] * scale)
+
+    if width <= 0:
+        width = 1
+    if height <= 1:
+        height = 1
+
+    return image.resize((width, height))
+
+
+def elevation_texture(elev_path, scale=None):
     """ Creates an elevation-encoded image from a given elevation GeoTiff
     :param elev_path: The path to the elevation to encode into the texture.
     """
@@ -44,10 +58,12 @@ def elevation_texture(elev_path):
         a_array = npi.remap(elev_flat, list(a_map.keys()), list(a_map.values()))
         image_data = [(r_array[i], g_array[i], b_array[i], a_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
-        return texture
+        if scale:
+            texture = scale_texture(texture, scale)
+    return texture
 
 
-def vegtype_texture(strata_path):
+def vegtype_texture(strata_path, veg_defs=None, scale=None):
     """ Creates a type-encoded image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -58,16 +74,24 @@ def vegtype_texture(strata_path):
         shape = strata_data.shape
         strata_flat = strata_data.ravel()
 
-        # Pack the codes into the color channels.
-        # Allows for a max of a 24 unsigned integer.
-        unique_codes = np.unique(strata_flat)
         r_map = dict()
         g_map = dict()
         b_map = dict()
-        for value in list(unique_codes):
-            r_map[value] = (value & 0xFF)
-            g_map[value] = (value & 0xFF00) >> 8
-            b_map[value] = (value & 0xFF0000) >> 16
+        if veg_defs is None:
+            # Pack the codes into the color channels.
+            # Allows for a max of a 24 unsigned integer.
+            unique_codes = np.unique(strata_flat)
+            for value in list(unique_codes):
+                r_map[value] = (value & 0xFF)
+                g_map[value] = (value & 0xFF00) >> 8
+                b_map[value] = (value & 0xFF0000) >> 16
+        else:
+            colormap = create_colormap(veg_defs)
+            for row in colormap:
+                idx = int(row['ID'])
+                r_map[idx] = int(row['r'])
+                g_map[idx] = int(row['g'])
+                b_map[idx] = int(row['b'])
 
         image_shape = (shape[1], shape[0])  # images are column major
         texture = Image.new('RGB', image_shape)
@@ -76,18 +100,19 @@ def vegtype_texture(strata_path):
         b_array = npi.remap(strata_flat, list(b_map.keys()), list(b_map.values()))
         image_data = [(r_array[i], g_array[i], b_array[i]) for i in range(shape[0] * shape[1])]
         texture.putdata(image_data)
-        return texture
+        if scale:
+            texture = scale_texture(texture, scale)
+    return texture
 
 
-def create_colormap(sc_defs):
-
-    colormap = list()   # TODO - let colors be determined by the UI or by the user?
-    for stateclass in sc_defs.keys():
-        color = sc_defs[stateclass]['Color'].split(',')
+def create_colormap(stsim_defs):
+    colormap = list()
+    for definition in stsim_defs.keys():
+        color = stsim_defs[definition]['Color'].split(',')
         r = color[1]
         g = color[2]
         b = color[3]
-        idx = sc_defs[stateclass]['ID']
+        idx = stsim_defs[definition]['ID']
         colormap.append({'ID': idx, 'r': r, 'g': g, 'b': b})
     return colormap
 
@@ -96,24 +121,38 @@ def rgb_to_hex(rgb):
     return '#%02x%02x%02x' % rgb
 
 
-def create_rgb_colormap(sc_defs):
+def color_from_id(stsm_definition):
 
-    raw_colormap = create_colormap(sc_defs)
+    value = stsm_definition['ID']
+    return {
+        'ID': value,
+        'r': (int(value) & 0xFF),
+        'g': (int(value) & 0xFF00) >> 8,
+        'b': (int(value) & 0xFF0000) >> 16
+    }
+
+
+def create_rgb_colormap(definitions, decode_from_id=False):
+    if decode_from_id:
+        raw_colormap = [color_from_id(definitions[row]) for row in definitions]
+    else:
+        raw_colormap = create_colormap(definitions)
+
     rgb_colormap = dict()
-    for stateclass in sc_defs.keys():
-        id = sc_defs[stateclass]['ID']
+    for key in definitions.keys():
+        id = definitions[key]['ID']
         for color in raw_colormap:
             if color['ID'] == id:
                 r = int(color['r'])
                 g = int(color['g'])
                 b = int(color['b'])
                 hex_color = rgb_to_hex((r, g, b))
-                rgb_colormap[stateclass] = hex_color
+                rgb_colormap[key] = hex_color
                 break
     return OrderedDict(sorted(rgb_colormap.items(), key=order()))
 
 
-def stateclass_texture(sc_tif, colormap):
+def stateclass_texture(sc_tif, colormap, scale=None):
     """ Creates a true-color image from a given strata GeoTiff
     :param strata_path: The path to the vegtype to encode into the texture.
     """
@@ -150,6 +189,8 @@ def stateclass_texture(sc_tif, colormap):
         image_shape = (shape[1], shape[0])  # images are column major
         texture = Image.new('RGB', image_shape)
         texture.putdata(image_data)
+        if scale:
+            texture = scale_texture(texture, scale)
     return texture
 
 

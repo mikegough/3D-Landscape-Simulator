@@ -1,6 +1,5 @@
 from django.conf.urls import url, include
-from ST_Sim_Landscape_Simulator.views import HomepageView, RunModelView, RasterOutputsView, \
-    LibraryInfoView, LookupView, RasterSelectionView, RasterTextureView, RasterTextureStats
+from ST_Sim_Landscape_Simulator.views import *
 from django.views.decorators.csrf import csrf_exempt
 
 
@@ -22,6 +21,10 @@ urlpatterns = [
                 include([
                     url(r'^(?P<type>veg|sc|elev)/$', RasterTextureView.as_view()),
                     url(r'^stats/$', RasterTextureStats.as_view())
+                ])),
+            url(r'^(?P<reporting_unit>[a-zA-Z]+)/(?P<unit_id>[0-9]+)/', include([
+                url(r'^(?P<type>[a-z]+)/(?P<x>[0-9]+)/(?P<y>[0-9]+)/$', RasterTileView.as_view()),
+                url(r'^stats/$', RasterTileStats.as_view())
             ]))
         ]))
     ])),

@@ -18,6 +18,73 @@ SPEC.multiplyScalar(KS * INTENSITY)
 const SUN = [1.0, 3.0, -1.0]	// light position for the terrain, i.e. the ball in the sky
 								// shines from the top and slightly behind and west
 
+const SUN_Z = [1.0, -1.0, 1.0]	// alternative sun position
+
+
+interface TerrainTile {
+	x: number
+	y: number
+	heights: Float32Array
+	disp: number
+	init_tex: THREE.Texture
+	//mat: THREE.Material
+	width: number
+	height: number
+	translate_x: number
+	translate_y: number
+	translate_z: number
+	vertexShader: string
+	fragmentShader: string
+}
+
+export interface TileData {
+	x : number
+	y : number
+	active_texture_type : string
+}
+
+export function createTerrainTile(params: TerrainTile) : THREE.Mesh {
+
+	var geo = new THREE.PlaneBufferGeometry(params.width, params.height, params.width-1, params.height-1)
+
+	let vertices = geo.getAttribute('position')
+
+	for (var i = 0; i < vertices.count; i++) {
+		vertices.setZ(i, params.heights[i] * params.disp)
+
+	}
+
+	geo.computeVertexNormals()
+	geo.translate(params.translate_x, params.translate_y, params.translate_z * params.disp)
+
+	const mat = new THREE.ShaderMaterial({
+		uniforms: {
+			// uniform for adjusting the current texture
+			active_texture: {type: 't', value: params.init_tex},
+			// Decide whether to decode elevation in shader or not.
+			useElevation: {type: 'i', value: 0},
+			// lighting
+			lightPosition: {type: "3f", value: SUN_Z},
+			ambientProduct: {type: "c", value: AMBIENT},
+			diffuseProduct: {type: "c", value: DIFFUSE},
+			specularProduct: {type: "c", value: SPEC},
+			shininess: {type: "f", value: SHINY},
+			// height exageration
+			disp: {type: "f", value: 1.0}	// start with 1.0, range from 0 to 3.0
+		},
+		vertexShader: params.vertexShader,
+		fragmentShader: params.fragmentShader
+	})
+
+	const tile = new THREE.Mesh(geo, mat)
+	tile.userData = {x: params.x, y: params.y, active_texture_type: 'sc'} as TileData
+	geo.dispose()
+	mat.dispose()
+
+	return tile
+}
+
+
 
 interface TerrainParams {
 

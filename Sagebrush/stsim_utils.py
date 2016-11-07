@@ -41,10 +41,12 @@ class STSimManager:
         self.sc_paths = {lib_name: os.path.join(asset_dir[lib_name], config[lib_name]['sc_path']) for lib_name in self.library_names}
         self.elev_paths = {lib_name: os.path.join(asset_dir[lib_name], config[lib_name]['elev_path']) for lib_name in self.library_names}
         self.output_paths = {lib_name: config[lib_name]['output_path'] for lib_name in self.library_names}
+        self.resolutions = {lib_name: config[lib_name]['resolution'] for lib_name in self.library_names}
 
         # viz configuration
         self.veg_model_configs = {lib_name: config[lib_name]['veg_model_config'] for lib_name in self.library_names}
         self.has_lookup_fields = {lib_name: config[lib_name]['has_lookup'] for lib_name in self.library_names}
+        self.misc_legend_info = {lib_name: config[lib_name]['misc_legend_info'] for lib_name in self.library_names}
 
         # lookup specifics
         self.lookup_fields = {lib_name: config[lib_name]['lookup_fields'] for lib_name in self.library_names}
@@ -59,6 +61,11 @@ class STSimManager:
         # pre-defined extent information and how to get the heightmap
         self.has_predefined_extent = {lib_name: config[lib_name]['has_predefined_extent'] for lib_name in self.library_names}
         self.heightmap_functions = {lib_name: config[lib_name]['heightmap_function'] for lib_name in self.library_names}
+
+        # tile configuration
+        self.has_tiles = {lib_name: config[lib_name]['has_tiles'] for lib_name in self.library_names}
+        self.tile_directory = {lib_name: config[lib_name]['tile_directory'] for lib_name in self.library_names}
+        self.reporting_units = {lib_name: config[lib_name]['reporting_units'] for lib_name in self.library_names}
 
         # validation b/w configuration and library information
         self.all_veg_state_classes = {
@@ -98,6 +105,14 @@ class STSimManager:
                 raise KeyError("Invalid transition group specified in configuration for this library. "
                                "Check configuration.")
 
+        # transition target groups, available per veg
+        self.transition_groups_by_veg = {
+            lib_name: compute_groups_by_veg(self.consoles[lib_name], self.pids[lib_name],
+                                            self.sids[lib_name], os.path.join(init_path, lib_name + '-trgrps.csv'),
+                                            selected=self.probabilistic_transition_groups[lib_name])
+            for lib_name in self.library_names
+        }
+
         self.vegtype_definitions = {
             lib_name: self.consoles[lib_name].export_vegtype_definitions(
                 pid=self.pids[lib_name],
@@ -113,5 +128,31 @@ class STSimManager:
                 working_path=os.path.join(init_path, lib_name + '-scdefs.csv'))
             for lib_name in self.library_names
         }
+
+
+def compute_groups_by_veg(console, pid, sid, path, selected=None):
+
+    # This is how to get transition groups by veg.
+    transitions = console.export_probabilistic_transitions_map(sid, path.split('.')[0] + '-map.csv',
+                                                               readonly=os.path.exists(path.split('.')[0] + '-map.csv'))
+    types_by_group = console.export_probabilistic_transitions_by_group(pid, path.split('.')[0] + '-grps.csv',
+                                                                       readonly=os.path.exists(path.split('.')[0] + '-grps.csv'))
+    transition_types_by_veg = dict()
+    for veg in transitions:
+        transition_types_by_veg[veg] = list()
+        for transition in transitions[veg]:
+            transition_types_by_veg[veg].append(transition['type'])
+        transition_types_by_veg[veg] = list(set(transition_types_by_veg[veg]))
+
+    groups_by_veg = dict()
+    for veg in transition_types_by_veg:
+        groups_by_veg[veg] = list()
+        for transition_type in transition_types_by_veg[veg]:
+            for group in types_by_group:
+                if transition_type in types_by_group[group] and group in selected:
+                    groups_by_veg[veg].append(group)
+        groups_by_veg[veg] = list(set(groups_by_veg[veg]))
+
+    return groups_by_veg
 
 stsim_manager = STSimManager(settings.STSIM_CONFIG, settings.STSIM_EXE)

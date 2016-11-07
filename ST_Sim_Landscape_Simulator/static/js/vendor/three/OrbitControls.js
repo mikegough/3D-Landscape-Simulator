@@ -73,7 +73,8 @@ THREE.OrbitControls = function ( object, domElement ) {
 	this.keys = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 
 	// Mouse buttons
-	this.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+	//this.mouseButtons = { ORBIT: THREE.MOUSE.LEFT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.RIGHT };
+	this.mouseButtons = { ORBIT: THREE.MOUSE.RIGHT, ZOOM: THREE.MOUSE.MIDDLE, PAN: THREE.MOUSE.LEFT };
 
 	// for reset
 	this.target0 = this.target.clone();
@@ -288,7 +289,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 		sphericalDelta.phi -= angle;
 
 	}
-
+	/*
 	var panLeft = function() {
 
 		var v = new THREE.Vector3();
@@ -304,6 +305,7 @@ THREE.OrbitControls = function ( object, domElement ) {
 
 	}();
 
+
 	var panUp = function() {
 
 		var v = new THREE.Vector3();
@@ -318,6 +320,43 @@ THREE.OrbitControls = function ( object, domElement ) {
 		};
 
 	}();
+	*/
+
+	var panLeft = function() {
+
+    var v = new THREE.Vector3();
+
+    return function panLeft( distance, objectMatrix ) {
+
+        var te = objectMatrix.elements;
+
+        // get elements from the X-column of matrix
+        v.set( te[ 0 ], 0, te[ 2 ] ).normalize();
+        v.multiplyScalar( - distance );
+
+        panOffset.add( v );
+
+    };
+
+}();
+
+var panUp = function() {
+
+    var v = new THREE.Vector3();
+
+    return function panUp( distance, objectMatrix ) {
+
+        var te = objectMatrix.elements;
+
+        // get elements from the Z-column of matrix
+        v.set( te[ 8 ], 0, te[ 10 ] ).normalize();
+        v.multiplyScalar( - distance );
+
+        panOffset.add( v );
+
+    };
+
+}();
 
 	// deltaX and deltaY are in pixels; right and down are positive
 	var pan = function() {
@@ -339,8 +378,10 @@ THREE.OrbitControls = function ( object, domElement ) {
 				targetDistance *= Math.tan( ( scope.object.fov / 2 ) * Math.PI / 180.0 );
 
 				// we actually don't use screenWidth, since perspective camera is fixed to screen height
-				panLeft( 2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix );
-				panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
+				//panLeft( 2 * deltaX * targetDistance / element.clientHeight, scope.object.matrix );
+				//panUp( 2 * deltaY * targetDistance / element.clientHeight, scope.object.matrix );
+				panLeft( deltaX * targetDistance / element.clientHeight, scope.object.matrix );
+				panUp( deltaY * targetDistance / element.clientHeight, scope.object.matrix );
 
 			} else if ( scope.object instanceof THREE.OrthographicCamera ) {
 
@@ -440,10 +481,18 @@ THREE.OrbitControls = function ( object, domElement ) {
 		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		// rotating across whole screen goes 360 degrees around
+		rotateLeft( Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
+
+		// rotating up and down along whole screen attempts to go 360, but limited to 180
+		rotateUp( Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+
+		/*
+		// rotating across whole screen goes 360 degrees around
 		rotateLeft( 2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed );
 
 		// rotating up and down along whole screen attempts to go 360, but limited to 180
 		rotateUp( 2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed );
+		*/
 
 		rotateStart.copy( rotateEnd );
 

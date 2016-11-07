@@ -10,11 +10,11 @@ from OutputProcessing import texture_utils, raster_utils
 from OutputProcessing.plugins import lookups, conversions
 from Heightmaps.plugins import heights
 from Sagebrush.stsim_utils import stsim_manager
+from stsimpy import cells_to_acres
 from uuid import uuid4
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
-
 
 class HomepageView(TemplateView):
 
@@ -139,7 +139,7 @@ class RasterTextureView(RasterTextureBase):
             sc_colormap = texture_utils.create_colormap(stsim_manager.stateclass_definitions[self.library])
             texture = texture_utils.stateclass_texture(path, sc_colormap)
         elif self.type == 'veg':
-            texture = texture_utils.vegtype_texture(path)
+            texture = texture_utils.vegtype_texture(path, veg_defs=stsim_manager.vegtype_definitions[self.library])
         else:
             return HttpResponseNotFound()
 
@@ -174,7 +174,7 @@ class RasterTextureStats(RasterTextureBase):
         veg_state_defs = stsim_manager.all_veg_state_classes[self.library]
         vegtype_defs = stsim_manager.vegtype_definitions[self.library]
         stateclass_defs = stsim_manager.stateclass_definitions[self.library]
-        veg_sc_pcts, total = raster_utils.zonal_stateclass_stats(veg_path, sc_path)
+        veg_sc_pcts, veg_total, sc_total = raster_utils.zonal_stateclass_stats(veg_path, sc_path, stateclass_defs)
 
         zonal_veg_sc_pcts = dict()
         for vegtype in veg_state_defs.keys():
@@ -199,9 +199,101 @@ class RasterTextureStats(RasterTextureBase):
         return JsonResponse({'elev': elev_stats,
                              'veg_sc_pct': zonal_veg_sc_pcts,
                              'veg_names': veg_names,
-                             'total_cells': total})
+                             'total_cells': veg_total,
+                             'total_active_cells': sc_total})
 
 
+class RasterTileBase(View):
+
+    def __init__(self):
+        self.library = None
+        self.reporting_unit = None
+        self.unit_id = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.library = kwargs.get('library')
+        self.reporting_unit = kwargs.get('reporting_unit')
+        if self.library not in stsim_manager.library_names \
+                or not stsim_manager.has_tiles[self.library]\
+                or self.reporting_unit not in stsim_manager.reporting_units[self.library]:
+            return HttpResponseNotFound()
+        self.unit_id = kwargs.get('unit_id')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class RasterTileView(RasterTileBase):
+
+    data_types = ['elev', 'veg', 'sc']
+
+    def __init__(self):
+        self.type = None
+        self.tile_name = None
+        super().__init__()
+
+    def dispatch(self, request, *args, **kwargs):
+        self.type = kwargs.get('type')
+        if self.type not in self.data_types:
+            return HttpResponseNotFound()
+        x = kwargs.get('x')
+        y = kwargs.get('y')
+        self.tile_name = "-".join([x,y,self.type+'.png'])
+        return super().dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+
+        texture_path = os.path.join(
+            stsim_manager.tile_directory[self.library], self.library,
+            self.reporting_unit, self.unit_id, self.type, self.tile_name)
+
+        if not os.path.exists(texture_path):
+            return HttpResponseNotFound()
+
+        image = Image.open(texture_path)
+        response = HttpResponse(content_type="image/png")
+        image.save(response, 'PNG')
+        return response
+
+
+class RasterTileStats(RasterTileBase):
+
+    MIN_SC_PCT = 0.5
+
+    def __init__(self):
+
+        self.stats = None
+        super().__init__()
+
+    def get(self, request, *args, **kwargs):
+
+        stats_path = os.path.join(
+            stsim_manager.tile_directory[self.library], self.library,
+            self.reporting_unit, self.unit_id, 'initial_conditions.json')
+        if not os.path.exists(stats_path):
+            return HttpResponseNotFound()
+
+        self.stats = json.load(open(stats_path, 'r'))
+        self.remove_small_classes()
+
+        return JsonResponse(self.stats)
+
+    def remove_small_classes(self):
+
+        temp_stats = dict()
+        veg_keys = self.stats['veg_sc_pct'].keys()
+        for veg in veg_keys:
+            valid = False
+            for sc in self.stats['veg_sc_pct'][veg]:
+                if self.stats['veg_sc_pct'][veg][sc] >= self.MIN_SC_PCT:
+                    valid = True
+                    break
+            if valid:
+                temp_stats[veg] = self.stats['veg_sc_pct'][veg]
+
+        self.stats['veg_sc_pct'] = temp_stats
+
+
+""" STSimBaseView and children handle interaction with ST-Sim from the client. """
 class STSimBaseView(View):
 
     def __init__(self):
@@ -262,6 +354,7 @@ class LibraryInfoView(STSimBaseView):
 
         # predefined spatial extent?
         response['has_predefined_extent'] = stsim_manager.has_predefined_extent[self.library]
+        response['has_tiles'] = stsim_manager.has_tiles[self.library]
 
         # has lookup functionality?
         response['has_lookup'] = stsim_manager.has_lookup_fields[self.library]
@@ -273,6 +366,10 @@ class LibraryInfoView(STSimBaseView):
         response['stateclass_definitions'] = {name: int(sc_defs[name]['ID']) for name in sc_defs.keys()}
         response['vegtype_definitions'] = {name: int(veg_defs[name]['ID']) for name in veg_defs.keys()}
         response['state_class_color_map'] = texture_utils.create_rgb_colormap(sc_defs)
+        response['veg_type_color_map'] = texture_utils.create_rgb_colormap(veg_defs,
+                                                                           decode_from_id=stsim_manager.has_tiles[self.library])
+        response['misc_legend_info'] = [{info['label']: texture_utils.rgb_to_hex((info['r'], info['g'], info['b']))}    # TODO - move this to a function?
+                                        for info in stsim_manager.misc_legend_info[self.library]]
 
         # our probabilistic transition types for this application
         probabilistic_transition_types = stsim_manager.probabilistic_transition_types[self.library]
@@ -280,7 +377,7 @@ class LibraryInfoView(STSimBaseView):
         response['probabilistic_transitions_json'] = probabilistic_transition_dict
 
         # transition groups, used for specifying transition targets in the UI
-        response['management_actions_list'] = stsim_manager.probabilistic_transition_groups[self.library]
+        response['management_actions_list'] = stsim_manager.transition_groups_by_veg[self.library]
 
         # pass the model config to tell the viz which assets to load
         veg_model_config = stsim_manager.veg_model_configs[self.library]
@@ -306,13 +403,19 @@ class RunModelView(STSimBaseView):
     def post(self, request, *args, **kwargs):
 
         timesteps = int(request.POST['timesteps'])
-        step = 1        # TODO - provide min/max timesteps in interface (under advanced tab)?
+        step = 1
         min_step = 0
         max_step = timesteps
         iterations = int(request.POST['iterations'])
         is_spatial = json.loads(request.POST['spatial'])
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
+        total_active_cells = int(request.POST['total_active_cells'])
+        total_cells = int(request.POST['total_cells'])
+        if total_active_cells > 100000:
+            total_active_cells = int(total_active_cells / total_cells * 100000)
+            total_cells = 100000
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
+        transition_targets = json.loads(request.POST['transition_targets'])
 
         # working file path
         init_conditions_file = os.path.join(settings.STSIM_WORKING_DIR,
@@ -334,6 +437,9 @@ class RunModelView(STSimBaseView):
 
         if is_spatial:
 
+            if not settings.DEBUG:
+                return HttpResponseNotFound()   # Prevent spatial runs for now.
+
             output_settings['RasterOutputSC'] = True
             output_settings['RasterOutputSCTimesteps'] = step
 
@@ -350,6 +456,13 @@ class RunModelView(STSimBaseView):
                 self.stsim.import_spatial_initial_conditions(sid=self.scenario_id, working_path=init_conditions_file,
                                                          strata_path=veg_path, sc_path=sc_path)
         else:
+            self.stsim.import_nonspatial_conditions(
+                self.scenario_id,
+                {'TotalAmount': str(cells_to_acres(total_active_cells,
+                                    stsim_manager.resolutions[self.library])),
+                 'NumCells': str(total_active_cells),
+                 'CalcFromDist': ''},   # Distribution seems off, since we would need to set the number of acres per vegtype.
+                 init_conditions_file)
             self.stsim.import_nonspatial_distribution(self.scenario_id,
                                                       stateclass_relative_distribution,
                                                       init_conditions_file)
@@ -373,6 +486,30 @@ class RunModelView(STSimBaseView):
                                                     probabilities,
                                                     init_conditions_file)
 
+        # clean input and import transition targets
+        clean_transition_targets = dict()
+        for veg in transition_targets:
+            veg_targets = list()
+            for action in transition_targets[veg]:
+                try:
+                    value = int(transition_targets[veg][action])
+                    veg_targets.append({
+                        action: {
+                        'iteration': '',    # no iteration or timestep control, yet
+                        'timestep': '',
+                        'amount': int(transition_targets[veg][action])
+                        }
+                    })
+                except:
+                    continue
+            if len(veg_targets) > 0:
+                clean_transition_targets[veg] = veg_targets
+
+        if len(clean_transition_targets.keys()) > 0:
+            self.stsim.import_transition_targets(self.scenario_id,
+                                                 init_conditions_file,
+                                                 clean_transition_targets)
+
         # run stsim model at self.scenario_id and return the result scenario id
         result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
 
@@ -392,7 +529,8 @@ class RunModelView(STSimBaseView):
             os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file))
+        norm = total_cells / total_active_cells # normalize the results
+        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file, norm=norm))
         return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
 

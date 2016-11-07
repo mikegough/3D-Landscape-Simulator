@@ -40,11 +40,9 @@
     <link href="{% static "css/vendor/tabcontent.css" %}" rel="stylesheet" type="text/css" />
 
     <!-- Alertify -->
-    {% comment %}
     <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.core.css" %}" rel="stylesheet" type="text/css" />
     <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.default.css" %}" rel="stylesheet" type="text/css" />
     <script src="{% static 'js/vendor/alertify/alertify.js-0.3.11/lib/alertify.min.js' %}"></script>
-    {% endcomment %}
 
     <!--selectBoxIt (Styled Select Boxes) -->
     <link type="text/css" rel="stylesheet" href="{% static 'js/vendor/SelectBoxIt/css/jquery.selectBoxIt.css' %}" />
@@ -53,6 +51,7 @@
 
     <!-- My CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css'%}" />
+    <link href="{% static 'css/context_help.css' %}" rel="stylesheet" type="text/css" />
     <link href="{% static 'css/buttons.css' %}" rel="stylesheet" type="text/css" />
 
 </head>
@@ -62,7 +61,7 @@
 
     <div id="contents">
 
-        <div id="input">
+        <div id="input"    class="input_scroll">
             <div id="step1" class="steps">Welcome & Getting Started </div>
             <div id="intro">
                 The 3D Landscape Simulator is a web-based state-and-transition modelling framework powered by ST-Sim.
@@ -75,20 +74,20 @@
                 <p>
                 <div id="click_div"><img id="select_icon" src="{% static 'img/map_select.png' %}"></div>
             </div>
-            <!--<table style="width:100%" id="initial_conditions_table"><tr></tr></table>-->
             <div style="display:none" id="general_settings">
                 <div id="general_settings_instructions">
-                    Use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run.
+                    <p>Use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run. For more information, hover or click the<img class="context_img" style='padding-right: 6px;' src="/static/img/help.png">  icons.</p>
                 </div>
                 <!--
                 Your results will appear on the right hand side of the screen in a series of charts designed to communicate the future composition of your landscape under the scenario you defined.
                 -->
-                <div class="steps">1. General Settings</div>
-                <table id="general_settings_table">
+                <div class="steps">1. General Settings
+                    <span class="context_button" id="help_step_1"> <img class="context_img" src="/static/img/help.png"></span></div>
+                <table class="general_settings_table">
                     <tr>
                         <td>
                             <div id="library_div" class="general_settings_div">
-                                Library:
+                                Library
                             </div>
                         </td>
                         <td>
@@ -105,7 +104,7 @@
                     <tr>
                         <td>
                             <div id="run_mode_div" class="general_settings_div">
-                                Spatial Output:
+                                Spatial Output
                             </div>
                         </td>
                         <td>
@@ -117,7 +116,7 @@
                     <tr>
                         <td>
                             <div id="timesteps_div" class="general_settings_div">
-                                Timesteps:
+                                Timesteps
                             </div>
                         </td>
                         <td>
@@ -129,7 +128,7 @@
                     <tr>
                         <td>
                             <div id="iterations_div" class="general_settings_div">
-                                Iterations:
+                                Iterations
                             </div>
                         </td>
                         <td>
@@ -141,16 +140,18 @@
                 </table>
             </div>
             <div style="display:none" id="input_initial_veg">
-                <div class="steps" id="steps_initial_vegetation_cover">2. Specify Initial Vegetation Cover</div>
+                <div class="steps" id="steps_initial_vegetation_cover">2. Specify Initial Vegetation Cover
+                    <span id="help_step_2" class="context_button"><img class="context_img" src="/static/img/help.png"></span></div>
                 <div class="lefthand_scroll">
-                    <div id="vegtype_slider_container">
+                    <div class="vegtype_slider_container">
                         <table id="vegTypeSliderTable" class="sliderTable"></table>
                     </div>
                 </div>
                 <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">100%</div></div>
             </div>
             <div style="display:none" id="input_climate_future">
-                <div class="steps">3. Climate Change Projections </div>
+                <div class="steps">3. Climate Change Projections
+                <span id="help_step_3" class="context_button"><img class="context_img" src="/static/img/help.png"></span></div>
                 <div id="climate_future_disabled"> Using User-Defined Disturbance Probabilities<p>
                     <input id="reset_default_probabilistic_transitions" type="button" value="Reset">
                 </div>
@@ -158,10 +159,11 @@
             </div>
             <p>
             <div style="display:none" id="input_probabilistic_transitions">
-                <div class="steps">4. Annual Disturbance Probabilities</div>
+                <div class="steps">4. Annual Disturbance Probabilities
+                    <span id="help_step_4" class="context_button"> <img class="context_img" src="/static/img/help.png"></span></div>
                 <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
             </div>
-            <div style="dislay:none">
+            <div style="display:none">
                 <div style="display:none" id="input_management_scenario">
                     <div class="steps" style="display:none">4.&nbsp;Choose a Management Scenario</div>
                     <form method="post">
@@ -240,17 +242,21 @@
     <!-- HIDDEN / POP-UP DIV -->
     <div id="pop-up"></div>
 
-    <!-- WebGL Landscape Viewer and dependencies -->
+    <!-- WebGL Landscape Viewer Dependencies -->
     <script src="{% static 'js/vendor/three/three.min.js' %}"></script>
     <script src="{% static 'js/vendor/three/TGALoader.js' %}"></script>
     <script src="{% static 'js/vendor/three/OrbitControls.js' %}"></script>
+    <script src="{% static 'js/vendor/dat.gui.min.js' %}"></script>
     <script src="{% static 'js/vendor/almond.min.js' %}"></script>
-    <script src="{% static 'js/landscape-viewer.js' %}"></script>
 
     <!-- Leaflet Map -->
     <script src="{% static 'leaflet/leaflet_map.js' %}"></script>
 
+    <!-- Landscape Viewer -->
+    <script src="{% static 'js/landscape-viewer.js' %}"></script>
+
     <!-- General Javascript Functions -->
+    <script src="{% static 'js/context_help.js' %}"></script>
     <script src="{% static 'js/general_js.js' %}"></script>
 
     <!-- Stacked Area Chart -->
