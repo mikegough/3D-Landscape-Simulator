@@ -141,6 +141,7 @@ canvas {
 	border-radius: 5px;
 	width: 94%;
 	margin-bottom: 10px;
+	text-align: center;
 }
 
 .lefthand_scroll{
@@ -657,6 +658,19 @@ div.callout {
 }
 
 #climateFutureSliderTable td {
+	width: 150px;
+	min-width: 150px;
+	line-height: 20px;
+	padding-top: 5px;
+}
+
+.climateFutureSliderTable_disabled {
+	width: 325px;
+	border: 1px solid #bfbfbf;
+	border-radius: 5px;
+}
+
+.climateFutureSliderTable_disabled td {
 	width: 150px;
 	min-width: 150px;
 	line-height: 20px;
