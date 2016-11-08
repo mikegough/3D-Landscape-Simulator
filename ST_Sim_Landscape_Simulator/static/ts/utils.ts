@@ -1,13 +1,5 @@
 // utils.ts
 
-export function $e (id: string) {
-	return document.getElementById(id)
-}
-
-export function $i (id: string) {
-	return document.getElementById(id) as HTMLInputElement
-}
-
 export function detectWebGL() {
 	try {
 		const canvas = document.createElement('canvas')
@@ -18,3 +10,9 @@ export function detectWebGL() {
 		return null
 	}
 }
+
+export function detectWebWorkers() {
+	return typeof(Worker) !== "undefined"
+}
+
+export const suppressConsole = true

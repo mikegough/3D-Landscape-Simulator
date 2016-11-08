@@ -7,12 +7,21 @@
     <link rel="stylesheet" href="https://npmcdn.com/leaflet@1.0.0-rc.1/dist/leaflet.css" />
     <script src="https://npmcdn.com/leaflet@1.0.0-rc.1/dist/leaflet.js"></script>
 
+    <!-- ESRI Leaflet -->
+    <script src="https://unpkg.com/esri-leaflet@2.0.3"></script>
+
+    <!-- leaflet.grouped-layer-control-->
+    <script src="https://rawgithub.com/ismyrnow/Leaflet.groupedlayercontrol/master/src/leaflet.groupedlayercontrol.js"></script>
+    <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.css" />
+    <!--[if lte IE 8]><link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.6.2/leaflet.ie.css" /><![endif]-->
+
     <!-- Leaflet.draw -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.3.2/leaflet.draw.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/0.3.2/leaflet.draw.css" />
 
     <!-- geoJSON file -->
     <script src="{% static 'json/Sagebrush_Reporting_Units_Counties_2_Simplify.json' %}"></script>
+    <script src="{% static 'json/Sagebrush_Reporting_Units_HUC8_watersheds_point2_simplify.json' %}"></script>
 
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.1.0.min.js" integrity="sha256-cCueBR6CsyA4/9szpPfrX3s49M9vUU5BgtiJj06wt/s=" crossorigin="anonymous"></script>
@@ -24,56 +33,145 @@
 
     <!-- Highcharts -->
     <script src="http://code.highcharts.com/highcharts.js"></script>
+    <script src="https://code.highcharts.com/highcharts-more.js"></script>
 
     <!-- Tabs -->
     <script src="{% static "js/vendor/tabcontent.js" %}" type="text/javascript"></script>
     <link href="{% static "css/vendor/tabcontent.css" %}" rel="stylesheet" type="text/css" />
 
+    <!-- Alertify -->
+    <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.core.css" %}" rel="stylesheet" type="text/css" />
+    <link href="{% static "js/vendor/alertify/alertify.js-0.3.11/themes/alertify.default.css" %}" rel="stylesheet" type="text/css" />
+    <script src="{% static 'js/vendor/alertify/alertify.js-0.3.11/lib/alertify.min.js' %}"></script>
+
+    <!--selectBoxIt (Styled Select Boxes) -->
+    <link type="text/css" rel="stylesheet" href="{% static 'js/vendor/SelectBoxIt/css/jquery.selectBoxIt.css' %}" />
+    <script src="{% static 'js/vendor/SelectBoxIt/jqueryui/1.9.2/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'js/vendor/SelectBoxIt/js/jquery.selectBoxIt.min.js' %}"></script>
+
     <!-- My CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css'%}" />
+    <link href="{% static 'css/context_help.css' %}" rel="stylesheet" type="text/css" />
     <link href="{% static 'css/buttons.css' %}" rel="stylesheet" type="text/css" />
-
-    <script>
-        veg_type_state_classes_json = {{veg_type_state_classes_json | safe}}
-        probabilistic_transitions_json = {{probabilistic_transitions_json | safe}}
-        static_url="/static/"
-    </script>
 
 </head>
 
-<body>
+<body class="claro">
     <div id="header"><img id="site_icon" src="{% static 'img/site_icon.png' %}">3D Landscape Simulator</div>
 
     <div id="contents">
 
-        <div id="input">
-            <!-- TODO - remove the anchor tag below and the onclick call since this is purely just for development -->
-            <div id="step1" class="steps"><a onclick="activate_spatial_scene()">1. Click a County or Draw a Box</a></div>
-            <!--<table style="width:100%" id="initial_conditions_table"><tr></tr></table>-->
-            <div style="display:none" id="input_initial_veg">
-                <div class="steps">2. Specify Initial Vegetation Cover</div>
-                <table id="vegTypeSliderTable" class="sliderTable"></table>
-                <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">0%</div></div>
-                <div class="steps">3. Annual Disturbance Probabilities</div>
-                <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
+        <div id="input"    class="input_scroll">
+            <div id="step1" class="steps">Welcome & Getting Started </div>
+            <div id="intro">
+                The 3D Landscape Simulator is a web-based state-and-transition modelling framework powered by ST-Sim.
+                <p>
+                It is designed to simulate the future vegetation composition of a selected area based on a set of initial conditions, disturbance probabilities, and management actions.
+                <p>
+                To get started, select an area of interest by clicking on a reporting unit (e.g., a watershed or county)...
+                <div id="click_div"><img id="click_icon" src="{% static 'img/map_click.png' %}"></div>
+                ...or by using the rectangle tool <span style="font-size:20px">&#9632; </span>to define your own area of interest.
+                <p>
+                <div id="click_div"><img id="select_icon" src="{% static 'img/map_select.png' %}"></div>
+            </div>
+            <div style="display:none" id="general_settings">
+                <div id="general_settings_instructions">
+                    <p>Use the controls below to define the scenario you'd like to simulate. When you are ready, push the Run Model button to conduct a model run. For more information, hover or click the<img class="context_img" style='padding-right: 6px;' src="/static/img/help.png">  icons.</p>
+                </div>
                 <!--
-                Replacement Fire: <input type='text' id='fire_slider_label' value="defaults" class='current_probability_slider_setting' readonly>
-                <div id ="fire_slider" class="slider_bars"></div>
+                Your results will appear on the right hand side of the screen in a series of charts designed to communicate the future composition of your landscape under the scenario you defined.
                 -->
+                <div class="steps">1. General Settings
+                    <span class="context_button" id="help_step_1"> <img class="context_img" src="/static/img/help.png"></span></div>
+                <table class="general_settings_table">
+                    <tr>
+                        <td>
+                            <div id="library_div" class="general_settings_div">
+                                Library
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                   <form class="select_form2">
+                                       <!-- On change, create the charts, passing in whichever variables the user has selectd in all 3 dropdowns -->
+                                       <div class="styled-select2" id="ss1">
+                                           <select id="settings_library"></select>
+                                       </div>
+                                   </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="run_mode_div" class="general_settings_div">
+                                Spatial Output
+                            </div>
+                        </td>
+                        <td>
+                            <ul id="button_list2" class="buttons buttons2" data-persist="false">
+                                <li id="spatial_button"><a id="spatial_link">Enable</a></li>
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="timesteps_div" class="general_settings_div">
+                                Timesteps
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_timesteps" type="text" value="20">
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="iterations_div" class="general_settings_div">
+                                Iterations
+                            </div>
+                        </td>
+                        <td>
+                            <div class="select_container_2">
+                                <input id="settings_iterations" type="text" value="5">
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </div>
-            <br>
-
-            <div style="display:none" id="input_management_scenario">
-                <div class="steps">4.&nbsp;Choose a Management Scenario</div>
-                <form method="post">
-                    <input type="radio" name="scenario" value="10" checked><label for="10" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper.">Current Management </label><br>
-                    <input type="radio" name="scenario" value="188"><label for="188" class="scenario_radio_label" id="No management actions take place in this scenario.">No Management </label><br>
-                    <input type="radio" name="scenario" value="190"><label for="190" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper. Only treatements are in the montane upland sagebrush stratum (200 ac/year).">Minimum Management </label><br>
-                    <input type="radio" name="scenario" value="191"><label for="191" class="scenario_radio_label" id="Treatments focus on thinning of trees in areas that are encroached by pinion and juniper with an additional 450 acres per year of focusing on late seral reference sites to prevent tree encroachment in these areas.">Double Current Management Budget</label><br>
-                </form>
-                <div id="initial_conditions"></div>
-                <input id="run_button" style="display:none" value="Total Percent Cover Must Equal 100%" class="disabled my-button my-button-ok" type="submit">
+            <div style="display:none" id="input_initial_veg">
+                <div class="steps" id="steps_initial_vegetation_cover">2. Specify Initial Vegetation Cover
+                    <span id="help_step_2" class="context_button"><img class="context_img" src="/static/img/help.png"></span></div>
+                <div class="lefthand_scroll">
+                    <div class="vegtype_slider_container">
+                        <table id="vegTypeSliderTable" class="sliderTable"></table>
+                    </div>
+                </div>
+                <div id="total_input_percent_div">Total Percent Cover: <div id="total_input_percent">100%</div></div>
             </div>
+            <div style="display:none" id="input_climate_future">
+                <div class="steps">3. Climate Change Projections
+                <span id="help_step_3" class="context_button"><img class="context_img" src="/static/img/help.png"></span></div>
+                <div id="climate_future_disabled"> Using User-Defined Disturbance Probabilities<p>
+                    <input id="reset_default_probabilistic_transitions" type="button" value="Reset">
+                </div>
+                <table id="climateFutureSliderTable" class="sliderTable"></table>
+            </div>
+            <p>
+            <div style="display:none" id="input_probabilistic_transitions">
+                <div class="steps">4. Annual Disturbance Probabilities
+                    <span id="help_step_4" class="context_button"> <img class="context_img" src="/static/img/help.png"></span></div>
+                <table id="probabilisticTransitionSliderTable" class="sliderTable"></table>
+            </div>
+            <div style="display:none">
+                <div style="display:none" id="input_management_scenario">
+                    <div class="steps" style="display:none">4.&nbsp;Choose a Management Scenario</div>
+                    <form method="post">
+                        <div style="display:none" id="management_scenario_radios"></div>
+                    </form>
+                </div>
+            </div>
+            <input id="run_button" style="display:none" value="Run Model" class="my-button my-button-ok" type="submit">
 
         </div>
 
@@ -84,18 +182,21 @@
                 <li id="scene_button"><a onclick="activate_scene()">3D</a></li>
             </ul>
                 <div id="map"></div>
+                <!--<div id="scene_loading_div"><img id="gears" src="{% static '/img/gears.svg' %}"></div>-->
+                <!-- <div id="scene_loading_div"><img id="scene_loading_img" src="{% static '/img/squares.svg' %}"></div>-->
+                <div id="scene_loading_div"><img id="scene_loading_img" src="{% static '/img/spinner2.svg' %}"></div>
                 <div id="scene" style="display:none"></div>
                 <span id="selected_features"></span>
                 <div id="animation_container">
                     <label class="animation_label" for="animation_slider">Animation Slider (Spatial Outputs)</label>
                     <input id="animation_slider" type="range" min="0" max="0" value="0" step="1">
                     <label class="animation_label" for="viz_type">Show Data?</label>
-                    <input id="viz_type" type="checkbox" checked>
+                    <input id="viz_type" type="checkbox">
                 </div>
+            <div id="scene_legend"></div>
         </div>
 
         <div id="output" style="display:block">
-
             <div id="results">
                 <div id="results_loading"></div>
                 <div id="running_st_sim" style="display:none">Running ST-Sim...</div>
@@ -129,6 +230,7 @@
                                 <table id="results_table_4" class="results_table"></table>
                             </div>
                         </div>
+
                     </div>
                 </div>
 
@@ -140,20 +242,29 @@
     <!-- HIDDEN / POP-UP DIV -->
     <div id="pop-up"></div>
 
-    <!-- WebGL Landscape Viewer and dependencies -->
+    <!-- WebGL Landscape Viewer Dependencies -->
     <script src="{% static 'js/vendor/three/three.min.js' %}"></script>
     <script src="{% static 'js/vendor/three/TGALoader.js' %}"></script>
     <script src="{% static 'js/vendor/three/OrbitControls.js' %}"></script>
+    <script src="{% static 'js/vendor/dat.gui.min.js' %}"></script>
     <script src="{% static 'js/vendor/almond.min.js' %}"></script>
-    <script src="{% static 'js/landscape-viewer.js' %}"></script>
 
     <!-- Leaflet Map -->
     <script src="{% static 'leaflet/leaflet_map.js' %}"></script>
 
+    <!-- Landscape Viewer -->
+    <script src="{% static 'js/landscape-viewer.js' %}"></script>
+
     <!-- General Javascript Functions -->
+    <script src="{% static 'js/context_help.js' %}"></script>
     <script src="{% static 'js/general_js.js' %}"></script>
 
     <!-- Stacked Area Chart -->
     <script src="{% static 'highcharts/stacked_area.js' %}"></script>
+
+    <!-- Column Chart -->
+    <script src="{% static 'highcharts/column_chart.js' %}"></script>
+
+
 </body>
 </html>

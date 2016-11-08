@@ -3,11 +3,21 @@
 // Copyright (c) 2016 by Mike Linkovich;
 // Adapted for use by Taylor Mutch, CBI
 
+// TODO - expand the asset loader to be a tile loader to handle tile assets easily.
+
+export interface TextureAssets {
+	[id: string]: THREE.Texture
+}
+
+export interface GeometryAssets {
+	[id: string]: THREE.Geometry
+}
+
 export interface Assets {
 	images: {[id: string]: HTMLImageElement}
 	text: {[id: string]: string}
-	textures: {[id: string]: THREE.Texture}
-	geometries: {[id: string]: THREE.Geometry}
+	textures: TextureAssets
+	geometries: GeometryAssets
 	statistics: {[id: string]: any}
 }
 
@@ -22,6 +32,10 @@ export interface AssetList {
 	textures?: AssetDescription[]
 	geometries?: AssetDescription[]
 	statistics?: AssetDescription[]
+}
+
+export interface AssetRepo {
+	[name : string] : Assets
 }
 
 /**
