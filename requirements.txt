@@ -1,0 +1,17 @@
+affine==2.0.0.post1
+click==6.6
+click-plugins==1.0.3
+cligj==0.4.0
+Django==1.10
+django-extensions==1.7.2
+future==0.15.2
+GDAL==2.0.3
+netCDF4==1.2.4
+numpy==1.11.1
+numpy-indexed==0.3.4
+Pillow==3.3.1
+pyparsing==2.1.8
+PyYAML==3.12
+rasterio==0.36.0
+six==1.10.0
+snuggs==1.4.0
