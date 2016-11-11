@@ -12,6 +12,8 @@ from Heightmaps.plugins import heights
 from Sagebrush.stsim_utils import stsim_manager
 from stsimpy import cells_to_acres
 from uuid import uuid4
+from ST_Sim_Landscape_Simulator.tasks import run_stsim
+from .models import STSimModelRun
 
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
@@ -510,9 +512,13 @@ class RunModelView(STSimBaseView):
                                                  init_conditions_file,
                                                  clean_transition_targets)
 
+        model_run = STSimModelRun.objects.create(scenario_id=int(self.scenario_id))
+        model_run.save()
+        model_run_id = model_run.pk
+        run_stsim.delay(self.library, model_run_id, self.scenario_id)
+
         # run stsim model at self.scenario_id and return the result scenario id
         result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
-
         if is_spatial:
             # process each output raster in the output directory
             stateclass_definitions = stsim_manager.stateclass_definitions[self.library]
