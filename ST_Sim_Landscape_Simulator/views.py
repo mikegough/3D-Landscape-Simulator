@@ -16,6 +16,9 @@ from uuid import uuid4
 # Two decimal places when dumping to JSON
 encoder.FLOAT_REPR = lambda o: format(o, '.2f')
 
+# Max number of cells
+MAX_CELLS = 100000
+
 class HomepageView(TemplateView):
 
     template_name = 'index.html'
@@ -411,9 +414,9 @@ class RunModelView(STSimBaseView):
         stateclass_relative_distribution = json.loads(request.POST['veg_slider_values_state_class'])
         total_active_cells = int(request.POST['total_active_cells'])
         total_cells = int(request.POST['total_cells'])
-        if total_active_cells > 100000:
-            total_active_cells = int(total_active_cells / total_cells * 100000)
-            total_cells = 100000
+        if total_cells > MAX_CELLS:
+            total_active_cells = int(total_active_cells / total_cells * MAX_CELLS)
+            total_cells = MAX_CELLS
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
         transition_targets = json.loads(request.POST['transition_targets'])
 
@@ -463,6 +466,16 @@ class RunModelView(STSimBaseView):
                  'NumCells': str(total_active_cells),
                  'CalcFromDist': ''},   # Distribution seems off, since we would need to set the number of acres per vegtype.
                  init_conditions_file)
+
+            # adjust stateclass relative distribution based on number of active cells (converted to acres)
+            for veg_type in stateclass_relative_distribution.keys():
+                state_class_dict = stateclass_relative_distribution[veg_type]
+                for state_class in state_class_dict.keys():
+                    value = state_class_dict[state_class]
+                    land_coverage = cells_to_acres(int(value * total_active_cells), stsim_manager.resolutions[self.library])
+                    state_class_dict[state_class] = land_coverage
+                stateclass_relative_distribution[veg_type] = state_class_dict
+
             self.stsim.import_nonspatial_distribution(self.scenario_id,
                                                       stateclass_relative_distribution,
                                                       init_conditions_file)
@@ -529,7 +542,7 @@ class RunModelView(STSimBaseView):
             os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        norm = total_cells / total_active_cells # normalize the results
+        norm = total_active_cells / total_cells # normalize the results
         results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file, norm=norm))
         return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
 
