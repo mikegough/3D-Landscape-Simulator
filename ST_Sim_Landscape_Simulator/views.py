@@ -513,31 +513,55 @@ class RunModelView(STSimBaseView):
                                                  clean_transition_targets)
 
         model_run = STSimModelRun.objects.create(scenario_id=int(self.scenario_id))
-        model_run.save()
         model_run_id = model_run.pk
-        run_stsim.delay(self.library, model_run_id, self.scenario_id)
+        run_stsim.delay(self.library, model_run_id, self.scenario_id)  # start model run
 
         # run stsim model at self.scenario_id and return the result scenario id
-        result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
-        if is_spatial:
+
+        #result_scenario_id = self.stsim.run_model(sid=self.scenario_id)
+        #if is_spatial:
             # process each output raster in the output directory
-            stateclass_definitions = stsim_manager.stateclass_definitions[self.library]
-            texture_utils.process_stateclass_directory(
-                dir_path=os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
-                sc_defs=stateclass_definitions
-            )
+            #stateclass_definitions = stsim_manager.stateclass_definitions[self.library]
+            #texture_utils.process_stateclass_directory(
+            #    dir_path=os.path.join(self.stsim.lib + '.output', 'Scenario-'+str(result_scenario_id), 'Spatial'),
+            #    sc_defs=stateclass_definitions
+            #)
 
         # collect the summary statistics and return to the user
-        report_file = os.path.join(settings.STSIM_WORKING_DIR, "model_results",
-                                   "stateclass-summary-" + str(result_scenario_id) + ".csv")
+        #report_file = os.path.join(settings.STSIM_WORKING_DIR, "model_results",
+        #                           "stateclass-summary-" + str(result_scenario_id) + ".csv")
 
-        if os.path.exists(report_file):
-            os.remove(report_file)
+        #if os.path.exists(report_file):
+        #    os.remove(report_file)
 
         # Return the completed spatial run id, and use that ID for obtaining the resulting output timesteps' rasters
-        norm = total_cells / total_active_cells # normalize the results
-        results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file, norm=norm))
-        return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
+        #norm = total_cells / total_active_cells # normalize the results
+        #results_json = json.dumps(self.stsim.export_stateclass_summary(result_scenario_id, report_file, norm=norm))
+        #return HttpResponse(json.dumps({'results_json': results_json, 'result_scenario_id': result_scenario_id}))
+
+        return HttpResponse(json.dumps({'model_run_id': model_run_id, 'status': 'started', 'total_active_cells': total_active_cells, 'total_cells': total_cells}))
+
+
+class RunModelStatusView(STSimBaseView):
+
+    def get(self, request, *args, **kwargs):
+
+        model_run_id = int(request.GET['model_run_id'])
+        model_run = STSimModelRun.objects.get(pk=model_run_id)
+        rsid = model_run.result_scenario_id
+        response = dict()
+        if model_run.result_scenario_id != -1:
+            report_file = os.path.join(settings.STSIM_WORKING_DIR, "model_results",
+                                       "stateclass-summary-" + str(rsid) + ".csv")
+            total_cells = int(request.GET['total_cells'])
+            total_active_cells = int(request.GET['total_active_cells'])
+            norm = total_active_cells / total_cells
+            response['results_json'] = self.stsim.export_stateclass_summary(rsid, report_file, norm=norm)
+            response['result_scenario_id'] = rsid
+            response['status'] = 'complete'
+        else:
+            response['status'] = 'running'
+        return JsonResponse(response)
 
 
 class RasterOutputsView(STSimBaseView):
