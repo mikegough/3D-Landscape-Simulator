@@ -215,40 +215,66 @@ function run_st_sim(feature_id) {
 
         // handle a successful response
         success: function (json) {
-            $("#results_loading").empty()
-            var response = JSON.parse(json)
-            results_data_json = JSON.parse(response["results_json"])
 
-            // Maximum of 4 model runs
-            if (run == 4) {
-                run = 1;
-            }
-            else {
-                run += 1;
-            }
-            $("#column_charts_" + run).empty()
-            $("#area_charts" + run).empty()
+            var model_run_reponse = JSON.parse(json)
+            var model_run_id = model_run_reponse["model_run_id"];
+            var total_cells = model_run_reponse["total_cells"];
+            var total_active_cells = model_run_reponse["total_active_cells"];
 
-            $("#tab_container").css("display", "block")
-            //update_results_table(timestep, run)
-            update_results_table(run);
-            previous_feature_id = feature_id
+            (function poll(){
+                setTimeout(function(){
+                    $.getJSON(settings['library'] + '/run_st_sim/' + current_uuid + '/done/',
+                        {
+                            'model_run_id': model_run_id,
+                            'total_cells': total_cells,
+                            'total_active_cells': total_active_cells
+                        }).done(
+                        function(res) {
+                            var status = res['status'];
+                            if (status == 'complete') {
+                                $("#results_loading").empty()
+                                var response = res;
+                                //results_data_json = JSON.parse(response["results_json"])
+                                results_data_json = response["results_json"];
+                                // Maximum of 4 model runs
+                                if (run == 4) {
+                                    run = 1;
+                                }
+                                else {
+                                    run += 1;
+                                }
+                                $("#column_charts_" + run).empty()
+                                $("#area_charts" + run).empty()
 
-            create_area_charts(results_data_json, run)
-            create_column_charts(results_data_json, run)
+                                $("#tab_container").css("display", "block")
+                               //update_results_table(timestep, run)
+                                update_results_table(run);
+                                previous_feature_id = feature_id
 
-            document.getElementById("view" + run + "_link").click()
+                                create_area_charts(results_data_json, run)
+                                create_column_charts(results_data_json, run)
 
-            var run_control = { // TODO - this should come from the back-end, for continuity
-                'library': settings['library'],
-                'min_step': 0,
-                'max_step': settings['timesteps'],
-                'step_size': 1,
-                'iterations': settings['iterations'],
-                'spatial': settings['spatial'],
-                'result_scenario_id': JSON.parse(response["result_scenario_id"])
-            };
-            landscape_viewer.collectSpatialOutputs(run_control);
+                                document.getElementById("view" + run + "_link").click()
+
+                                var run_control = { // TODO - this should come from the back-end, for continuity
+                                    'library': settings['library'],
+                                    'min_step': 0,
+                                    'max_step': settings['timesteps'],
+                                    'step_size': 1,
+                                    'iterations': settings['iterations'],
+                                    'spatial': settings['spatial'],
+                                    'result_scenario_id': JSON.parse(response["result_scenario_id"])
+                                };
+                                //landscape_viewer.collectSpatialOutputs(run_control);
+                            } else {
+                                poll();
+                            }
+                        })
+                }, 20000);  // check every 20 seconds
+            })();
+
+
+
         },
 
         // handle a non-successful response
