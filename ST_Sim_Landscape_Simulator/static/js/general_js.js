@@ -166,9 +166,9 @@ function show_input_options (){
 
 }
 
-var run=0
-var iteration=1
-var timestep=0
+var run=0;
+var iteration=1;
+var timestep=1;
 
 // Send the scenario and initial conditions to ST-Sim.
 var settings={}

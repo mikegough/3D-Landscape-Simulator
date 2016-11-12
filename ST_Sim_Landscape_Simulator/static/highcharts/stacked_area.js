@@ -116,7 +116,7 @@ function create_area_charts(results_data_json, run, iteration) {
         }
 
         //Restructure Dictionary
-        chart_dict = {};
+        var chart_dict = {};
         $.each(results_data_json[iteration], function (timestep, results_dict) {
             $.each(results_dict, function (veg_type, value) {
                 if (typeof chart_dict[veg_type] == "undefined") {
@@ -140,22 +140,22 @@ function create_area_charts(results_data_json, run, iteration) {
         //$("#area_charts").empty()
 
         // Go through each veg type in the results and make a chart out of the state class values
-        chart_count=1
+        var chart_count=1
         $.each(chart_dict, function(veg_type,value) {
 
-            chart_div_id="chart_" + run + "_"  + chart_count
+            var chart_div_id="chart_" + run + "_"  + chart_count;
 
             $("#area_charts_" +run).append("<div class='stacked_area_chart_title' id='stacked_area_chart_title_" + chart_count +"'>" + actualVegName(veg_type) +
 
             "<span class='show_chart_link' id='show_stacked_area_chart_link_" + chart_count + "_" + run +"'> <img class='dropdown_arrows' src='/static/img/up_arrow.png'></span></div>")
 
             //add a new chart div
-            $("#area_charts_" + run).append("<div id='" + chart_div_id + "'></div>")
+            $("#area_charts_" + run).append("<div id='" + chart_div_id + "'></div>");
 
             // Create the chart
-            create_area_chart(veg_type,chart_div_id)
+            create_area_chart(veg_type,chart_div_id);
 
-            ac = $('#'+chart_div_id).highcharts()
+            ac = $('#'+chart_div_id).highcharts();
 
             // Add a series for each state class
             $.each(chart_dict[veg_type], function (state_class_name, values_array) {
@@ -174,21 +174,21 @@ function create_area_charts(results_data_json, run, iteration) {
                 })
             });
 
-            bind_click_to_collapse(chart_div_id, run)
+            bind_click_to_collapse(chart_div_id, run, chart_count);
             chart_count++;
 
         });
 }
 
-function bind_click_to_collapse(chart_div_id, run) {
+function bind_click_to_collapse(chart_div_id, run, chart_count) {
 
     $("#show_stacked_area_chart_link_" + chart_count + "_" + run).click(function () {
         if ($("#" + chart_div_id).is(":visible")) {
-            $(this).html(" <img class='dropdown_arrows' src='/static/img/down_arrow.png'>")
+            $(this).html(" <img class='dropdown_arrows' src='/static/img/down_arrow.png'>");
             $("#" + chart_div_id).hide()
         }
         else {
-            $(this).html(" <img class='dropdown_arrows' src='/static/img/up_arrow.png'>")
+            $(this).html(" <img class='dropdown_arrows' src='/static/img/up_arrow.png'>");
             $("#" + chart_div_id).show()
         }
     });
