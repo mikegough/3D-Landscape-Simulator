@@ -407,7 +407,7 @@ class RunModelView(STSimBaseView):
 
         timesteps = int(request.POST['timesteps'])
         step = 1
-        min_step = 0
+        min_step = 1
         max_step = timesteps
         iterations = int(request.POST['iterations'])
         is_spatial = json.loads(request.POST['spatial'])
