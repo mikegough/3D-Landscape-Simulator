@@ -141,7 +141,7 @@ function show_input_options (){
 
     $("#input_initial_veg").show();
     $("#general_settings").show();
-    $("#input_climate_future").show();
+    //$("#input_climate_future").show();
     $("#input_probabilistic_transitions").show();
 
 

@@ -133,10 +133,10 @@ class STSimManager:
 def compute_groups_by_veg(console, pid, sid, path, selected=None):
 
     # This is how to get transition groups by veg.
-    transitions = console.export_probabilistic_transitions_map(sid, path.split('.')[0] + '-map.csv',
-                                                               readonly=os.path.exists(path.split('.')[0] + '-map.csv'))
-    types_by_group = console.export_probabilistic_transitions_by_group(pid, path.split('.')[0] + '-grps.csv',
-                                                                       readonly=os.path.exists(path.split('.')[0] + '-grps.csv'))
+    transitions = console.export_probabilistic_transitions_map(sid, path.split('-trgrps.csv')[0] + '-map.csv',
+                                                               readonly=os.path.exists(path.split('-trgrps.csv')[0] + '-map.csv'))
+    types_by_group = console.export_probabilistic_transitions_by_group(pid, path.split('-trgrps.csv')[0] + '-grps.csv',
+                                                                       readonly=os.path.exists(path.split('-trgrps.csv')[0] + '-grps.csv'))
     transition_types_by_veg = dict()
     for veg in transitions:
         transition_types_by_veg[veg] = list()
