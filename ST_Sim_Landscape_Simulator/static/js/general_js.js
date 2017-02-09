@@ -241,7 +241,7 @@ function run_st_sim(feature_id) {
 
             var run_control = { // TODO - this should come from the back-end, for continuity
                 'library': settings['library'],
-                'min_step': 0,
+                'min_step': 1,
                 'max_step': settings['timesteps'],
                 'step_size': 1,
                 'iterations': settings['iterations'],
@@ -852,7 +852,7 @@ function activate_scene(){
     )
 }
 
-var enable_spatial = false
+var enable_spatial = true
 $("#spatial_link").click(function(){
 
     if (!enable_spatial) {

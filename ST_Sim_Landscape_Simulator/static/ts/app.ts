@@ -492,7 +492,10 @@ export default function run(container_id: string, showloadingScreen: Function, h
 
 	function collectSpatialOutputs(runControl: STSIM.RunControl) {
 
-		if (!runControl.spatial) return
+		if (!runControl.spatial) {
+			$('#animation_container').hide()
+			return
+		}
 		
 		const sid = runControl.result_scenario_id
 		const srcSpatialTexturePath = runControl.library + '/outputs/' + sid
@@ -513,40 +516,37 @@ export default function run(container_id: string, showloadingScreen: Function, h
 				console.log('Animation assets loaded!')
 				
 				masterAssets[String(sid)] = loadedAssets
+				const terrain = scene.getObjectByName('terrain') as THREE.Group
 
-				const dataGroup = scene.getObjectByName('data') as THREE.Group
-				const realismGroup = scene.getObjectByName('realism') as THREE.Group
-				dataGroup.visible = true
-				realismGroup.visible = false
 				render()
 
 				// create an animation slider and update the stateclass texture to the last one in the timeseries, poc
-				$('#viz_type').prop('checked', true)
 				const animationSlider = $('#animation_slider')
 				const currentIteration = 1								// TODO - show other iterations
 				animationSlider.attr('max', runControl.max_step)
+				animationSlider.attr('min', runControl.min_step)
 				animationSlider.attr('step', runControl.step_size)
 				animationSlider.on('input', function() {
 					const timestep = animationSlider.val()
 					let timeTexture: THREE.Texture
-					if (timestep == 0 || timestep == '0') {
-						timeTexture = masterAssets[String(sid)].textures['1_0']
-					}
-					else {
-						timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
-					}
+					timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)]
 
-					let vegetation = scene.getObjectByName('vegetation')
-					let childMaterial: THREE.RawShaderMaterial
-					for (var i = 0; i < vegetation.children.length; i++) {
-						const child = vegetation.children[i] as THREE.Mesh
-						childMaterial = child.material as THREE.RawShaderMaterial
-						childMaterial.uniforms.sc_tex.value = timeTexture
-						childMaterial.needsUpdate = true
-					}
+					let childMaterial: THREE.ShaderMaterial
+					for (var i = 0; i < terrain.children.length; i++) {
+						const child = terrain.children[i] as THREE.Mesh
+						let childData = child.userData as TileData
+						childMaterial = child.material as THREE.ShaderMaterial
 
+						if (childData['active_texture_type'] == 'sc') {
+
+							childMaterial.uniforms.active_texture.value = timeTexture
+							childMaterial.needsUpdate = true
+						}
+					}
 					render()
 				})
+
+				$('#animation_container').show()
 			},reportProgress,reportError)
 	}
 

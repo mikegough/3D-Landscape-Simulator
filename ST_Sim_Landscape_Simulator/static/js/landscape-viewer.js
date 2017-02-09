@@ -309,8 +309,8 @@ define("assetloader", ["require", "exports"], function (require, exports) {
             load: load,
             getAssets: () => assets
         };
-    }
-    exports.Loader = Loader; // end Loader
+    } // end Loader
+    exports.Loader = Loader;
 });
 // stsim.ts
 define("stsim", ["require", "exports"], function (require, exports) {
@@ -737,8 +737,10 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
             hideLoadingScreen();
         }
         function collectSpatialOutputs(runControl) {
-            if (!runControl.spatial)
+            if (!runControl.spatial) {
+                $('#animation_container').hide();
                 return;
+            }
             const sid = runControl.result_scenario_id;
             const srcSpatialTexturePath = runControl.library + '/outputs/' + sid;
             let model_outputs = new Array();
@@ -755,36 +757,31 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
             }, function (loadedAssets) {
                 console.log('Animation assets loaded!');
                 masterAssets[String(sid)] = loadedAssets;
-                const dataGroup = scene.getObjectByName('data');
-                const realismGroup = scene.getObjectByName('realism');
-                dataGroup.visible = true;
-                realismGroup.visible = false;
+                const terrain = scene.getObjectByName('terrain');
                 render();
                 // create an animation slider and update the stateclass texture to the last one in the timeseries, poc
-                $('#viz_type').prop('checked', true);
                 const animationSlider = $('#animation_slider');
                 const currentIteration = 1; // TODO - show other iterations
                 animationSlider.attr('max', runControl.max_step);
+                animationSlider.attr('min', runControl.min_step);
                 animationSlider.attr('step', runControl.step_size);
                 animationSlider.on('input', function () {
                     const timestep = animationSlider.val();
                     let timeTexture;
-                    if (timestep == 0 || timestep == '0') {
-                        timeTexture = masterAssets[String(sid)].textures['1_0'];
-                    }
-                    else {
-                        timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)];
-                    }
-                    let vegetation = scene.getObjectByName('vegetation');
+                    timeTexture = masterAssets[String(sid)].textures[String(currentIteration) + '_' + String(timestep)];
                     let childMaterial;
-                    for (var i = 0; i < vegetation.children.length; i++) {
-                        const child = vegetation.children[i];
+                    for (var i = 0; i < terrain.children.length; i++) {
+                        const child = terrain.children[i];
+                        let childData = child.userData;
                         childMaterial = child.material;
-                        childMaterial.uniforms.sc_tex.value = timeTexture;
-                        childMaterial.needsUpdate = true;
+                        if (childData['active_texture_type'] == 'sc') {
+                            childMaterial.uniforms.active_texture.value = timeTexture;
+                            childMaterial.needsUpdate = true;
+                        }
                     }
                     render();
                 });
+                $('#animation_container').show();
             }, reportProgress, reportError);
         }
         function computeHeightsCPU(hmTexture) {
