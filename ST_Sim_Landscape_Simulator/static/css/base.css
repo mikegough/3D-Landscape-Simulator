@@ -99,7 +99,7 @@ canvas {
 #animation_container {
 	background-color: #E9E9E9;
 	font-weight: bold;
-	padding: 9px 0px 9px 9px;
+	padding: 9px 20px 9px 20px;
 	border-radius: 5px;
 	display: none;
 	position: absolute;
@@ -109,8 +109,13 @@ canvas {
 	width: 300px;
 }
 
-#animation_slider {
+#animation_slider, #animation_ticks {
 	width: 290px;
+}
+
+#animation_ticks {
+	position: relative;
+	height: 10px;
 }
 
 #selected_features {
@@ -1115,4 +1120,12 @@ ul.buttons2 li.selected a, ul.buttons2 li.selected a:hover {
 #select_icon {
 	width:165px;
 	text-align:center;
+}
+
+.tick {
+    border: 1px solid transparent; /*follows slide handle style for sizing purposes*/
+    position: relative;
+    width: 1.2em;
+    margin-left: -.5em;
+    text-align:center;
 }

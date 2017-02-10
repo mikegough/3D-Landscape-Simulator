@@ -765,6 +765,18 @@ define("app", ["require", "exports", "terrain", "utils", "assetloader"], functio
                 animationSlider.attr('max', runControl.max_step);
                 animationSlider.attr('min', runControl.min_step);
                 animationSlider.attr('step', runControl.step_size);
+                // tick marks
+                $('#animation_ticks').find('.tick').remove();
+                $('<span class="tick">' + String(runControl.min_step) + '</span>').css('left', '0%').appendTo($('#animation_ticks'));
+                const diff = runControl.max_step;
+                if (diff % 2 !== 0) {
+                    $('<span class="tick">' + String((diff - 1) / 2 + 1) + '</span>').css('left', '50%').appendTo($('#animation_ticks'));
+                }
+                else {
+                    $('<span class="tick">' + String(runControl.min_step + diff / 4) + '</span>').css('left', '33%').appendTo($('#animation_ticks'));
+                    $('<span class="tick">' + String(runControl.max_step - diff / 4) + '</span>').css('left', '66%').appendTo($('#animation_ticks'));
+                }
+                $('<span class="tick">' + String(runControl.max_step) + '</span>').css('left', '100%').appendTo($('#animation_ticks'));
                 animationSlider.on('input', function () {
                     const timestep = animationSlider.val();
                     let timeTexture;
