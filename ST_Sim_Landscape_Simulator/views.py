@@ -393,6 +393,10 @@ class LibraryInfoView(STSimBaseView):
         return JsonResponse(response)
 
 
+def castle_creek_spatial(stsim, rsid, rfile, norm):
+    return json.dumps(stsim.export_stateclass_summary(rsid, rfile, norm=norm))
+
+
 class RunModelView(STSimBaseView):
 
     def __init__(self):
@@ -419,6 +423,14 @@ class RunModelView(STSimBaseView):
             total_cells = MAX_CELLS
         probabilistic_transitions_modifiers = json.loads(request.POST['probabilistic_transitions_slider_values'])
         transition_targets = json.loads(request.POST['transition_targets'])
+
+        # castle creek canned run
+        if is_spatial and self.library == 'Castle Creek':
+            return HttpResponse(json.dumps({
+                'results_json': castle_creek_spatial(self.stsim, '315',
+                    os.path.join(settings.STSIM_WORKING_DIR,"model_results",
+                                 "stateclass-summary-" + str(315) + ".csv"), 1.0),
+                'result_scenario_id': '315'},))
 
         # working file path
         init_conditions_file = os.path.join(settings.STSIM_WORKING_DIR,
